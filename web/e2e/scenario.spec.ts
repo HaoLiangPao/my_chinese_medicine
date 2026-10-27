@@ -19,7 +19,7 @@ import {
   expectedStock,
   expectedUsage,
 } from "./fixtures/scenario";
-import { ensureRows, parseGrams, signIn, signUp, sql, users, workspaceOf } from "./helpers";
+import { activeWorkspaceOf, ensureRows, parseGrams, signIn, signUp, sql, users, workspaceOf } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -32,21 +32,32 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => page.close());
 
-test("1. 注册账号，自动创建药柜；家人注册后被拉进同一个药柜", async ({ browser }) => {
+test("1. 注册账号，自动创建药柜；邀请家人，对方接受后共用一个药柜", async ({ browser }) => {
   await signUp(page, users.hao);
   await expect(page.getByText("还没有药方，先录第一张吧。")).toBeVisible();
 
+  // 先邀请（对方还没注册也可以），邮箱大小写不敏感
+  await page.getByLabel("邀请邮箱").fill(users.tina.email.toUpperCase());
+  await page.getByRole("button", { name: "邀请", exact: true }).click();
+  await expect(page.getByText(`已邀请 ${users.tina.email}，等待对方接受`)).toBeVisible();
+
   const tinaPage = await browser.newPage();
   await signUp(tinaPage, users.tina);
-  const tinaOwnWs = await workspaceOf(users.tina.email);
+  const tinaOwnWs = await activeWorkspaceOf(users.tina.email);
+  // 没接受之前还在自己的药柜
+  expect(tinaOwnWs).not.toBe(await activeWorkspaceOf(users.hao.email));
+  const incoming = tinaPage.getByTestId("incoming-invites");
+  await expect(incoming).toContainText(`${users.hao.email} 邀请你加入「我们家」`);
+  await incoming.getByRole("button", { name: "接受" }).click();
+  await expect(incoming).toHaveCount(0);
+  await expect(tinaPage.getByTestId("member-list").locator("li")).toHaveCount(2);
+  await expect(tinaPage.getByRole("button", { name: "退出这个药柜" })).toBeVisible(); // 成员可以退出
   await tinaPage.close();
 
-  await page.getByPlaceholder("家人的注册邮箱").fill(users.tina.email.toUpperCase()); // 大小写不敏感
-  await page.getByRole("button", { name: "添加" }).click();
-  await expect(page.getByText("共 2 人共享这个药柜")).toBeVisible();
-
-  const hws = await workspaceOf(users.hao.email);
-  expect(await workspaceOf(users.tina.email)).toBe(hws);
+  await page.reload();
+  await expect(page.getByTestId("member-list")).toContainText(users.tina.email);
+  await expect(page.getByTestId("sent-invites")).toHaveCount(0);
+  expect(await activeWorkspaceOf(users.tina.email)).toBe(await activeWorkspaceOf(users.hao.email));
   // Tina 自动生成的空药柜被清理
   expect(await sql("select 1 from workspaces where id = $1", [tinaOwnWs])).toHaveLength(0);
 });

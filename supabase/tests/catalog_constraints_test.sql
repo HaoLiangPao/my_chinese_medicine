@@ -66,28 +66,30 @@ select assert_raises(format('insert into prescription_items (prescription_id, he
 -- 更新/删除别人的数据：影响 0 行
 update prescriptions set title = 'hacked' where id = :'rx';
 delete from purchases where id = :'pu';
--- 不是 owner 不能拉人
-select assert_raises(format('select add_member_by_email(%L, %L)', :'ws', 'stranger@example.com'), '只有 owner', '非 owner 拉人');
+-- 不是 owner 不能邀请
+select assert_raises(format('select invite_member(%L, %L)', :'ws', 'stranger@example.com'), '只有 owner', '非 owner 邀请');
 
 :as_hao;
 select assert_eq((select title from prescriptions where id = :'rx'), null::text, '陌生人的 update 没生效');
 select assert_eq((select count(*) from purchases where id = :'pu'), 1::bigint, '陌生人的 delete 没生效');
-select assert_raises(format('select add_member_by_email(%L, %L)', :'ws', 'nobody@example.com'), '还没注册', '邮箱没注册');
 
--- ---- 家人加入后能读写 ----
-select add_member_by_email(:'ws', 'tina@example.com');
+-- ---- 家人接受邀请后能读写 ----
+select invite_member(:'ws', 'tina@example.com');
 :as_tina;
-select assert_eq(ensure_default_workspace(), :'ws'::uuid, 'Tina 加入后默认 workspace 就是共享的');
+select accept_invitation((select id from my_invitations()));
+select assert_eq(ensure_default_workspace(), :'ws'::uuid, 'Tina 接受后当前 workspace 就是共享的');
 insert into stores (workspace_id, name) values (:'ws', 'Tina 常去的店');
 select assert_eq((select count(*) from pantry_settings), 1::bigint, 'Tina 看得到罐子设置');
--- member 不能再拉人（只有 owner）
-select assert_raises(format('select add_member_by_email(%L, %L)', :'ws', 'stranger@example.com'), '只有 owner', 'member 拉人');
+-- member 不能邀请（只有 owner）
+select assert_raises(format('select invite_member(%L, %L)', :'ws', 'stranger@example.com'), '只有 owner', 'member 邀请');
 
--- 有数据的 workspace 不会在加入别家时被删
+-- 有数据的 workspace 不会在接受别家邀请时被删
 :as_other;
 insert into stores (workspace_id, name) values (:'ws_other', '我自己的店');
 :as_hao;
-select add_member_by_email(:'ws', 'stranger@example.com');
+select invite_member(:'ws', 'stranger@example.com');
+:as_other;
+select accept_invitation((select id from my_invitations()));
 reset role;
 select assert_eq((select count(*) from workspaces where id = :'ws_other'), 1::bigint, '有数据的 workspace 保留');
 
@@ -95,7 +97,7 @@ select assert_eq((select count(*) from workspaces where id = :'ws_other'), 1::bi
 
 -- ---- 加固（migration 0006）----
 :as_other;
-update herbs set name_zh = '被改掉的黄芪' where name_zh = '黄芪';
+select assert_raises($$update herbs set name_zh = '被改掉的黄芪' where name_zh = '黄芪'$$, 'permission denied', '不能 update 药材');
 reset role;
 select assert_eq((select count(*) from herbs where name_zh = '黄芪'), 1::bigint, '普通用户不能修改共享药材目录');
 :as_other;

@@ -4,6 +4,7 @@ import { invalidateAll } from "@/lib/invalidate";
 import { getContext } from "@/lib/auth";
 import { resolveHerbId } from "@/lib/herbs";
 import { num, str } from "@/lib/format";
+import { round2 } from "@/lib/rx";
 
 /** 把某味药的库存校准到「实际称重」的克数：写一条差额流水 */
 export async function adjustInventory(form: FormData) {
@@ -14,8 +15,14 @@ export async function adjustInventory(form: FormData) {
   const herbName = str(form.get("herb_name"));
   const herbId = herbName ? await resolveHerbId(supabase, herbName) : String(form.get("herb_id"));
 
-  const { data } = await supabase.from("v_inventory").select("on_hand_grams").eq("herb_id", herbId).maybeSingle();
-  const delta = actual - Number(data?.on_hand_grams ?? 0);
+  const { data, error: readErr } = await supabase
+    .from("v_inventory")
+    .select("on_hand_grams")
+    .eq("workspace_id", workspaceId)
+    .eq("herb_id", herbId)
+    .maybeSingle();
+  if (readErr) throw new Error(readErr.message);
+  const delta = round2(actual - Number(data?.on_hand_grams ?? 0)); // 数据库只存两位小数，差额 < 0.005 视为 0
   if (delta === 0) return;
 
   const { error } = await supabase.from("inventory_txns").insert({

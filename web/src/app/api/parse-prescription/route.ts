@@ -30,6 +30,8 @@ export type ParseResponse =
     }
   | { error: string; photo_path?: string };
 
+const ALLOWED_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
 const PROMPT = `这是一张中医药方（可能是手写或打印）。请把上面的内容转成结构化数据。
 要求：
 - 每一味药一条，按方子上的顺序；
@@ -49,15 +51,23 @@ export async function POST(req: Request) {
   const photo = form.get("photo");
   if (!(photo instanceof Blob)) return NextResponse.json({ error: "没有收到照片" }, { status: 400 });
   if (photo.size > 5 * 1024 * 1024) return NextResponse.json({ error: "照片太大（>5MB）" }, { status: 413 });
+  const ext = ALLOWED_TYPES[photo.type];
+  if (!ext) return NextResponse.json({ error: "只支持 JPEG / PNG / WebP 图片" }, { status: 415 });
+
+  // 每人每天的识别次数上限（防止 API 额度被刷）
+  const limit = Number(process.env.PARSE_DAILY_LIMIT ?? 30);
+  const { data: allowed, error: quotaErr } = await supabase.rpc("consume_parse_quota", { p_limit: limit });
+  if (quotaErr) return NextResponse.json({ error: quotaErr.message }, { status: 500 });
+  if (!allowed) return NextResponse.json({ error: `今天的识别次数已用完（每天 ${limit} 次），可以手动录入` }, { status: 429 });
 
   const { data: ws, error: wsErr } = await supabase.rpc("ensure_default_workspace");
   if (wsErr) return NextResponse.json({ error: wsErr.message }, { status: 500 });
 
   const bytes = Buffer.from(await photo.arrayBuffer());
-  const mediaType = (photo.type || "image/jpeg") as "image/jpeg" | "image/png" | "image/webp";
+  const mediaType = photo.type as "image/jpeg" | "image/png" | "image/webp";
 
   // 1) 存照片（私有 bucket，路径以 workspace_id 开头，RLS 依此判断）
-  const photoPath = `${ws}/${crypto.randomUUID()}.jpg`;
+  const photoPath = `${ws}/${crypto.randomUUID()}.${ext}`;
   const { error: upErr } = await supabase.storage
     .from("prescription-photos")
     .upload(photoPath, bytes, { contentType: mediaType });

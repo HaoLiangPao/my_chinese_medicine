@@ -25,7 +25,7 @@ function cheapestOffer(herb: string) {
 function avgCost(herb: string) {
   let g = 0, p = 0;
   for (const pu of PURCHASES) for (const l of pu.lines) if (l.herb === herb) { g += l.grams; p += l.price ?? 0; }
-  return g ? r6(p / g) : null;
+  return g && p > 0 ? r6(p / g) : null; // 只有赠品 → 没有成本
 }
 function rxCost(name: string, pick: (herb: string) => number | null) {
   const f = FORMULAS.find((x) => x.name === name)!;

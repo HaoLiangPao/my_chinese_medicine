@@ -58,6 +58,7 @@ export default defineConfig({
         ANTHROPIC_API_KEY: "test-key",
         ANTHROPIC_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
         ANTHROPIC_MODEL: "claude-sonnet-5-5",
+        PARSE_DAILY_LIMIT: "5",
       },
     },
   ],

@@ -23,6 +23,7 @@ export default function PrescriptionPage({ params, searchParams }: PageProps<"/p
 
 type Rx = {
   id: string;
+  workspace_id: string;
   title: string | null;
   prescriber: string | null;
   patient_label: string | null;
@@ -65,11 +66,12 @@ async function Detail({
   const herbIds = items.map((i) => i.herb_id);
 
   const [{ data: inv }, { data: variance }, herbs, photo] = await Promise.all([
-    supabase.from("v_inventory").select("herb_id, on_hand_grams").in("herb_id", herbIds),
+    supabase.from("v_inventory").select("herb_id, on_hand_grams").eq("workspace_id", rx.workspace_id).in("herb_id", herbIds),
     supabase
       .from("v_decoction_variance")
       .select("decoction_id, decocted_at, doses, name_zh, planned_grams, actual_grams, diff_grams")
       .eq("prescription_id", id)
+      .eq("workspace_id", rx.workspace_id)
       .order("decocted_at", { ascending: false }),
     listHerbs(supabase),
     rx.photo_path

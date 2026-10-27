@@ -17,6 +17,16 @@ export function num(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** 安全地解析表单里的 JSON 字段：空 → fallback；不是合法 JSON → undefined（交给 zod 报错），不让坏输入变成 500 */
+export function parseJsonField(v: FormDataEntryValue | null, fallback: unknown): unknown {
+  if (typeof v !== "string" || v.trim() === "") return fallback;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return undefined;
+  }
+}
+
 export function str(v: FormDataEntryValue | null): string | null {
   const s = typeof v === "string" ? v.trim() : "";
   return s === "" ? null : s;

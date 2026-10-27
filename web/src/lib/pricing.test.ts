@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cheapest, parseStrategy, per100g, strategyParam, summarizeCost } from "./pricing";
+import { parseStrategy, per100g, strategyParam, summarizeCost } from "./pricing";
 
 const uuid = "4c1d1c3e-8a1b-4f9e-9a39-2d6c1e1f0a11";
 
@@ -56,8 +56,9 @@ describe("summarizeCost", () => {
     expect(summarizeCost(rows, 2, 0.5).savingPerDose).toBe(-0.11);
   });
 
-  it("赠品成本 0 也算有价格", () => {
+  it("成本恰好为 0（很便宜四舍五入）也算有价格；null 才是没价格", () => {
     expect(summarizeCost([{ name_zh: "甘草", grams_per_dose: 3, cost_per_dose: "0.0000" }], 1, null).complete).toBe(true);
+    expect(summarizeCost([{ name_zh: "甘草", grams_per_dose: 3, cost_per_dose: null }], 1, null).complete).toBe(false);
   });
 
   it("空方 → 不完整", () => {
@@ -74,22 +75,5 @@ describe("per100g", () => {
   it("空 → null", () => {
     expect(per100g(null)).toBeNull();
     expect(per100g("")).toBeNull();
-  });
-});
-
-describe("cheapest", () => {
-  it("忽略赠品，取最低价；同价取店名靠前", () => {
-    expect(
-      cheapest([
-        { store: "B", ppg: 0.02 },
-        { store: "A", ppg: 0 },
-        { store: "D", ppg: 0.016 },
-        { store: "C", ppg: 0.016 },
-      ]),
-    ).toEqual({ store: "C", ppg: 0.016 });
-  });
-  it("只有赠品 / 没有报价 → null", () => {
-    expect(cheapest([{ store: "A", ppg: 0 }])).toBeNull();
-    expect(cheapest([])).toBeNull();
   });
 });

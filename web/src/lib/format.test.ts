@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { grams, money, num, str } from "./format";
+import { grams, money, num, parseJsonField, str } from "./format";
 
 describe("grams", () => {
   it("整数不带小数，小数保留一位", () => {
@@ -34,6 +34,18 @@ describe("num", () => {
     expect(num(null)).toBeNull();
     expect(num("abc")).toBeNull();
     expect(num("Infinity")).toBeNull();
+  });
+});
+
+describe("parseJsonField", () => {
+  it("空值用默认值", () => {
+    expect(parseJsonField(null, [])).toEqual([]);
+    expect(parseJsonField("  ", {})).toEqual({});
+  });
+  it("合法 JSON", () => expect(parseJsonField('[{"a":1}]', [])).toEqual([{ a: 1 }]));
+  it("坏 JSON → undefined（不抛异常）", () => {
+    expect(parseJsonField("{oops", [])).toBeUndefined();
+    expect(parseJsonField("[1,", [])).toBeUndefined();
   });
 });
 

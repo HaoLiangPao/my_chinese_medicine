@@ -26,10 +26,11 @@ type Row = {
 };
 
 async function List() {
-  const { supabase } = await getContext();
+  const { supabase, workspaceId } = await getContext();
   const { data, error } = await supabase
     .from("prescriptions")
     .select("id, title, issued_on, dose_count, patient_label, price_paid, prescription_items(grams_per_dose, herbs(name_zh))")
+    .eq("workspace_id", workspaceId)
     .order("issued_on", { ascending: false })
     .returns<Row[]>();
   if (error) throw new Error(error.message);

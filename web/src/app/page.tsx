@@ -3,8 +3,7 @@ import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
 import { grams } from "@/lib/format";
 import { Loading, Stat } from "@/components/ui";
-import { signOut } from "./login/actions";
-import { MemberForm } from "./member-form";
+import { Family } from "./family";
 
 export default function Home() {
   return (
@@ -15,17 +14,17 @@ export default function Home() {
 }
 
 async function Dashboard() {
-  const { supabase, user } = await getContext();
+  const { supabase, user, workspaceId } = await getContext();
 
-  const [rx, inv, recent, members] = await Promise.all([
-    supabase.from("prescriptions").select("id", { count: "exact", head: true }),
-    supabase.from("v_inventory").select("herb_id, name_zh, on_hand_grams, is_low"),
+  const [rx, inv, recent] = await Promise.all([
+    supabase.from("prescriptions").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    supabase.from("v_inventory").select("herb_id, name_zh, on_hand_grams, is_low").eq("workspace_id", workspaceId),
     supabase
       .from("prescriptions")
       .select("id, title, issued_on, dose_count, prescription_items(count)")
+      .eq("workspace_id", workspaceId)
       .order("issued_on", { ascending: false })
       .limit(5),
-    supabase.from("workspace_members").select("user_id, role"),
   ]);
 
   const stock = (inv.data ?? []).filter((r) => Number(r.on_hand_grams) > 0);
@@ -72,16 +71,7 @@ async function Dashboard() {
         </section>
       )}
 
-      <section className="card space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-lg font-bold">家庭成员</h2>
-          <form action={signOut}>
-            <button className="text-sm text-muted underline">退出 {user.email}</button>
-          </form>
-        </div>
-        <p className="text-sm text-muted">共 {members.data?.length ?? 1} 人共享这个药柜。让家人先注册，再在这里输入 Ta 的邮箱。</p>
-        <MemberForm />
-      </section>
+      <Family supabase={supabase} user={user} workspaceId={workspaceId} />
     </div>
   );
 }

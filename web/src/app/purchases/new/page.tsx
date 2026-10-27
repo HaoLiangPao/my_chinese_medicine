@@ -16,10 +16,10 @@ export default function NewPurchasePage() {
 }
 
 async function Loader() {
-  const { supabase } = await getContext();
+  const { supabase, workspaceId } = await getContext();
   const [herbs, { data: stores }] = await Promise.all([
     listHerbs(supabase),
-    supabase.from("stores").select("name").order("name"),
+    supabase.from("stores").select("name").eq("workspace_id", workspaceId).order("name"),
   ]);
   return (
     <PurchaseForm

@@ -38,7 +38,7 @@ inventory_txns    + decoction_id：每味实际用量 > 0 的药写一条扣减�
 | 层 | 工具 | 跑法 | 覆盖 |
 |---|---|---|---|
 | 单元测试 | Vitest | `cd web && npm test` | `src/lib/` 下的纯函数：合并、单位换算、可配副数、煎药差额、成本汇总、比价 |
-| SQL 测试 | psql + 断言函数 | `scripts/test-db.sh` | 每个 `supabase/tests/*_test.sql` 在全新数据库里跑：库存、统计、煎药边界、约束、各表 RLS、家人共享、比价 |
+| SQL 测试 | psql + 断言函数 | `scripts/test-db.sh` | 每个 `supabase/tests/*_test.sql` 在全新数据库里跑：库存、统计、煎药边界、约束、各表 RLS、邀请与家人共享、比价 |
 | E2E | Playwright | `scripts/e2e.sh` | 真实浏览器 → Next.js → 本地 Supabase-lite，全程操作界面 |
 | 全部 | — | `scripts/test-all.sh` | 以上所有，按顺序跑 |
 
@@ -92,7 +92,7 @@ inventory_txns    + decoction_id：每味实际用量 > 0 的药写一条扣减�
 
 | 问题 | 怎么发现的 | 修复 |
 |---|---|---|
-| 把家人拉进来时，对方只有店铺/盘点数据的 workspace 会被当成空的删掉 | SQL 测试 | migration 0004：`workspace_is_empty()` 检查所有业务表 |
+| 把家人拉进来时，对方只有店铺/盘点数据的 workspace 会被当成空的删掉 | SQL 测试 | migration 0004：`workspace_is_empty()` 检查所有业务表（后来整个「拉人」改成邀请制，见 0004） |
 | 改采购日期后，库存流水的时间没跟着改 | 写 SQL 测试时发现 | migration 0003：触发器同步 |
 | 手动录入别名（北芪）时没保存原文 | E2E | 原文总是存进 `raw_name` |
 | 删除药方后跳回列表，还能看到被删的药方 | E2E | 关闭 Cache Components（见 §4） |

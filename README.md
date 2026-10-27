@@ -9,7 +9,7 @@
 | MVP3 | 多用户：医生角色，开方时自动计价 | 计划中 |
 | MVP4 | 知识库：药材资料、方剂解读（RAG）、科普 | 计划中 |
 
-设计文档在 [`docs/design/`](docs/design/)：[0001 MVP1](docs/design/0001-mvp1.md) · [0002 煎药记录与测试体系](docs/design/0002-decoctions-and-testing.md) · [0003 MVP2 比价](docs/design/0003-mvp2-pricing.md)。
+设计文档在 [`docs/design/`](docs/design/)：[0001 MVP1](docs/design/0001-mvp1.md) · [0002 煎药记录与测试体系](docs/design/0002-decoctions-and-testing.md) · [0003 MVP2 比价](docs/design/0003-mvp2-pricing.md) · [0004 独立代码审查与修复](docs/design/0004-security-review.md)。
 
 ## 目录结构
 
@@ -51,9 +51,9 @@ scripts/test-all.sh           # 类型检查 → lint → 单元测试 → SQL �
 
 | 层 | 数量 | 单独跑 |
 |---|---|---|
-| 单元测试（Vitest） | 59 | `cd web && npm test` |
-| SQL 测试 | 4 个文件，约 135 条断言 | `scripts/test-db.sh` |
-| E2E（Playwright） | 28 | `scripts/e2e.sh`，只跑一组：`scripts/e2e.sh --project=isolated` |
+| 单元测试（Vitest） | 60 | `cd web && npm test` |
+| SQL 测试 | 5 个文件，约 190 条断言 | `scripts/test-db.sh` |
+| E2E（Playwright） | 32 | `scripts/e2e.sh`，只跑一组：`scripts/e2e.sh --project=isolated` |
 
 E2E 的完整场景：10 张常用药方、5 家药行不同价格的采购、9 次煎药（多用、没放、处方外加药、缺货变负、撤销……）、称重校准、删除药方，最后和独立计算的账本逐味对账。详见 [0002](docs/design/0002-decoctions-and-testing.md)。失败时的截图和 trace 在 `.local/test-results/`，报告在 `.local/playwright-report/`。
 
@@ -67,7 +67,7 @@ E2E 的完整场景：10 张常用药方、5 家药行不同价格的采购、9 
 ## 第一次使用
 
 1. 注册账号 → 自动创建「我们家」药柜
-2. 让家人也注册，然后在总览页输入 Ta 的邮箱，拉进同一个药柜
+2. 在总览页「家庭成员」里输入家人的邮箱发邀请；对方注册/登录后在总览页点「接受」，就共用一个药柜了（对方可以随时退出）
 3. 去「药柜」页把家里已有的药材称重录入
 4. 拍一张药方试试识别；煎药时在药方详情页记录（实际用量可以和处方不一样）
 5. 记几笔采购后，「比价」页和药方的「成本」部分就有数据了

@@ -5,7 +5,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
-import { signIn, signUp, sql, workspaceOf } from "./helpers";
+import { activeWorkspaceOf, signIn, signUp, sql, workspaceOf } from "./helpers";
 
 const MOCK = "http://127.0.0.1:54400";
 let n = 0;
@@ -64,11 +64,112 @@ test.describe("登录与权限", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test("邀请家人：没注册的邮箱给出提示，不会崩溃", async ({ page }) => {
-    await signUp(page, fresh());
-    await page.getByPlaceholder("家人的注册邮箱").fill("nobody-here@example.com");
-    await page.getByRole("button", { name: "添加" }).click();
-    await expect(page.getByText("这个邮箱还没注册")).toBeVisible();
+  test("邀请：不泄露邮箱是否注册；不能邀请自己；可以撤销", async ({ page }) => {
+    const u = fresh();
+    await signUp(page, u);
+    await page.getByLabel("邀请邮箱").fill("nobody-here@example.com");
+    await page.getByRole("button", { name: "邀请", exact: true }).click();
+    await expect(page.getByText("已邀请 nobody-here@example.com。")).toBeVisible(); // 和已注册的提示一样
+    await page.getByLabel("邀请邮箱").fill(u.email);
+    await page.getByRole("button", { name: "邀请", exact: true }).click();
+    await expect(page.getByText("不能邀请自己")).toBeVisible();
+    const sent = page.getByTestId("sent-invites");
+    await expect(sent).toContainText("nobody-here@example.com");
+    await sent.getByRole("button", { name: "撤销" }).click();
+    await expect(sent).toHaveCount(0);
+  });
+
+  test("没接受邀请之前，邀请方看不到对方的任何数据（不能偷偷拉人）", async ({ browser }) => {
+    const mallory = fresh(), victim = fresh();
+    const mp = await browser.newPage();
+    await signUp(mp, mallory);
+    await mp.getByLabel("邀请邮箱").fill(victim.email);
+    await mp.getByRole("button", { name: "邀请", exact: true }).click();
+
+    const vp = await browser.newPage();
+    await signUp(vp, victim);
+    await expect(vp.getByTestId("incoming-invites")).toBeVisible();
+    await vp.goto("/inventory");
+    await vp.locator('input[name="herb_name"]').fill("西洋参");
+    await vp.locator('input[name="actual"]').last().fill("50");
+    await vp.getByRole("button", { name: "录入" }).click();
+    await expect(vp.getByTestId("stock-西洋参")).toHaveText("50 g");
+
+    await mp.goto("/inventory");
+    await expect(mp.getByText("药柜还是空的")).toBeVisible();
+    expect(await activeWorkspaceOf(victim.email)).not.toBe(await activeWorkspaceOf(mallory.email));
+
+    // 拒绝
+    await vp.goto("/");
+    await vp.getByTestId("incoming-invites").getByRole("button", { name: "拒绝" }).click();
+    await expect(vp.getByTestId("incoming-invites")).toHaveCount(0);
+    await mp.close();
+    await vp.close();
+  });
+
+  test("同时在两个药柜：只显示当前的那个，校准只影响当前的；可以切换、退出", async ({ browser }) => {
+    const owner = fresh(), tina = fresh();
+    const tp = await browser.newPage();
+    tp.on("dialog", (d) => d.accept());
+    await signUp(tp, tina);
+    // Tina 自己的药柜里有数据
+    await tp.goto("/inventory");
+    await tp.locator('input[name="herb_name"]').fill("黄芪");
+    await tp.locator('input[name="actual"]').last().fill("100");
+    await tp.getByRole("button", { name: "录入" }).click();
+    await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
+
+    const op = await browser.newPage();
+    await signUp(op, owner);
+    await op.goto("/inventory");
+    await op.locator('input[name="herb_name"]').fill("黄芪");
+    await op.locator('input[name="actual"]').last().fill("500");
+    await op.getByRole("button", { name: "录入" }).click();
+    await op.goto("/");
+    await op.getByLabel("邀请邮箱").fill(tina.email);
+    await op.getByRole("button", { name: "邀请", exact: true }).click();
+
+    await tp.goto("/");
+    await tp.getByTestId("incoming-invites").getByRole("button", { name: "接受" }).click();
+    await expect(tp.getByTestId("workspace-switcher")).toContainText("你在 2 个药柜里");
+
+    // 当前是对方的药柜：只看到 500，不是两边混在一起
+    await tp.goto("/inventory");
+    await expect(tp.locator('[data-testid^="stock-card-"]')).toHaveCount(1);
+    await expect(tp.getByTestId("stock-黄芪")).toHaveText("500 g");
+    // 校准：称重 480 → 只在当前药柜写 -20
+    const card = tp.getByTestId("stock-card-黄芪");
+    await card.locator("summary").click();
+    await card.getByLabel("黄芪 称重克数").fill("480");
+    await card.getByRole("button", { name: "校准" }).click();
+    await expect(tp.getByTestId("stock-黄芪")).toHaveText("480 g");
+    const own = await sql<{ g: string }>(
+      `select i.on_hand_grams::text g from v_inventory i where i.workspace_id = (select workspace_id from workspace_members m
+        join auth.users u on u.id = m.user_id where u.email = $1 and m.role = 'owner') and i.name_zh = '黄芪'`,
+      [tina.email],
+    );
+    expect(Number(own[0].g)).toBe(100); // Tina 自己的药柜没被动
+
+    // 切回自己的药柜
+    await tp.goto("/");
+    await tp.getByTestId("workspace-switcher").getByRole("button", { name: /切换到/ }).click();
+    await tp.goto("/inventory");
+    await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
+
+    // 切回去再退出
+    await tp.goto("/");
+    await tp.getByTestId("workspace-switcher").getByRole("button", { name: /切换到/ }).click();
+    await expect(tp.getByRole("button", { name: "退出这个药柜" })).toBeVisible();
+    await tp.getByRole("button", { name: "退出这个药柜" }).click();
+    await expect(tp.getByTestId("workspace-switcher")).toHaveCount(0);
+    await tp.goto("/inventory");
+    await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
+
+    // owner 那边成员只剩自己
+    await op.goto("/");
+    await expect(op.getByTestId("member-list").locator("li")).toHaveCount(1);
+    await op.close();
+    await tp.close();
   });
 });
 
@@ -153,6 +254,31 @@ test.describe("拍照识别", () => {
     await page.getByRole("button", { name: "保存药方" }).click();
     await page.waitForURL(/\/prescriptions\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("img", { name: "药方照片" })).toBeVisible();
+  });
+
+  test("每人每天识别次数有上限（E2E 里设为 5 次）", async ({ page }) => {
+    await signUp(page, fresh());
+    const statuses = await page.evaluate(async () => {
+      const out: number[] = [];
+      for (let i = 0; i < 6; i++) {
+        const fd = new FormData();
+        fd.append("photo", new Blob([new Uint8Array(2000)], { type: "image/jpeg" }), "x.jpg");
+        out.push((await fetch("/api/parse-prescription", { method: "POST", body: fd })).status);
+      }
+      return out;
+    });
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
+  });
+
+  test("只接受图片类型", async ({ page }) => {
+    await signUp(page, fresh());
+    const r = await page.evaluate(async () => {
+      const fd = new FormData();
+      fd.append("photo", new Blob(["<script>"], { type: "text/html" }), "x.html");
+      const res = await fetch("/api/parse-prescription", { method: "POST", body: fd });
+      return [res.status, (await res.json()).error];
+    });
+    expect(r).toEqual([415, "只支持 JPEG / PNG / WebP 图片"]);
   });
 
   test("服务器拒绝超过 5MB 的照片、拒绝没有照片的请求", async ({ page }) => {

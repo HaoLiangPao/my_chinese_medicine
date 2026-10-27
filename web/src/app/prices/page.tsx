@@ -24,14 +24,14 @@ type Summary = { herb_id: string; name_zh: string; store_count: number; cheapest
 async function Prices({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const onlyUsed = sp.used === "1";
-  const { supabase } = await getContext();
+  const { supabase, workspaceId } = await getContext();
 
   const [{ data: latest }, { data: summary }, { data: stores }, { data: usage }, { data: value }] = await Promise.all([
-    supabase.from("v_store_latest_prices").select("herb_id, name_zh, store_id, store_name, store_kind, price_per_gram, last_purchased_on").returns<Latest[]>(),
-    supabase.from("v_herb_price_summary").select("*").returns<Summary[]>(),
-    supabase.from("stores").select("id, name, kind").order("name"),
-    supabase.from("v_herb_usage").select("herb_id, prescription_count"),
-    supabase.from("v_inventory_value").select("value"),
+    supabase.from("v_store_latest_prices").select("herb_id, name_zh, store_id, store_name, store_kind, price_per_gram, last_purchased_on").eq("workspace_id", workspaceId).returns<Latest[]>(),
+    supabase.from("v_herb_price_summary").select("*").eq("workspace_id", workspaceId).returns<Summary[]>(),
+    supabase.from("stores").select("id, name, kind").eq("workspace_id", workspaceId).order("name"),
+    supabase.from("v_herb_usage").select("herb_id, prescription_count").eq("workspace_id", workspaceId),
+    supabase.from("v_inventory_value").select("value").eq("workspace_id", workspaceId),
   ]);
 
   const used = new Set((usage ?? []).map((u) => u.herb_id));

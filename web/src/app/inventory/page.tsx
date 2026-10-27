@@ -18,11 +18,11 @@ export default function InventoryPage() {
 }
 
 async function Inventory() {
-  const { supabase } = await getContext();
+  const { supabase, workspaceId } = await getContext();
   const [{ data: rows, error }, herbs, { data: value }] = await Promise.all([
-    supabase.from("v_inventory").select("*").order("name_zh"),
+    supabase.from("v_inventory").select("*").eq("workspace_id", workspaceId).order("name_zh"),
     listHerbs(supabase),
-    supabase.from("v_inventory_value").select("herb_id, value"),
+    supabase.from("v_inventory_value").select("herb_id, value").eq("workspace_id", workspaceId),
   ]);
   const valueByHerb = new Map((value ?? []).map((v) => [v.herb_id, v.value === null ? null : Number(v.value)]));
   const totalValue = [...valueByHerb.values()].reduce<number>((s, v) => s + (v ?? 0), 0);

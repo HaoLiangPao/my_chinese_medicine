@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getContext } from "@/lib/auth";
 import { resolveHerbId } from "@/lib/herbs";
-import { num, str, SPECIAL_PREPS } from "@/lib/format";
+import { num, parseJsonField, str, SPECIAL_PREPS } from "@/lib/format";
 import { buildOverrides, cleanExtras, plannedGrams, type PlanItem } from "@/lib/decoction";
 
 const Items = z
@@ -21,10 +21,13 @@ const Items = z
 
 export type SaveState = { error?: string };
 
+const ActualInput = z.record(z.string(), z.union([z.number(), z.string(), z.null()]));
+const ExtrasInput = z.array(z.object({ name: z.string(), grams: z.number() })).max(50);
+
 export async function createPrescription(_prev: SaveState, form: FormData): Promise<SaveState> {
   const { supabase, workspaceId } = await getContext();
 
-  const parsed = Items.safeParse(JSON.parse(String(form.get("items") ?? "[]")));
+  const parsed = Items.safeParse(parseJsonField(form.get("items"), []));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "药材列表有误" };
 
   // 同一味药出现两次就合并克数
@@ -78,9 +81,11 @@ export async function createPrescription(_prev: SaveState, form: FormData): Prom
 export async function deletePrescription(form: FormData) {
   const { supabase } = await getContext();
   const id = String(form.get("id"));
-  const { data } = await supabase.from("prescriptions").select("photo_path").eq("id", id).single();
-  await supabase.from("prescriptions").delete().eq("id", id);
-  if (data?.photo_path) await supabase.storage.from("prescription-photos").remove([data.photo_path]);
+  const { data } = await supabase.from("prescriptions").select("photo_path").eq("id", id).maybeSingle();
+  if (!data) throw new Error("药方不存在或没有权限");
+  const { error } = await supabase.from("prescriptions").delete().eq("id", id);
+  if (error) throw new Error(error.message); // 删除失败时不要动照片
+  if (data.photo_path) await supabase.storage.from("prescription-photos").remove([data.photo_path]);
   invalidateAll();
   redirect(`/prescriptions?deleted=${id}`);
 }
@@ -109,12 +114,15 @@ export async function recordDecoction(_prev: SaveState, form: FormData): Promise
     name: i.herbs?.name_zh ?? "",
     grams_per_dose: Number(i.grams_per_dose),
   }));
-  const { overrides, invalid } = buildOverrides(plan, doses, JSON.parse(String(form.get("actual") || "{}")));
+  const actual = ActualInput.safeParse(parseJsonField(form.get("actual"), {}));
+  const extras = ExtrasInput.safeParse(parseJsonField(form.get("extras"), []));
+  if (!actual.success || !extras.success) return { error: "表单数据有误，请刷新页面重试" };
+  const { overrides, invalid } = buildOverrides(plan, doses, actual.data);
   if (invalid.length) return { error: `这些药的克数不对：${invalid.join("、")}` };
 
   // 合并：处方内的覆盖值 + 处方外加的药（如果加的药其实在处方里，就叠加到它的实际量上）
   const final = new Map<string, number>(overrides.map((o) => [o.herb_id, o.grams]));
-  for (const e of cleanExtras(JSON.parse(String(form.get("extras") || "[]")))) {
+  for (const e of cleanExtras(extras.data)) {
     const herbId = await resolveHerbId(supabase, e.name);
     const p = plan.find((x) => x.herb_id === herbId);
     const base = final.get(herbId) ?? (p ? plannedGrams(p, doses) : 0);
@@ -144,7 +152,9 @@ export async function deleteDecoction(form: FormData) {
 /** 修改在诊所实付的金额（空 = 清除） */
 export async function setPricePaid(form: FormData) {
   const { supabase } = await getContext();
-  const price = num(form.get("price_paid"));
+  const raw = form.get("price_paid");
+  const price = num(raw);
+  if (typeof raw === "string" && raw.trim() !== "" && price === null) return; // 非数字：不改（不要静默清空）
   if (price !== null && price < 0) return;
   const { error } = await supabase.from("prescriptions").update({ price_paid: price }).eq("id", String(form.get("id")));
   if (error) throw new Error(error.message);

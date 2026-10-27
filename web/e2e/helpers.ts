@@ -33,6 +33,15 @@ export async function workspaceOf(email: string): Promise<string> {
   return r.workspace_id;
 }
 
+/** 用户当前使用的 workspace（user_settings） */
+export async function activeWorkspaceOf(email: string): Promise<string | null> {
+  const [r] = await sql<{ ws: string | null }>(
+    `select s.active_workspace_id ws from user_settings s join auth.users u on u.id = s.user_id where u.email = $1`,
+    [email],
+  );
+  return r?.ws ?? null;
+}
+
 export async function signUp(page: Page, u: { email: string; password: string }) {
   await page.goto("/login");
   await page.getByLabel("邮箱").fill(u.email);

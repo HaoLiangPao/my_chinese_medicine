@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getContext } from "@/lib/auth";
 import { resolveHerbId } from "@/lib/herbs";
-import { str } from "@/lib/format";
+import { parseJsonField, str } from "@/lib/format";
 
 const Items = z
   .array(z.object({ name: z.string().trim().min(1), grams: z.coerce.number().positive(), price: z.coerce.number().min(0) }))
@@ -15,7 +15,7 @@ export type SaveState = { error?: string };
 
 export async function createPurchase(_prev: SaveState, form: FormData): Promise<SaveState> {
   const { supabase, workspaceId } = await getContext();
-  const parsed = Items.safeParse(JSON.parse(String(form.get("items") ?? "[]")));
+  const parsed = Items.safeParse(parseJsonField(form.get("items"), []));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "明细有误" };
 
   // 店铺：按名字找，没有就建

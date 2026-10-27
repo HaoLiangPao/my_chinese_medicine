@@ -21,7 +21,7 @@ type Use = {
 
 async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase } = await getContext();
+  const { supabase, workspaceId } = await getContext();
 
   const { data: herbRow } = await supabase
     .from("herbs")
@@ -34,12 +34,13 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const [{ data: uses }, { data: inv }, { data: prices }, { data: usage }] = await Promise.all([
     supabase
       .from("prescription_items")
-      .select("grams_per_dose, special_prep, prescriptions(id, title, issued_on, dose_count)")
+      .select("grams_per_dose, special_prep, prescriptions!inner(id, title, issued_on, dose_count, workspace_id)")
       .eq("herb_id", id)
+      .eq("prescriptions.workspace_id", workspaceId)
       .returns<Use[]>(),
-    supabase.from("v_inventory").select("on_hand_grams").eq("herb_id", id).maybeSingle(),
-    supabase.from("v_purchase_prices").select("*").eq("herb_id", id).order("purchased_on", { ascending: false }),
-    supabase.from("v_herb_usage").select("*").eq("herb_id", id).maybeSingle(),
+    supabase.from("v_inventory").select("on_hand_grams").eq("workspace_id", workspaceId).eq("herb_id", id).maybeSingle(),
+    supabase.from("v_purchase_prices").select("*").eq("workspace_id", workspaceId).eq("herb_id", id).order("purchased_on", { ascending: false }),
+    supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).eq("herb_id", id).maybeSingle(),
   ]);
   const sortedUses = (uses ?? []).sort((a, b) => (b.prescriptions?.issued_on ?? "").localeCompare(a.prescriptions?.issued_on ?? ""));
 

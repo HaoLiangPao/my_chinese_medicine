@@ -39,8 +39,21 @@ select assert_eq((select store_count from v_herb_price_summary where name_zh = '
 select assert_eq((select avg_cost_per_gram from v_herb_price_summary where name_zh = '黄芪'), 0.024054, '加权平均成本 44.5/1850');
 select assert_eq((select avg_cost_per_gram from v_herb_price_summary where name_zh = '大枣'), 0.013333, '平均成本含赠品 4/300');
 select assert_eq((select store_count from v_herb_price_summary where name_zh = '甘草'), 0::bigint, '只有赠品：0 家店有价');
-select assert_eq((select avg_cost_per_gram from v_herb_price_summary where name_zh = '甘草'), 0.000000, '只有赠品：平均成本 0');
+select assert_eq((select avg_cost_per_gram from v_herb_price_summary where name_zh = '甘草'), null::numeric, '只有赠品：平均成本为 null（不假装是 0 元）');
 select assert_eq((select cheapest_store_name from v_herb_price_summary where name_zh = '甘草'), null::text, '只有赠品：没有最便宜的店');
+
+-- 同价时：取最近买的那家；还同就按店名
+insert into stores (workspace_id, name) values (:'ws', 'D店') returning id as sd \gset
+insert into stores (workspace_id, name) values (:'ws', 'E店') returning id as se \gset
+insert into purchases (workspace_id, store_id, purchased_on) values (:'ws', :'sd', '2026-08-01') returning id as p6 \gset
+insert into purchase_items (purchase_id, herb_id, grams, price) values (:'p6', match_herb('当归'), 100, 5);
+insert into purchases (workspace_id, store_id, purchased_on) values (:'ws', :'se', '2026-08-20') returning id as p7 \gset
+insert into purchase_items (purchase_id, herb_id, grams, price) values (:'p7', match_herb('当归'), 100, 5);
+select assert_eq((select cheapest_store_name from v_herb_price_summary where name_zh = '当归'), 'E店', '同价取最近买的');
+update purchases set purchased_on = '2026-08-01' where id = :'p7';
+select assert_eq((select cheapest_store_name from v_herb_price_summary where name_zh = '当归'), 'D店', '同价同日按店名');
+delete from purchases where id in (:'p6', :'p7');
+delete from stores where id in (:'sd', :'se');
 
 -- ---- prescription_cost ----
 insert into prescriptions (workspace_id, title, dose_count) values (:'ws', '测试方', 7) returning id as rx \gset
@@ -56,7 +69,7 @@ select assert_eq((select count(*) from prescription_cost(:'rx')), 4::bigint, '�
 select assert_eq((select string_agg(name_zh, ',') from prescription_cost(:'rx')), '黄芪,大枣,甘草,防风', '按处方顺序');
 
 select assert_eq((select cost_per_dose from prescription_cost(:'rx', 'average') where name_zh = '黄芪'), 0.3608, 'average：15×0.024054');
-select assert_eq((select cost_per_dose from prescription_cost(:'rx', 'average') where name_zh = '甘草'), 0.0000, 'average：赠品成本 0');
+select assert_eq((select cost_per_dose from prescription_cost(:'rx', 'average') where name_zh = '甘草'), null::numeric, 'average：只有赠品 → 无价');
 select assert_eq((select cost_per_dose from prescription_cost(:'rx', 'store', :'sa') where name_zh = '黄芪'), 0.4500, 'store A：15×0.03');
 select assert_eq((select cost_per_dose from prescription_cost(:'rx', 'store', :'sa') where name_zh = '大枣'), null::numeric, 'store A：大枣只有赠品');
 
@@ -75,7 +88,8 @@ select assert_eq((select value from v_inventory_value where name_zh = '大枣'),
 -- 煎 100 副：防风、甘草变负
 select record_decoction(:'rx', 100) as d \gset
 select assert_eq((select value from v_inventory_value where name_zh = '防风'), null::numeric, '没成本的药价值为 null');
-select assert_eq((select value from v_inventory_value where name_zh = '甘草'), 0.00, '负库存按 0 计（甘草 100-300）');
+select assert_eq((select value from v_inventory_value where name_zh = '大枣'), 0.00, '负库存按 0 计（大枣 300-600）');
+select assert_eq((select value from v_inventory_value where name_zh = '甘草'), null::numeric, '只有赠品的药没有价值');
 
 -- ---- RLS ----
 :as_other;

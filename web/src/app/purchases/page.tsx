@@ -23,10 +23,11 @@ type Row = {
 };
 
 async function List() {
-  const { supabase } = await getContext();
+  const { supabase, workspaceId } = await getContext();
   const { data, error } = await supabase
     .from("purchases")
     .select("id, purchased_on, notes, stores(name), purchase_items(grams, price, herbs(name_zh))")
+    .eq("workspace_id", workspaceId)
     .order("purchased_on", { ascending: false })
     .returns<Row[]>();
   if (error) throw new Error(error.message);

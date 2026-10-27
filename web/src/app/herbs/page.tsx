@@ -17,10 +17,10 @@ export default function HerbsPage() {
 }
 
 async function Herbs() {
-  const { supabase } = await getContext();
+  const { supabase, workspaceId } = await getContext();
   const [{ data: usage }, { data: inv }, all] = await Promise.all([
-    supabase.from("v_herb_usage").select("*").order("prescription_count", { ascending: false }),
-    supabase.from("v_inventory").select("herb_id, on_hand_grams"),
+    supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).order("prescription_count", { ascending: false }),
+    supabase.from("v_inventory").select("herb_id, on_hand_grams").eq("workspace_id", workspaceId),
     listHerbs(supabase),
   ]);
   const onHand = new Map((inv ?? []).map((r) => [r.herb_id, Number(r.on_hand_grams)]));

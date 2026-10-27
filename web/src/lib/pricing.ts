@@ -45,9 +45,3 @@ export function summarizeCost(rows: CostRow[], doses: number, pricePaid: number 
 /** 每克 → 每 100 克（显示用） */
 export const per100g = (ppg: number | string | null | undefined) =>
   ppg === null || ppg === undefined || ppg === "" ? null : round2(Number(ppg) * 100);
-
-/** 同一味药在多家店的价格：返回最便宜的那家（价格 0 的赠品忽略；价格相同取店名靠前的） */
-export function cheapest<T extends { store: string; ppg: number }>(offers: T[]): T | null {
-  const valid = offers.filter((o) => o.ppg > 0).sort((a, b) => a.ppg - b.ppg || a.store.localeCompare(b.store));
-  return valid[0] ?? null;
-}
