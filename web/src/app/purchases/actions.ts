@@ -1,7 +1,7 @@
 "use server";
 
+import { invalidateAll } from "@/lib/invalidate";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getContext } from "@/lib/auth";
 import { resolveHerbId } from "@/lib/herbs";
@@ -59,7 +59,6 @@ export async function createPurchase(_prev: SaveState, form: FormData): Promise<
     return { error: itemErr.message };
   }
 
-  revalidatePath("/purchases");
-  revalidatePath("/inventory");
-  redirect("/purchases");
+  invalidateAll();
+  redirect(`/purchases?saved=${pu.id}`);
 }

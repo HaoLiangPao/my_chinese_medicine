@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { invalidateAll } from "@/lib/invalidate";
 import { getContext } from "@/lib/auth";
 import { resolveHerbId } from "@/lib/herbs";
 import { num, str } from "@/lib/format";
@@ -26,7 +26,7 @@ export async function adjustInventory(form: FormData) {
     note: herbName ? "盘点录入" : "称重校准",
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/inventory");
+  invalidateAll();
 }
 
 export async function savePantrySettings(form: FormData) {
@@ -38,5 +38,5 @@ export async function savePantrySettings(form: FormData) {
     low_stock_grams: num(form.get("low_stock_grams")),
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/inventory");
+  invalidateAll();
 }

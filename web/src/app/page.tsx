@@ -4,7 +4,7 @@ import { getContext } from "@/lib/auth";
 import { grams } from "@/lib/format";
 import { Loading, Stat } from "@/components/ui";
 import { signOut } from "./login/actions";
-import { addMember } from "./actions";
+import { MemberForm } from "./member-form";
 
 export default function Home() {
   return (
@@ -15,7 +15,7 @@ export default function Home() {
 }
 
 async function Dashboard() {
-  const { supabase, user, workspaceId } = await getContext();
+  const { supabase, user } = await getContext();
 
   const [rx, inv, recent, members] = await Promise.all([
     supabase.from("prescriptions").select("id", { count: "exact", head: true }),
@@ -80,11 +80,7 @@ async function Dashboard() {
           </form>
         </div>
         <p className="text-sm text-muted">共 {members.data?.length ?? 1} 人共享这个药柜。让家人先注册，再在这里输入 Ta 的邮箱。</p>
-        <form action={addMember} className="flex gap-2">
-          <input type="hidden" name="workspace_id" value={workspaceId} />
-          <input name="email" type="email" required placeholder="家人的注册邮箱" className="input" />
-          <button className="btn-ghost shrink-0">添加</button>
-        </form>
+        <MemberForm />
       </section>
     </div>
   );

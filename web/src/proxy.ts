@@ -27,6 +27,9 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const isPublic = request.nextUrl.pathname.startsWith("/login");
+  if (!data?.claims && request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "未登录" }, { status: 401 });
+  }
   if (!data?.claims && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

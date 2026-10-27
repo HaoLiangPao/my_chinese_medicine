@@ -47,9 +47,9 @@ export function PurchaseForm({ herbNames, storeNames, today }: { herbNames: stri
         </div>
         {lines.map((l) => (
           <div key={l.key} className="grid grid-cols-[1fr_5rem_5rem_2rem] items-center gap-2">
-            <input list="herb-names" value={l.name} onChange={(e) => set(l.key, { name: e.target.value })} placeholder="药名" className="input" />
-            <input type="number" step="0.5" min={0} value={l.grams} onChange={(e) => set(l.key, { grams: e.target.value })} className="input" />
-            <input type="number" step="0.01" min={0} value={l.price} onChange={(e) => set(l.key, { price: e.target.value })} className="input" />
+            <input list="herb-names" value={l.name} onChange={(e) => set(l.key, { name: e.target.value })} placeholder="药名" aria-label="药名" className="input" />
+            <input type="number" step="0.5" min={0} value={l.grams} onChange={(e) => set(l.key, { grams: e.target.value })} aria-label="克数" className="input" />
+            <input type="number" step="0.01" min={0} value={l.price} onChange={(e) => set(l.key, { price: e.target.value })} aria-label="总价" className="input" />
             <button type="button" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} className="text-muted hover:text-cinnabar" aria-label="删除">✕</button>
           </div>
         ))}

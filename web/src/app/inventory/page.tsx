@@ -35,13 +35,13 @@ async function Inventory() {
             const g = Number(r.on_hand_grams);
             const tone = g <= 0 ? "border-cinnabar" : r.is_low ? "border-amber" : "";
             return (
-              <details key={r.herb_id} className={`card group ${tone}`}>
+              <details key={r.herb_id} className={`card group ${tone}`} data-testid={`stock-card-${r.name_zh}`}>
                 <summary className="cursor-pointer list-none">
                   <div className="flex items-baseline justify-between">
                     <span className="font-serif text-lg font-bold">{r.name_zh}</span>
                     {r.jar_label && <span className="text-xs text-muted">罐 {r.jar_label}</span>}
                   </div>
-                  <div className={`mt-1 text-2xl ${g <= 0 ? "text-cinnabar" : r.is_low ? "text-amber" : "text-jade"}`}>{grams(g)}</div>
+                  <div data-testid={`stock-${r.name_zh}`} className={`mt-1 text-2xl ${g <= 0 ? "text-cinnabar" : r.is_low ? "text-amber" : "text-jade"}`}>{grams(g)}</div>
                   <div className="text-xs text-muted">
                     {r.last_purchased_at ? `上次买 ${String(r.last_purchased_at).slice(0, 10)}` : "无采购记录"}
                   </div>
@@ -49,7 +49,7 @@ async function Inventory() {
                 <div className="mt-3 space-y-2 border-t border-line pt-3">
                   <form action={adjustInventory} className="flex gap-1">
                     <input type="hidden" name="herb_id" value={r.herb_id} />
-                    <input name="actual" type="number" step="0.5" placeholder="称重后实际克数" className="input" />
+                    <input name="actual" type="number" step="0.5" placeholder="称重后实际克数" aria-label={`${r.name_zh} 称重克数`} className="input" />
                     <button className="btn-ghost shrink-0 px-2">校准</button>
                   </form>
                   <form action={savePantrySettings} className="flex gap-1">

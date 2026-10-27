@@ -5,7 +5,11 @@ import { getContext } from "@/lib/auth";
 import { grams, money } from "@/lib/format";
 import { Loading } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
-import { consumePrescription, deletePrescription } from "../actions";
+import { deleteDecoction, deletePrescription } from "../actions";
+import { listHerbs } from "@/lib/herbs";
+import { maxDosesFromStock, perDoseTotal } from "@/lib/rx";
+import { varianceStatus } from "@/lib/decoction";
+import { DecoctionForm } from "./decoction-form";
 
 export default function PrescriptionPage({ params }: PageProps<"/prescriptions/[id]">) {
   return (
@@ -51,19 +55,31 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const items = [...rx.prescription_items].sort((a, b) => a.sort_order - b.sort_order);
   const herbIds = items.map((i) => i.herb_id);
 
-  const [{ data: inv }, { data: consumed }, photo] = await Promise.all([
+  const [{ data: inv }, { data: variance }, herbs, photo] = await Promise.all([
     supabase.from("v_inventory").select("herb_id, on_hand_grams").in("herb_id", herbIds),
-    supabase.from("inventory_txns").select("delta_grams, occurred_at, note").eq("prescription_id", id).order("occurred_at"),
+    supabase
+      .from("v_decoction_variance")
+      .select("decoction_id, decocted_at, doses, name_zh, planned_grams, actual_grams, diff_grams")
+      .eq("prescription_id", id)
+      .order("decocted_at", { ascending: false }),
+    listHerbs(supabase),
     rx.photo_path
       ? supabase.storage.from("prescription-photos").createSignedUrl(rx.photo_path, 600)
       : Promise.resolve({ data: null }),
   ]);
   const onHand = new Map((inv ?? []).map((r) => [r.herb_id, Number(r.on_hand_grams)]));
-  const perDose = items.reduce((s, i) => s + Number(i.grams_per_dose), 0);
-  const canMake = Math.min(
-    ...items.map((i) => Math.floor((onHand.get(i.herb_id) ?? 0) / Number(i.grams_per_dose))),
-  );
-  const consumeEvents = new Set((consumed ?? []).map((c) => c.occurred_at)).size;
+  const perDose = perDoseTotal(items.map((i) => ({ grams: i.grams_per_dose })));
+  const canMake = maxDosesFromStock(items, onHand);
+
+  // 煎药历史：按 decoction 分组，只列出和处方不一样的药
+  type Hist = { at: string; doses: number; diffs: { name: string; planned: number; actual: number }[] };
+  const history = new Map<string, Hist>();
+  for (const v of variance ?? []) {
+    const h: Hist = history.get(v.decoction_id) ?? { at: v.decocted_at, doses: v.doses, diffs: [] };
+    if (Number(v.diff_grams) !== 0) h.diffs.push({ name: v.name_zh, planned: Number(v.planned_grams), actual: Number(v.actual_grams) });
+    history.set(v.decoction_id, h);
+  }
+  const STATUS_LABEL = { over: "多用", under: "少用", omitted: "没放", extra: "加了", exact: "" } as const;
 
   return (
     <div className="space-y-5">
@@ -101,7 +117,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
                   </td>
                   <td className="text-right">{grams(i.grams_per_dose)}</td>
                   <td className="text-right">{grams(need)}</td>
-                  <td className={`text-right ${have === undefined ? "text-muted" : have >= need ? "text-jade" : "text-cinnabar"}`}>
+                  <td data-testid={`rx-stock-${i.herbs?.name_zh}`} className={`text-right ${have === undefined ? "text-muted" : have >= need ? "text-jade" : "text-cinnabar"}`}>
                     {have === undefined ? "没有" : grams(have)}
                   </td>
                 </tr>
@@ -112,18 +128,43 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       <div className="card space-y-2">
-        <h2 className="font-serif text-lg font-bold">用家里药柜配药</h2>
-        <p className="text-sm text-muted">
-          按现有库存最多能配 <b className="text-ink">{Math.max(canMake, 0)}</b> 副。
-          {consumeEvents > 0 && ` 已经从药柜配过 ${consumeEvents} 次。`}
-          配药会从药柜扣掉相应克数（库存可以是负数，提醒你补货）。
-        </p>
-        <form action={consumePrescription} className="flex gap-2">
-          <input type="hidden" name="id" value={rx.id} />
-          <input name="doses" type="number" min={1} defaultValue={rx.dose_count} className="input w-24" />
-          <button className="btn-primary">配 N 副，扣库存</button>
-        </form>
+        <h2 className="font-serif text-lg font-bold">煎药（从家里药柜取药）</h2>
+        <DecoctionForm
+          key={[...history.keys()].join(",")}
+          prescriptionId={rx.id}
+          plan={items.map((i) => ({ herb_id: i.herb_id, name: i.herbs?.name_zh ?? "", grams_per_dose: Number(i.grams_per_dose) }))}
+          defaultDoses={Math.min(rx.dose_count, Math.max(canMake, 1))}
+          maxDoses={canMake}
+          herbNames={herbs.map((h) => h.name_zh)}
+        />
       </div>
+
+      {history.size > 0 && (
+        <div className="card" data-testid="decoction-history">
+          <h2 className="mb-2 font-serif text-lg font-bold">煎药记录（{history.size} 次）</h2>
+          <ul className="space-y-2 text-sm">
+            {[...history.entries()].map(([decId, h]) => (
+              <li key={decId} className="flex flex-wrap items-center gap-y-1" data-testid="decoction-entry">
+                <span className="text-muted">{h.at.slice(0, 16).replace("T", " ")}</span> · 煎 {h.doses} 副
+                {h.diffs.length === 0 ? (
+                  <span className="ml-1 text-jade">按处方</span>
+                ) : (
+                  h.diffs.map((d) => (
+                    <span key={d.name} className="ml-2 rounded bg-paper px-1 text-amber">
+                      {d.name} {STATUS_LABEL[varianceStatus(d.planned, d.actual)]} {d.planned === 0 ? `${d.actual}g` : `${d.planned}→${d.actual}g`}
+                    </span>
+                  ))
+                )}
+                <form action={deleteDecoction} className="ml-auto">
+                  <input type="hidden" name="decoction_id" value={decId} />
+                  <input type="hidden" name="prescription_id" value={rx.id} />
+                  <ConfirmButton message="撤销这次煎药？扣掉的库存会加回去。" className="text-xs text-muted underline hover:text-cinnabar">撤销</ConfirmButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {photo.data?.signedUrl && (
         <div className="card">

@@ -44,7 +44,11 @@ export function PrescriptionForm({ herbNames, today }: { herbNames: string[]; to
       body.append("photo", await shrink(file), "prescription.jpg");
       const res = await fetch("/api/parse-prescription", { method: "POST", body });
       const data = (await res.json()) as ParseResponse;
-      if (!res.ok || "error" in data) throw new Error("error" in data ? data.error : res.statusText);
+      if (!res.ok || "error" in data) {
+        // 识别失败但照片已经存好了：仍然挂到这张药方上，方便手动录入时对照
+        if ("photo_path" in data && data.photo_path) setPhotoPath(data.photo_path);
+        throw new Error("error" in data ? data.error : res.statusText);
+      }
 
       setPhotoPath(data.photo_path);
       const r = data.result;
@@ -156,6 +160,7 @@ export function PrescriptionForm({ herbNames, today }: { herbNames: string[]; to
               value={it.name}
               onChange={(e) => update(it.key, { name: e.target.value })}
               placeholder="药名"
+              aria-label="药名"
               className={`input ${it.name && !it.known ? "border-cinnabar text-cinnabar" : ""}`}
               title={it.raw && it.raw !== it.name ? `原文：${it.raw}` : undefined}
             />
@@ -166,9 +171,10 @@ export function PrescriptionForm({ herbNames, today }: { herbNames: string[]; to
               value={it.grams}
               onChange={(e) => update(it.key, { grams: e.target.value })}
               placeholder="克"
+              aria-label="每副克数"
               className="input"
             />
-            <select value={it.prep} onChange={(e) => update(it.key, { prep: e.target.value })} className="input px-1">
+            <select aria-label="脚注" value={it.prep} onChange={(e) => update(it.key, { prep: e.target.value })} className="input px-1">
               <option value="">—</option>
               {SPECIAL_PREPS.map((p) => (
                 <option key={p}>{p}</option>

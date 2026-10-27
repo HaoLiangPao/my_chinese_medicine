@@ -28,7 +28,7 @@ export type ParseResponse =
         items: (z.infer<typeof Parsed>["items"][number] & { matched_name: string | null })[];
       };
     }
-  | { error: string };
+  | { error: string; photo_path?: string };
 
 const PROMPT = `这是一张中医药方（可能是手写或打印）。请把上面的内容转成结构化数据。
 要求：
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
   // 2) 让 Claude 读方子
   try {
-    const client = new Anthropic();
+    const client = new Anthropic({ maxRetries: 2, timeout: 90_000 });
     const msg = await client.messages.parse({
       model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5",
       max_tokens: 4096,
