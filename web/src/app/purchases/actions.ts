@@ -22,13 +22,23 @@ export async function createPurchase(_prev: SaveState, form: FormData): Promise<
   let storeId: string | null = null;
   const storeName = str(form.get("store_name"));
   if (storeName) {
-    const { data: s, error } = await supabase
+    const { data: existing } = await supabase
       .from("stores")
-      .upsert({ workspace_id: workspaceId, name: storeName }, { onConflict: "workspace_id,name" })
       .select("id")
-      .single();
-    if (error) return { error: error.message };
-    storeId = s.id;
+      .eq("workspace_id", workspaceId)
+      .eq("name", storeName)
+      .maybeSingle();
+    if (existing) storeId = existing.id;
+    else {
+      const kind = String(form.get("store_kind") || "shop");
+      const { data: s, error } = await supabase
+        .from("stores")
+        .insert({ workspace_id: workspaceId, name: storeName, kind: ["clinic", "shop", "online"].includes(kind) ? kind : "shop" })
+        .select("id")
+        .single();
+      if (error) return { error: error.message };
+      storeId = s.id;
+    }
   }
 
   const merged = new Map<string, { grams: number; price: number }>();

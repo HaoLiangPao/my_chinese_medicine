@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
 import { listHerbs } from "@/lib/herbs";
-import { grams } from "@/lib/format";
+import { grams, money } from "@/lib/format";
 import { Empty, Loading, PageHeader } from "@/components/ui";
 import { adjustInventory, savePantrySettings } from "./actions";
 
@@ -19,14 +19,22 @@ export default function InventoryPage() {
 
 async function Inventory() {
   const { supabase } = await getContext();
-  const [{ data: rows, error }, herbs] = await Promise.all([
+  const [{ data: rows, error }, herbs, { data: value }] = await Promise.all([
     supabase.from("v_inventory").select("*").order("name_zh"),
     listHerbs(supabase),
+    supabase.from("v_inventory_value").select("herb_id, value"),
   ]);
+  const valueByHerb = new Map((value ?? []).map((v) => [v.herb_id, v.value === null ? null : Number(v.value)]));
+  const totalValue = [...valueByHerb.values()].reduce<number>((s, v) => s + (v ?? 0), 0);
   if (error) throw new Error(error.message);
 
   return (
     <div className="space-y-5">
+      {!!rows?.length && (
+        <p className="text-sm text-muted" data-testid="inventory-value">
+          共 {rows.filter((r) => Number(r.on_hand_grams) > 0).length} 味有存货，按买入平均成本约值 <b className="text-ink">{money(totalValue)}</b>
+        </p>
+      )}
       {!rows?.length ? (
         <Empty>药柜还是空的。记一笔采购，药材就会自动进到这里。</Empty>
       ) : (

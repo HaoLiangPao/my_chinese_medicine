@@ -140,3 +140,13 @@ export async function deleteDecoction(form: FormData) {
   if (error) throw new Error(error.message);
   invalidateAll();
 }
+
+/** 修改在诊所实付的金额（空 = 清除） */
+export async function setPricePaid(form: FormData) {
+  const { supabase } = await getContext();
+  const price = num(form.get("price_paid"));
+  if (price !== null && price < 0) return;
+  const { error } = await supabase.from("prescriptions").update({ price_paid: price }).eq("id", String(form.get("id")));
+  if (error) throw new Error(error.message);
+  invalidateAll();
+}

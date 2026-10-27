@@ -14,6 +14,7 @@ const NAV = [
   { href: "/prescriptions", label: "药方" },
   { href: "/inventory", label: "药柜" },
   { href: "/purchases", label: "采购" },
+  { href: "/prices", label: "比价" },
   { href: "/herbs", label: "药材" },
 ];
 

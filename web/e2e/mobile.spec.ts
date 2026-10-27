@@ -46,6 +46,7 @@ test("手机上能完成一次煎药", async ({ page }) => {
   await signIn(page, users.hao);
   await page.locator(`nav a[href="/prescriptions"]`).click();
   await page.getByText("酸枣仁汤", { exact: true }).click();
+  await expect(page.getByTestId("decoction-history")).toBeVisible(); // 等页面加载完再数
   const entries = page.getByTestId("decoction-entry");
   const before = await entries.count();
   await page.locator("#doses").fill("1");

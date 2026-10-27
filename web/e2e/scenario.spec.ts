@@ -197,6 +197,7 @@ async function decoct(d: (typeof DECOCTIONS)[number]) {
 }
 
 async function decoctInPlace(doses: number) {
+  await expect(page.getByTestId("decoction-form")).toBeVisible();
   const entries = page.getByTestId("decoction-entry");
   const before = await entries.count();
   await page.locator("#doses").fill(String(doses));
@@ -231,11 +232,13 @@ test("5. 煎药（含各种边界情况）", async () => {
   const hqBefore = parseGrams(await page.getByTestId("stock-黄芪").textContent());
   await page.locator(`nav a[href="/prescriptions"]`).click();
   await page.getByText("玉屏风散", { exact: true }).click();
+  await expect(page.getByTestId("decoction-history")).toBeVisible(); // 玉屏风散已经煎过一次
   await decoctInPlace(1);
   await page.locator(`nav a[href="/inventory"]`).click();
   await expect(page.getByTestId("stock-黄芪")).toHaveText(`${hqBefore - 12} g`);
   await page.locator(`nav a[href="/prescriptions"]`).click();
   await page.getByText("玉屏风散", { exact: true }).click();
+  await expect(page.getByTestId("decoction-entry")).toHaveCount(2);
   await page.getByTestId("decoction-entry").first().getByRole("button", { name: "撤销" }).click();
   await page.locator(`nav a[href="/inventory"]`).click();
   await expect(page.getByTestId("stock-黄芪")).toHaveText(`${hqBefore} g`);

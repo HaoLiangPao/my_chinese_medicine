@@ -1,8 +1,7 @@
 -- 每个测试文件开头 \ir _helpers.sql：授权 + 三个测试用户 + 断言函数
 \set ON_ERROR_STOP on
-grant usage on schema public to authenticated;
-grant all on all tables in schema public to authenticated;
-grant execute on all functions in schema public to authenticated;
+-- 授权来自 auth_stub.sql 里的 default privileges（模拟 Supabase），这里不再整体 grant，
+-- 否则会盖掉 migration 里的 revoke。
 
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a', 'hao@example.com'),

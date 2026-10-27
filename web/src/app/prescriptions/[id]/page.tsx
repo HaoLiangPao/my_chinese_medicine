@@ -10,11 +10,13 @@ import { listHerbs } from "@/lib/herbs";
 import { maxDosesFromStock, perDoseTotal } from "@/lib/rx";
 import { varianceStatus } from "@/lib/decoction";
 import { DecoctionForm } from "./decoction-form";
+import { CostSection } from "./cost-section";
+import { parseStrategy } from "@/lib/pricing";
 
-export default function PrescriptionPage({ params }: PageProps<"/prescriptions/[id]">) {
+export default function PrescriptionPage({ params, searchParams }: PageProps<"/prescriptions/[id]">) {
   return (
     <Suspense fallback={<Loading />}>
-      <Detail params={params} />
+      <Detail params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -40,8 +42,15 @@ type Rx = {
   }[];
 };
 
-async function Detail({ params }: { params: Promise<{ id: string }> }) {
+async function Detail({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  const strategy = parseStrategy((await searchParams).cost);
   const { supabase } = await getContext();
 
   const { data } = await supabase
@@ -126,6 +135,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           </tbody>
         </table>
       </div>
+
+      <CostSection supabase={supabase} rx={rx} strategy={strategy} />
 
       <div className="card space-y-2">
         <h2 className="font-serif text-lg font-bold">煎药（从家里药柜取药）</h2>

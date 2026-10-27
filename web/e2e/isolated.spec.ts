@@ -190,7 +190,7 @@ test.describe("表单校验", () => {
     await save.click();
     await page.waitForURL(/\/prescriptions\/[0-9a-f-]{36}$/);
     await expect(page.getByRole("cell", { name: "15 g" }).first()).toBeVisible();
-    await expect(page.getByRole("row")).toHaveCount(2); // 表头 + 1 味（合并后）
+    await expect(page.locator("table").first().getByRole("row")).toHaveCount(2); // 药材表：表头 + 1 味（合并后）
   });
 
   test("采购：没有完整的行不能保存；价格 0 可以；新店铺自动建", async ({ page }) => {

@@ -33,7 +33,7 @@ for t in "$ROOT"/supabase/tests/*_test.sql; do
   if out=$(cd "$ROOT/supabase/tests" && psqlc "$db" -f "$t" 2>&1); then
     echo "✔ $name"; pass=$((pass+1))
   else
-    echo "✘ $name"; echo "$out" | grep -E "ERROR|FAIL" | head -5 | sed 's/^/    /'; fail=$((fail+1))
+    echo "✘ $name"; { echo "$out" | grep -iE "ERROR|FAIL" || echo "$out" | tail -5; } | head -5 | sed 's/^/    /'; fail=$((fail+1))
   fi
 done
 echo "SQL tests: $pass passed, $fail failed"

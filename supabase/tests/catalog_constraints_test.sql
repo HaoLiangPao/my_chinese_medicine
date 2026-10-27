@@ -92,3 +92,13 @@ reset role;
 select assert_eq((select count(*) from workspaces where id = :'ws_other'), 1::bigint, '有数据的 workspace 保留');
 
 \echo 'catalog_constraints_test: PASSED'
+
+-- ---- 加固（migration 0006）----
+:as_other;
+update herbs set name_zh = '被改掉的黄芪' where name_zh = '黄芪';
+reset role;
+select assert_eq((select count(*) from herbs where name_zh = '黄芪'), 1::bigint, '普通用户不能修改共享药材目录');
+:as_other;
+select assert_raises(format('select workspace_is_empty(%L)', :'ws'), 'permission denied', '不能直接调用内部函数 workspace_is_empty');
+reset role;
+\echo 'hardening: PASSED'

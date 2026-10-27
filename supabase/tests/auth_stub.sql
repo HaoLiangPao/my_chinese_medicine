@@ -9,3 +9,9 @@ do $$ begin
     create role authenticated nologin;
   end if;
 end $$;
+
+-- 和 Supabase 一样：对象「创建时」默认授权给 authenticated（之后 migration 里的 revoke 才有意义）
+grant usage on schema public to authenticated;
+alter default privileges for role postgres in schema public grant all on tables to authenticated;
+alter default privileges for role postgres in schema public grant all on sequences to authenticated;
+alter default privileges for role postgres in schema public grant execute on functions to authenticated;

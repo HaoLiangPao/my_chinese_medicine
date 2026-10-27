@@ -16,7 +16,7 @@ export function PurchaseForm({ herbNames, storeNames, today }: { herbNames: stri
 
   return (
     <form action={action} className="space-y-5">
-      <div className="card grid grid-cols-2 gap-3">
+      <div className="card grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div>
           <label className="label">店铺</label>
           <input name="store_name" list="store-names" placeholder="如：T&T、李医生诊所" className="input" />
@@ -25,6 +25,14 @@ export function PurchaseForm({ herbNames, storeNames, today }: { herbNames: stri
               <option key={s} value={s} />
             ))}
           </datalist>
+        </div>
+        <div>
+          <label className="label" htmlFor="store_kind">店铺类型（新店才用）</label>
+          <select id="store_kind" name="store_kind" defaultValue="shop" className="input">
+            <option value="shop">药行</option>
+            <option value="clinic">诊所</option>
+            <option value="online">网店</option>
+          </select>
         </div>
         <div>
           <label className="label">日期</label>
