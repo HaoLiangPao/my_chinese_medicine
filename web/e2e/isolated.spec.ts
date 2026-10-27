@@ -150,15 +150,19 @@ test.describe("登录与权限", () => {
     );
     expect(Number(own[0].g)).toBe(100); // Tina 自己的药柜没被动
 
-    // 切回自己的药柜
+    // 切回自己的药柜（等切换完成再跳转，否则跳转会打断请求）
     await tp.goto("/");
-    await tp.getByTestId("workspace-switcher").getByRole("button", { name: /切换到/ }).click();
+    await expect(tp.getByTestId("workspace-switcher")).toContainText("加入的，当前");
+    await tp.getByTestId("workspace-switcher").getByRole("button", { name: /切换到.*我创建的/ }).click();
+    await expect(tp.getByTestId("workspace-switcher")).toContainText("我创建的，当前");
+    await expect(tp.getByTestId("member-list").locator("li")).toHaveCount(1);
     await tp.goto("/inventory");
     await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
 
     // 切回去再退出
     await tp.goto("/");
-    await tp.getByTestId("workspace-switcher").getByRole("button", { name: /切换到/ }).click();
+    await tp.getByTestId("workspace-switcher").getByRole("button", { name: /切换到.*加入的/ }).click();
+    await expect(tp.getByTestId("workspace-switcher")).toContainText("加入的，当前");
     await expect(tp.getByRole("button", { name: "退出这个药柜" })).toBeVisible();
     await tp.getByRole("button", { name: "退出这个药柜" }).click();
     await expect(tp.getByTestId("workspace-switcher")).toHaveCount(0);

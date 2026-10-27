@@ -6,10 +6,10 @@
 |---|---|---|
 | **MVP1** | 录药方（拍照识别）、管库存、记采购、煎药记录、按药统计 | ✅ 完成，测试覆盖 |
 | **MVP2** | 各家店比价、每副药成本、和诊所对比、药柜价值 | ✅ 完成，测试覆盖 |
-| MVP3 | 多用户：医生角色，开方时自动计价 | 计划中 |
-| MVP4 | 知识库：药材资料、方剂解读（RAG）、科普 | 计划中 |
+| **MVP3** | 药柜学堂（公开科普）：学习路径、阴阳/五行等交互图、中药图鉴、经典选读（原计划的 MVP4，提前） | 🚧 原型：`/learn` |
+| MVP4 | 医生角色：开方时自动计价（原计划的 MVP3） | 计划中 |
 
-设计文档在 [`docs/design/`](docs/design/)：[0001 MVP1](docs/design/0001-mvp1.md) · [0002 煎药记录与测试体系](docs/design/0002-decoctions-and-testing.md) · [0003 MVP2 比价](docs/design/0003-mvp2-pricing.md) · [0004 独立代码审查与修复](docs/design/0004-security-review.md)。
+设计文档在 [`docs/design/`](docs/design/)：[0001 MVP1](docs/design/0001-mvp1.md) · [0002 煎药记录与测试体系](docs/design/0002-decoctions-and-testing.md) · [0003 MVP2 比价](docs/design/0003-mvp2-pricing.md) · [0004 独立代码审查与修复](docs/design/0004-security-review.md) · [0005 学堂与动态图](docs/design/0005-learn-and-visuals.md)。
 
 ## 目录结构
 
@@ -51,9 +51,9 @@ scripts/test-all.sh           # 类型检查 → lint → 单元测试 → SQL �
 
 | 层 | 数量 | 单独跑 |
 |---|---|---|
-| 单元测试（Vitest） | 60 | `cd web && npm test` |
+| 单元测试（Vitest） | 85 | `cd web && npm test` |
 | SQL 测试 | 5 个文件，约 190 条断言 | `scripts/test-db.sh` |
-| E2E（Playwright） | 32 | `scripts/e2e.sh`，只跑一组：`scripts/e2e.sh --project=isolated` |
+| E2E（Playwright） | 36 | `scripts/e2e.sh`，只跑一组：`scripts/e2e.sh --project=isolated` |
 
 E2E 的完整场景：10 张常用药方、5 家药行不同价格的采购、9 次煎药（多用、没放、处方外加药、缺货变负、撤销……）、称重校准、删除药方，最后和独立计算的账本逐味对账。详见 [0002](docs/design/0002-decoctions-and-testing.md)。失败时的截图和 trace 在 `.local/test-results/`，报告在 `.local/playwright-report/`。
 

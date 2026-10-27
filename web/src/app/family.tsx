@@ -100,11 +100,11 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
             <span className="text-muted">你在 {workspaces.length} 个药柜里：</span>
             {workspaces.map((w) =>
               w.is_active ? (
-                <span key={w.workspace_id} className="ml-2 font-medium text-cinnabar">{w.name}（当前）</span>
+                <span key={w.workspace_id} className="ml-2 font-medium text-cinnabar">{w.name}（{w.role === "owner" ? "我创建的" : "加入的"}，当前）</span>
               ) : (
                 <form key={w.workspace_id} action={switchWorkspace} className="ml-2 inline">
                   <input type="hidden" name="workspace_id" value={w.workspace_id} />
-                  <button className="underline">切换到 {w.name}</button>
+                  <button className="underline">切换到 {w.name}（{w.role === "owner" ? "我创建的" : "加入的"}）</button>
                 </form>
               ),
             )}

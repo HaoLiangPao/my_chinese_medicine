@@ -16,6 +16,7 @@ const NAV = [
   { href: "/purchases", label: "采购" },
   { href: "/prices", label: "比价" },
   { href: "/herbs", label: "药材" },
+  { href: "/learn", label: "学堂" },
 ];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
           <nav className="mx-auto flex max-w-4xl items-center gap-1 overflow-x-auto px-4 py-3">
-            <Link href="/" className="mr-3 font-serif text-xl font-bold text-cinnabar">
+            <Link href="/" className="mr-3 shrink-0 font-serif text-xl font-bold text-cinnabar">
               药柜
             </Link>
             {NAV.slice(1).map((n) => (

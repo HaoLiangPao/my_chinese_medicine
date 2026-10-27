@@ -26,7 +26,9 @@ export async function proxy(request: NextRequest) {
   );
 
   const { data } = await supabase.auth.getClaims();
-  const isPublic = request.nextUrl.pathname.startsWith("/login");
+  const path = request.nextUrl.pathname;
+  // 学堂（科普）页面对所有人公开，可以分享
+  const isPublic = path.startsWith("/login") || path === "/learn" || path.startsWith("/learn/");
   if (!data?.claims && request.nextUrl.pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "未登录" }, { status: 401 });
   }
