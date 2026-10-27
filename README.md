@@ -32,7 +32,7 @@ web/                    Next.js 16 应用
 
 ## 本地跑起来（不需要 Supabase 账号）
 
-需要：Linux x64、PostgreSQL 16+（`sudo apt install postgresql`）、Node 20+。**不要用 root 跑**。
+需要：Linux x64、PostgreSQL 16+（`sudo apt install postgresql`）、**Node 22.12 以上**（建议用 nvm：`nvm install 22 && nvm use`，仓库里有 `.nvmrc`）。**不要用 root 跑**。
 
 ```bash
 scripts/local-stack.sh up     # 启动本地 Supabase-lite，会自动写好 web/.env.local
