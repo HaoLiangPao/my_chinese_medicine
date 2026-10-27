@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ORGANS, organsOf } from "./organs";
 import { CORRESPONDENCE, ELEMENTS, controlledBy, controls, generatedBy, generates, relation, shichen, yangShare } from "./wuxing";
 
 describe("五行相生", () => {
@@ -82,4 +83,18 @@ describe("十二时辰", () => {
     [13, "未时"],
     [22, "亥时"],
   ] as const)("%d 点是 %s", (h, s) => expect(shichen(h)).toBe(s));
+});
+
+describe("脏腑 → 五行", () => {
+  it("十个脏腑，每行一脏一腑", () => {
+    expect(ORGANS).toHaveLength(10);
+    for (const e of ELEMENTS) expect(organsOf(e)).toHaveLength(2);
+  });
+  it.each([
+    ["木", ["肝", "胆"]],
+    ["火", ["心", "小肠"]],
+    ["土", ["脾", "胃"]],
+    ["金", ["肺", "大肠"]],
+    ["水", ["肾", "膀胱"]],
+  ] as const)("%s → %j", (e, organs) => expect(organsOf(e)).toEqual(organs));
 });

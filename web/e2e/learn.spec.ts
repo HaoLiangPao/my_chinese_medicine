@@ -44,6 +44,32 @@ test("五行：相生/相克箭头、点选后显示关系和对应", async ({ p
   await expect(page.locator('[data-testid^="rel-"]')).toHaveCount(0);
 });
 
+test("五行 ↔ 人体脏腑图联动", async ({ page }) => {
+  await page.goto("/learn/wuxing");
+  const organs = ["肝", "胆", "心", "小肠", "脾", "胃", "肺", "大肠", "肾", "膀胱"];
+  for (const o of organs) await expect(page.getByTestId(`organ-${o}`)).toHaveAttribute("data-lit", "false");
+
+  const expectLit = async (lit: string[]) => {
+    for (const o of organs) await expect(page.getByTestId(`organ-${o}`), o).toHaveAttribute("data-lit", lit.includes(o) ? "true" : "false");
+  };
+  // 点五行 → 对应脏腑高亮
+  await page.getByTestId("node-木").click();
+  await expectLit(["肝", "胆"]);
+  await page.getByTestId("node-金").click();
+  await expectLit(["肺", "大肠"]);
+  // 点脏腑 → 选中对应的五行，面板和关系标签跟着变
+  await page.getByTestId("organ-肾").locator("path").first().click(); // 点左边那个肾
+  await expectLit(["肾", "膀胱"]);
+  await expect(page.getByTestId("wuxing-panel").getByTestId("corr-五脏")).toHaveText("肾");
+  await expect(page.getByTestId("rel-木")).toHaveText("我生"); // 水生木
+  await page.getByTestId("organ-小肠").click();
+  await expectLit(["心", "小肠"]);
+  await expect(page.getByTestId("node-火")).toHaveAttribute("aria-pressed", "true");
+  // 再点同一行的脏腑 → 取消
+  await page.getByTestId("organ-心").click();
+  await expectLit([]);
+});
+
 test("阴阳：拖动时间，阴阳比例和时辰跟着变", async ({ page }) => {
   await page.goto("/learn/yinyang");
   const slider = page.getByLabel("一天中的时间");

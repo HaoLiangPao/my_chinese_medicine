@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CORRESPONDENCE, ELEMENTS, controls, generates, relation, type Element } from "@/lib/wuxing";
+import { BodyMap } from "./body-map";
 
 type Mode = "sheng" | "ke" | "both";
 
@@ -70,7 +71,7 @@ export function WuxingDiagram() {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[1fr_16rem]">
+      <div className="grid items-start gap-4 md:grid-cols-[1fr_14rem_15rem]">
         <svg viewBox="0 0 400 410" className="mx-auto w-full max-w-md" role="img" aria-label="五行生克图" data-testid="wuxing-svg">
           <defs>
             <marker id="arrow-sheng" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -144,10 +145,12 @@ export function WuxingDiagram() {
           })}
         </svg>
 
+        <BodyMap selected={sel} onSelect={setSel} />
+
         <aside className="card text-sm" data-testid="wuxing-panel" aria-live="polite">
           {!sel ? (
             <div className="space-y-2 text-muted">
-              <p>点一个圆，看它和其他四行的关系，以及它对应的脏腑、季节、颜色……</p>
+              <p>点一个圆（或者人体图上的一个脏腑），看它和其他四行的关系，以及对应的脏腑、季节、颜色……</p>
               <p><span className="text-jade">绿色箭头</span>是<b className="text-ink">相生</b>：木生火、火生土、土生金、金生水、水生木。</p>
               <p><span className="text-cinnabar">红色箭头</span>是<b className="text-ink">相克</b>：木克土、土克水、水克火、火克金、金克木。</p>
             </div>
