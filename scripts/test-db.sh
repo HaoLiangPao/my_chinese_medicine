@@ -4,8 +4,12 @@
 # 用法：scripts/test-db.sh [文件名过滤]     需要本机装了 postgresql；不能用 root 跑
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
-export PATH="$PGBIN:$PATH"
+PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1 || true)}"
+export PATH="${PGBIN:+$PGBIN:}$PATH"
+if ! command -v initdb >/dev/null || ! command -v pg_ctl >/dev/null; then
+  echo "找不到 PostgreSQL（initdb / pg_ctl）。Ubuntu 上安装：sudo apt install -y postgresql" >&2
+  exit 1
+fi
 FILTER="${1:-}"
 
 TMP="$(mktemp -d)"

@@ -11,8 +11,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 L="$ROOT/.local"
 BIN="$L/bin"
-PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
-export PATH="$PGBIN:$PATH"
+PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1 || true)}"
+export PATH="${PGBIN:+$PGBIN:}$PATH"
+if ! command -v initdb >/dev/null || ! command -v pg_ctl >/dev/null; then
+  echo "找不到 PostgreSQL（initdb / pg_ctl）。Ubuntu 上安装：sudo apt install -y postgresql" >&2
+  exit 1
+fi
 
 PG_PORT=54322 AUTH_PORT=9999 REST_PORT=3001 GW_PORT=54321
 JWT_SECRET="local-dev-jwt-secret-at-least-32-characters-long"
