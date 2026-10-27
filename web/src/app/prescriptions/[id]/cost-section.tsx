@@ -14,10 +14,12 @@ export async function CostSection({
   supabase,
   rx,
   strategy,
+  clinic = false,
 }: {
   supabase: SupabaseClient;
   rx: { id: string; dose_count: number; price_paid: number | string | null };
   strategy: Strategy;
+  clinic?: boolean;
 }) {
   const [{ data: rowsRaw, error }, { data: byStoreRaw }] = await Promise.all([
     supabase
@@ -45,7 +47,7 @@ export async function CostSection({
 
   return (
     <div className="card space-y-3" data-testid="cost-section">
-      <h2 className="font-serif text-lg font-bold">成本（自己买药）</h2>
+      <h2 className="font-serif text-lg font-bold">{clinic ? "成本（按进货价，只有诊所成员看得到）" : "成本（自己买药）"}</h2>
       <div className="flex flex-wrap gap-2 text-sm">
         {tab({ kind: "cheapest" }, "各店最低价")}
         {tab({ kind: "average" }, "我买入的平均成本")}
@@ -77,7 +79,7 @@ export async function CostSection({
           <span className="ml-1 text-cinnabar" data-testid="cost-missing">（不含没有价格的：{s.missing.join("、")}）</span>
         )}
       </p>
-      {s.clinicPerDose !== null && (
+      {!clinic && s.clinicPerDose !== null && (
         <p className="text-sm" data-testid="clinic-compare">
           诊所实付每副 {money(s.clinicPerDose)}
           {s.savingPerDose === null ? (
@@ -90,12 +92,14 @@ export async function CostSection({
         </p>
       )}
 
+      {!clinic && (
       <form action={setPricePaid} className="flex items-center gap-2 text-sm">
         <input type="hidden" name="id" value={rx.id} />
         <label htmlFor="price_paid" className="shrink-0">诊所实付（{rx.dose_count} 副共）$</label>
         <input id="price_paid" name="price_paid" type="number" step="0.01" min={0} defaultValue={rx.price_paid ?? ""} className="input w-28 py-1" />
         <button className="btn-ghost py-1">保存</button>
       </form>
+      )}
 
       {byStore.length > 0 && (
         <div>

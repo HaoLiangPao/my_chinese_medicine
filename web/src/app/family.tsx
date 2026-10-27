@@ -2,11 +2,12 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { ConfirmButton } from "@/components/confirm-button";
 import { signOut } from "./login/actions";
 import { InviteForm } from "./member-form";
+import { CreateClinicForm } from "./clinic/create-clinic-form";
 import { acceptInvitation, declineInvitation, leaveWorkspace, removeMember, revokeInvitation, switchWorkspace } from "./actions";
 
 type Member = { user_id: string; email: string; role: string };
 type Incoming = { id: string; workspace_name: string; invited_by_email: string | null };
-type Ws = { workspace_id: string; name: string; role: string; is_active: boolean };
+type Ws = { workspace_id: string; name: string; role: string; is_active: boolean; kind: string };
 
 /** 总览页底部：收到的邀请、家庭成员、发出的邀请、切换药柜 */
 export async function Family({ supabase, user, workspaceId }: { supabase: SupabaseClient; user: User; workspaceId: string }) {
@@ -95,16 +96,23 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
           </form>
         )}
 
+        {!workspaces.some((w) => w.kind === "clinic") && (
+          <details className="border-t border-line pt-3 text-sm" data-testid="clinic-entry">
+            <summary className="cursor-pointer text-muted">我是医生：创建诊所（给病人开方）</summary>
+            <div className="mt-2"><CreateClinicForm compact /></div>
+          </details>
+        )}
+
         {workspaces.length > 1 && (
           <div className="border-t border-line pt-3 text-sm" data-testid="workspace-switcher">
             <span className="text-muted">你在 {workspaces.length} 个药柜里：</span>
             {workspaces.map((w) =>
               w.is_active ? (
-                <span key={w.workspace_id} className="ml-2 font-medium text-cinnabar">{w.name}（{w.role === "owner" ? "我创建的" : "加入的"}，当前）</span>
+                <span key={w.workspace_id} className="ml-2 font-medium text-cinnabar">{w.kind === "clinic" ? "诊所·" : ""}{w.name}（{w.role === "owner" ? "我创建的" : "加入的"}，当前）</span>
               ) : (
                 <form key={w.workspace_id} action={switchWorkspace} className="ml-2 inline">
                   <input type="hidden" name="workspace_id" value={w.workspace_id} />
-                  <button className="underline">切换到 {w.name}（{w.role === "owner" ? "我创建的" : "加入的"}）</button>
+                  <button className="underline">切换到 {w.kind === "clinic" ? "诊所·" : ""}{w.name}（{w.role === "owner" ? "我创建的" : "加入的"}）</button>
                 </form>
               ),
             )}

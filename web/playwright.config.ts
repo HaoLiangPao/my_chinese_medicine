@@ -41,6 +41,7 @@ export default defineConfig({
     { name: "mobile", testMatch: /mobile\.spec\.ts/, dependencies: ["scenario"], use: { ...devices["Pixel 7"] } },
     { name: "isolated", testMatch: /isolated\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "learn", testMatch: /learn\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "clinic", testMatch: /clinic\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {

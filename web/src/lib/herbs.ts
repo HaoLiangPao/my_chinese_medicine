@@ -1,12 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type Herb = { id: string; name_zh: string; pinyin: string | null; category: string | null };
+export type Herb = { id: string; name_zh: string; pinyin: string | null; category: string | null; base_herb_id: string | null };
 
 export async function listHerbs(supabase: SupabaseClient): Promise<Herb[]> {
   const { data, error } = await supabase
     .from("herbs")
-    .select("id, name_zh, pinyin, category")
+    .select("id, name_zh, pinyin, category, base_herb_id")
     .order("pinyin", { ascending: true, nullsFirst: false });
   if (error) throw new Error(error.message);
   return data ?? [];

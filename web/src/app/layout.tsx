@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import Link from "next/link";
+import { Nav } from "@/components/nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,35 +9,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
-const NAV = [
-  { href: "/", label: "总览" },
-  { href: "/prescriptions", label: "药方" },
-  { href: "/inventory", label: "药柜" },
-  { href: "/purchases", label: "采购" },
-  { href: "/prices", label: "比价" },
-  { href: "/herbs", label: "药材" },
-  { href: "/learn", label: "学堂" },
-];
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full">
         <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
-          <nav className="mx-auto flex max-w-4xl items-center gap-1 overflow-x-auto px-4 py-3">
-            <Link href="/" className="mr-3 shrink-0 font-serif text-xl font-bold text-cinnabar">
-              药柜
-            </Link>
-            {NAV.slice(1).map((n) => (
-              <Link
-                key={n.href}
-                href={n.href}
-                className="shrink-0 rounded-md px-3 py-1.5 text-sm hover:bg-card"
-              >
-                {n.label}
-              </Link>
-            ))}
-          </nav>
+          {/* 不用 Suspense：流式渲染时占位导航和真实导航会短暂同时存在 */}
+          <Nav />
         </header>
         <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
       </body>
