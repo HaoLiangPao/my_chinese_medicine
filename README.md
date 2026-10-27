@@ -60,8 +60,8 @@ E2E 的完整场景：10 张常用药方、5 家药行不同价格的采购、9 
 ## 上线到 Supabase
 
 1. 在 [supabase.com](https://supabase.com) 新建项目（区域建议选 Canada Central）。
-2. SQL Editor 里按顺序执行 `supabase/migrations/*.sql`，再执行 `supabase/seed.sql`（或者用 Supabase CLI：`supabase link` 后 `supabase db push`）。
-3. Authentication → Providers → Email：自己家用的话可以关掉 "Confirm email"。
+2. 本地运行 `scripts/bundle-sql.sh`，它会把所有 migration 和 seed 合并成 `.local/supabase-all.sql`。在 SQL Editor → New query 里粘贴全部内容，点 Run（整个文件在一个事务里，失败会全部回滚）。只适用于全新项目；以后新增的 migration 单独执行那一个文件。
+3. Authentication → Providers → Email：自己家用的话可以关掉 "Confirm email"。Authentication → URL Configuration：Site URL 填 Vercel 的网址。
 4. `web/.env.local` 换成项目的 URL 和 publishable key（参考 `web/.env.example`）。
 
 ## 第一次使用
@@ -75,4 +75,12 @@ E2E 的完整场景：10 张常用药方、5 家药行不同价格的采购、9 
 
 ## 部署
 
-`web/` 目录直接部署到 Vercel（Root Directory 设为 `web`），在 Vercel 里配同样的环境变量。
+`web/` 目录直接部署到 Vercel（Root Directory 设为 `web`），在 Vercel 里配环境变量：
+
+| 变量 | 必填 | 说明 |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | 同上（publishable / anon key，不是 service_role） |
+| `ANTHROPIC_API_KEY` | 拍照识别要用 | |
+| `ANTHROPIC_MODEL` | 可选 | 默认 `claude-sonnet-5-5` |
+| `PARSE_DAILY_LIMIT` | 可选 | 每人每天识别次数上限 |
