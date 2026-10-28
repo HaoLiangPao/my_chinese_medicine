@@ -1,0 +1,11 @@
+# 只需要上传 web/（Root Directory = web）；本地数据库、截图、密钥都不上传
+# 注意：根目录的路径要加前导 /，否则会误伤 web/src/lib/supabase/ 之类同名目录
+/.local
+/supabase
+/scripts
+/docs
+**/node_modules
+**/.next
+**/.env*
+/web/test-results
+/web/playwright-report
