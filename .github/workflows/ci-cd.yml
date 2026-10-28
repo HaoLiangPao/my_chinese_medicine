@@ -104,11 +104,11 @@ jobs:
       - name: 检查密钥是否已配置
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           missing=()
-          for k in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD VERCEL_TOKEN; do [[ -n ${!k} ]] || missing+=("$k"); done
+          # SUPABASE_DB_PASSWORD 可选：没有时 Supabase CLI 用 access token 建临时登录角色
+          for k in SUPABASE_ACCESS_TOKEN VERCEL_TOKEN; do [[ -n ${!k} ]] || missing+=("$k"); done
           if (( ${#missing[@]} )); then
             echo "::error::缺少 GitHub secrets：${missing[*]}（见 docs/design/0007-ci-cd.md §5）"
             exit 1
