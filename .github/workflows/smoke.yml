@@ -1,0 +1,50 @@
+# 线上冒烟测试：部署后自动跑（由 ci-cd.yml 调用），另外每天跑一次，也可以手动触发。
+# 设计见 docs/design/0007-ci-cd.md §4
+name: Smoke
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      parse:
+        description: "同时测一次真实的拍照识别（花一点 OpenRouter 额度）"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 13 * * *" # 每天 13:17 UTC（多伦多早上 9 点左右）
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - name: 冒烟测试
+        working-directory: web
+        env:
+          SMOKE_BASE_URL: ${{ vars.SMOKE_BASE_URL || 'https://mychinesemedicine.vercel.app' }}
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+          SMOKE_PARSE: ${{ inputs.parse && '1' || '' }}
+        run: npm run smoke
+      - name: 失败时上传报告
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: |
+            .local/smoke-report
+            .local/smoke-results
+          retention-days: 7

@@ -75,7 +75,9 @@ E2E 的完整场景：10 张常用药方、5 家药行不同价格的采购、9 
 
 ## 部署
 
-`web/` 目录直接部署到 Vercel（Root Directory 设为 `web`），在 Vercel 里配环境变量：
+合并到 `main` 后由 GitHub Actions 自动上线：测试 → `supabase db push` → `vercel deploy --prod` → 线上冒烟测试（`cd web && npm run smoke`）。需要在 GitHub 配的密钥见 [0007](docs/design/0007-ci-cd.md#5-需要配置的密钥)。
+
+手动部署：在**仓库根目录**运行 `npx vercel deploy --prod`（Vercel 项目的 Root Directory 是 `web`，`.vercelignore` 控制上传内容）。在 Vercel 里配环境变量：
 
 | 变量 | 必填 | 说明 |
 |---|---|---|

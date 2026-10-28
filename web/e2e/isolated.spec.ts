@@ -37,6 +37,16 @@ test.describe("登录与权限", () => {
     expect(await res.json()).toEqual({ error: "未登录" });
   });
 
+  test("安全响应头：不能被 iframe 嵌入、不暴露框架", async ({ request }) => {
+    for (const path of ["/login", "/learn", "/api/parse-prescription"]) {
+      const h = (await request.get(path, { maxRedirects: 0 })).headers();
+      expect(h["x-frame-options"], path).toBe("DENY");
+      expect(h["content-security-policy"], path).toContain("frame-ancestors 'none'");
+      expect(h["x-content-type-options"], path).toBe("nosniff");
+      expect(h["x-powered-by"], path).toBeUndefined();
+    }
+  });
+
   test("密码错误；退出登录后不能再访问", async ({ page }) => {
     const u = fresh();
     await signUp(page, u);

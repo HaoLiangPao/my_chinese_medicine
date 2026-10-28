@@ -1,0 +1,141 @@
+# CI/CD：设计见 docs/design/0007-ci-cd.md
+#   PR / 推到任意分支 → test（类型检查、lint、单元、SQL、E2E、migration 检查）
+#   合并到 main       → test → deploy（先推 migration，再部署 Vercel）→ smoke（线上冒烟测试）
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  # 不是密钥，写在这里方便看；真正的密钥都在 Settings → Secrets and variables → Actions
+  SUPABASE_PROJECT_REF: sktmqyahvhzyxpyyaojb
+  VERCEL_ORG_ID: team_6hf5KWnMuQhvWm1S5lcc39Cs
+  VERCEL_PROJECT_ID: prj_zs91BW0zwI6YojmAe77bm2G9N91Z
+  SUPABASE_CLI: supabase@2.122.0
+  VERCEL_CLI: vercel@65.5.0
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # check-migrations 要和 main 比较
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: 不能修改已上线的 migration
+        run: scripts/check-migrations.sh origin/main
+
+      - name: PostgreSQL（runner 一般自带）
+        run: |
+          ls /usr/lib/postgresql/*/bin/initdb 2>/dev/null || { sudo apt-get update -q && sudo apt-get install -yq postgresql; }
+          # runner 自带的 postgres 服务不需要，本地测试会自己起一个
+          sudo systemctl stop postgresql || true
+
+      - name: 缓存 PostgREST / Supabase Auth 二进制
+        uses: actions/cache@v4
+        with:
+          path: .local/bin
+          key: stack-bin-${{ hashFiles('scripts/local-stack.sh') }}
+
+      - run: npm ci
+        working-directory: web
+
+      - name: 缓存 Playwright 浏览器
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ hashFiles('web/package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        working-directory: web
+      - run: npx playwright install-deps chromium
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: web
+
+      - name: 全部测试
+        run: scripts/test-all.sh
+
+      - name: 失败时上传 E2E 报告
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            .local/playwright-report
+            .local/test-results
+            .local/logs
+          retention-days: 7
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production # 可以在 GitHub 里给它加「需要人工批准」
+    concurrency:
+      group: production
+      cancel-in-progress: false # 部署不能中途取消
+    outputs:
+      url: ${{ steps.vercel.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: 检查密钥是否已配置
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          missing=()
+          for k in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD VERCEL_TOKEN; do [[ -n ${!k} ]] || missing+=("$k"); done
+          if (( ${#missing[@]} )); then
+            echo "::error::缺少 GitHub secrets：${missing[*]}（见 docs/design/0007-ci-cd.md §5）"
+            exit 1
+          fi
+
+      # 先迁移数据库，再部署代码：migration 必须兼容「正在线上跑的旧代码」（见设计文档 §3）
+      - name: 数据库 migration
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          npx -y $SUPABASE_CLI link --project-ref "$SUPABASE_PROJECT_REF"
+          npx -y $SUPABASE_CLI db push --dry-run
+          npx -y $SUPABASE_CLI db push --yes
+
+      - name: 部署到 Vercel（production）
+        id: vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # 从仓库根目录部署（项目的 Root Directory = web），.vercelignore 控制上传内容
+          npx -y $VERCEL_CLI deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1 | tee deploy.log
+          url=$(grep -oE 'https://[a-z0-9-]+\.vercel\.app' deploy.log | head -1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "部署完成：$url" >> "$GITHUB_STEP_SUMMARY"
+
+  smoke:
+    needs: deploy
+    uses: ./.github/workflows/smoke.yml
+    secrets: inherit
