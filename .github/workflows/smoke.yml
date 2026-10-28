@@ -35,8 +35,11 @@ jobs:
         working-directory: web
         env:
           SMOKE_BASE_URL: ${{ vars.SMOKE_BASE_URL || 'https://mychinesemedicine.vercel.app' }}
-          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
-          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+          # 邮箱放在 variables（也接受 secrets），密码只放 secrets
+          SMOKE_PATIENT_EMAIL: ${{ vars.SMOKE_PATIENT_EMAIL || secrets.SMOKE_PATIENT_EMAIL }}
+          SMOKE_PATIENT_PASSWORD: ${{ secrets.SMOKE_PATIENT_PASSWORD }}
+          SMOKE_CLINIC_EMAIL: ${{ vars.SMOKE_CLINIC_EMAIL || secrets.SMOKE_CLINIC_EMAIL }}
+          SMOKE_CLINIC_PASSWORD: ${{ secrets.SMOKE_CLINIC_PASSWORD }}
           SMOKE_PARSE: ${{ inputs.parse && '1' || '' }}
         run: npm run smoke
       - name: 失败时上传报告
