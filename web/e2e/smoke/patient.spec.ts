@@ -14,10 +14,11 @@ const TITLE = `冒烟测试 ${new Date().toISOString().slice(0, 16)}`;
 let page: Page;
 
 test.beforeAll(async ({ browser }) => {
-  page = await browser.newPage();
+  // 用 newContext（不是 browser.newPage）：后面要在同一个上下文里再开页面画药方图片
+  page = await (await browser.newContext()).newPage();
   page.on("dialog", (d) => d.accept());
 });
-test.afterAll(async () => page.close());
+test.afterAll(async () => page.context().close());
 
 test("登录，切到家庭药柜", async () => {
   await login(page, acct!);
