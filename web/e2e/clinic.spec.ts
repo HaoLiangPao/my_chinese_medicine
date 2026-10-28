@@ -60,6 +60,16 @@ test("1. 医生注册、创建诊所；导航切换成诊所模式", async () =>
   await expect(page.getByTestId("clinic-badge")).toHaveText(CLINIC);
   await expect(page.getByTestId("nav").getByRole("link", { name: "开方" })).toBeVisible();
   await expect(page.getByTestId("nav").getByRole("link", { name: "病人" })).toBeVisible();
+
+  // 处方页：「＋ 开方」去开方页，不是家庭的录方表单；不写死医生名字
+  await page.goto("/prescriptions");
+  await expect(page.getByRole("heading", { name: "处方" })).toBeVisible();
+  await expect(page.getByText(`${CLINIC}开出的每一张处方`)).toBeVisible();
+  await expect(page.getByRole("link", { name: "＋ 开方" })).toHaveAttribute("href", "/clinic/prescribe");
+  await expect(page.getByRole("link", { name: "＋ 新药方" })).toHaveCount(0);
+  // 直接打开家庭的录方地址（比如总览页的按钮）→ 转到开方页
+  await page.goto("/prescriptions/new");
+  await page.waitForURL(/\/clinic\/prescribe$/);
 });
 
 test("2. 诊所进货（成本用这些价格）", async () => {
@@ -120,6 +130,14 @@ test("3. 开方：新病人、选药（首字母、炮制品、搜索、新药�
   await fillLine(9, { note: "另包", chip: true });
   await pickBySearch("dg", "当归", "当归");
   await fillLine(9);
+
+  // 搜拼音缩写、搜炮制品名时不提示「新增」（否则会往全局目录里加「bx」或重复的「法半夏」）
+  await page.getByLabel("搜药材").fill("bx");
+  await expect(page.getByTestId("letter-panel").getByTestId("herb-半夏")).toBeVisible();
+  await expect(page.getByRole("button", { name: /＋ 新增/ })).toHaveCount(0);
+  await page.getByLabel("搜药材").fill("法半夏");
+  await expect(page.getByTestId("letter-panel").getByTestId("herb-半夏")).toBeVisible();
+  await expect(page.getByRole("button", { name: /＋ 新增/ })).toHaveCount(0);
 
   // 目录里没有的药：新增
   // （药材目录是全局的：同一个本地库上重复跑测试时，鸡血藤可能已经被之前的运行加进去了）

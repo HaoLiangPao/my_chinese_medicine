@@ -12,6 +12,17 @@ export async function listHerbs(supabase: SupabaseClient): Promise<Herb[]> {
   return data ?? [];
 }
 
+/** 别名 → 标准名，例如 { 北芪: "黄芪" }（录入时在浏览器里判断能不能对上目录） */
+export async function listHerbAliases(supabase: SupabaseClient): Promise<Record<string, string>> {
+  const { data, error } = await supabase.from("herb_aliases").select("alias, herbs(name_zh)");
+  if (error) throw new Error(error.message);
+  const out: Record<string, string> = {};
+  for (const r of (data ?? []) as unknown as { alias: string; herbs: { name_zh: string } | null }[]) {
+    if (r.herbs) out[r.alias] = r.herbs.name_zh;
+  }
+  return out;
+}
+
 /** 名字 → herb_id（标准名或别名）；找不到就新建一味药。 */
 export async function resolveHerbId(supabase: SupabaseClient, rawName: string): Promise<string> {
   const name = rawName.trim();

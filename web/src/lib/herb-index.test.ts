@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHerbIndex, initialsOf, letterOf, searchHerbs, type HerbRow } from "./herb-index";
+import { buildHerbIndex, canAddHerb, initialsOf, letterOf, searchHerbs, type HerbEntry, type HerbRow } from "./herb-index";
 
 const rows: HerbRow[] = [
   { id: "gc", name_zh: "甘草", pinyin: "gan cao", base_herb_id: null },
@@ -84,4 +84,22 @@ describe("searchHerbs", () => {
     expect(searchHerbs(idx, "h")).toHaveLength(2);
     expect(searchHerbs(idx, "h", 1)).toHaveLength(1);
   });
+});
+
+describe("canAddHerb", () => {
+  const banxia: HerbEntry = { id: "1", name: "半夏", pinyin: "ban xia", initials: "bx", variants: [{ id: "2", name: "法半夏" }, { id: "3", name: "姜半夏" }] };
+  it("拼音 / 首字母 / 夹字母的搜索不提示新增（线上：搜 bx 提示「新增『bx』」）", () => {
+    expect(canAddHerb("bx", [banxia])).toBe(false);
+    expect(canAddHerb("banxia", [])).toBe(false);
+    expect(canAddHerb("半夏2", [])).toBe(false);
+  });
+  it("已有同名药材或同名炮制品 → 不提示（否则会建出重复的「法半夏」）", () => {
+    expect(canAddHerb("半夏", [banxia])).toBe(false);
+    expect(canAddHerb(" 法半夏 ", [banxia])).toBe(false);
+  });
+  it("汉字药名、结果里没有 → 提示", () => {
+    expect(canAddHerb("鸡血藤", [])).toBe(true);
+    expect(canAddHerb("清半夏", [banxia])).toBe(true); // 部分匹配到半夏，但目录里确实没有清半夏
+  });
+  it("空搜索不提示", () => expect(canAddHerb("  ", [])).toBe(false));
 });

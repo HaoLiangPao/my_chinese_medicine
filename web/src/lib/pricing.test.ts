@@ -65,6 +65,36 @@ describe("summarizeCost", () => {
     expect(summarizeCost([], 7, 10).complete).toBe(false);
   });
 
+  it("总价用不取整的每副成本乘副数（线上 bug：$1.554 × 5 显示成 $7.75）", () => {
+    // 黄芪 15g×$0.02 + 党参 12g×$0.04 + 白术 9g×$0.032 + 茯苓 9g×$0.024 + 砂仁 3g×$0.09
+    const four = [
+      { name_zh: "黄芪", grams_per_dose: 15, cost_per_dose: "0.3000" },
+      { name_zh: "党参", grams_per_dose: 12, cost_per_dose: "0.4800" },
+      { name_zh: "白术", grams_per_dose: 9, cost_per_dose: "0.2880" },
+      { name_zh: "茯苓", grams_per_dose: 9, cost_per_dose: "0.2160" },
+      { name_zh: "砂仁", grams_per_dose: 3, cost_per_dose: "0.2700" },
+    ];
+    const s = summarizeCost(four, 5, null);
+    expect(s.perDose).toBe(1.55); // 1.554
+    expect(s.total).toBe(7.77); // 1.554 × 5 = 7.77，不是 1.55 × 5 = 7.75
+    // 诊所那张：炙甘草 6g×$0.024 + 法半夏 9g×$0.04 = 0.504 → 7 剂 3.528
+    const clinic = summarizeCost(
+      [
+        { name_zh: "炙甘草", grams_per_dose: 6, cost_per_dose: "0.1440" },
+        { name_zh: "法半夏", grams_per_dose: 9, cost_per_dose: "0.3600" },
+      ],
+      7,
+      null,
+    );
+    expect([clinic.perDose, clinic.total]).toEqual([0.5, 3.53]);
+  });
+
+  it("和诊所比较也用不取整的值", () => {
+    // 每副 1.554；诊所 5 副共 $10 → 每副 2；每副省 0.446 → $0.45；0.446 / 2 = 22.3%（用取整后的 0.45 算会是 22.5%）
+    const s = summarizeCost([{ name_zh: "黄芪", grams_per_dose: 1, cost_per_dose: 1.554 }], 5, 10);
+    expect([s.clinicPerDose, s.savingPerDose, s.savingPct]).toEqual([2, 0.45, 22.3]);
+  });
+
   it("副数为 0 时不除以 0", () => {
     expect(summarizeCost(rows, 0, 10).clinicPerDose).toBeNull();
   });

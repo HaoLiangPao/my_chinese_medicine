@@ -36,7 +36,7 @@ function rxCost(name: string, pick: (herb: string) => number | null) {
     if (ppg === null || ppg === undefined) missing.push(i.herb);
     else perDose += r4(i.grams * ppg);
   }
-  return { perDose: r2(perDose), total: r2(r2(perDose) * f.doses), missing, doses: f.doses };
+  return { perDose: r2(perDose), exact: perDose, total: r2(perDose * f.doses), missing, doses: f.doses }; // 不取整的每副 × 副数，最后才取整
 }
 
 let page: Page;
@@ -138,10 +138,11 @@ test("和诊所实付比较；有药没价格时不比较", async () => {
   await page.getByLabel(/诊所实付/).fill("70");
   await page.getByRole("button", { name: "保存", exact: true }).click();
   const cheap = rxCost("四君子汤", (h) => cheapestOffer(h)?.perGram ?? null);
-  const saving = r2(10 - cheap.perDose);
+  const savingExact = 10 - cheap.exact; // 用不取整的每副成本比较，显示时才取整
+  const saving = r2(savingExact);
   await expect(page.getByTestId("clinic-compare")).toHaveText(
     saving >= 0
-      ? `诊所实付每副 $10.00，自己买每副便宜 ${$(saving)}（${Math.round((saving / 10) * 1000) / 10}%）`
+      ? `诊所实付每副 $10.00，自己买每副便宜 ${$(saving)}（${Math.round((savingExact / 10) * 1000) / 10}%）`
       : `诊所实付每副 $10.00，自己买每副贵 ${$(-saving)}`,
   );
   expect(Number((await sql<{ p: string }>("select price_paid::text p from prescriptions where id = $1", [id]))[0].p)).toBe(70);

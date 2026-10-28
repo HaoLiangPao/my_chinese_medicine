@@ -27,19 +27,26 @@ export type CostSummary = {
 };
 
 export function summarizeCost(rows: CostRow[], doses: number, pricePaid: number | string | null): CostSummary {
-  let perDose = 0;
+  // 用不取整的每副成本去乘副数、去比较，只在最后取整到分（先取整再乘会放大误差，见 docs/design/0003 §2）
+  let exact = 0;
   const missing: string[] = [];
   for (const r of rows) {
     if (r.cost_per_dose === null || r.cost_per_dose === undefined) missing.push(r.name_zh);
-    else perDose += Number(r.cost_per_dose);
+    else exact += Number(r.cost_per_dose);
   }
-  perDose = round2(perDose);
   const complete = missing.length === 0 && rows.length > 0;
-  const clinicPerDose = pricePaid === null || pricePaid === "" || !(doses > 0) ? null : round2(Number(pricePaid) / doses);
-  const savingPerDose = complete && clinicPerDose !== null ? round2(clinicPerDose - perDose) : null;
-  const savingPct =
-    savingPerDose !== null && clinicPerDose ? Math.round((savingPerDose / clinicPerDose) * 1000) / 10 : null;
-  return { perDose, total: round2(perDose * doses), missing, complete, clinicPerDose, savingPerDose, savingPct };
+  const clinicExact = pricePaid === null || pricePaid === "" || !(doses > 0) ? null : Number(pricePaid) / doses;
+  const savingExact = complete && clinicExact !== null ? clinicExact - exact : null;
+  const savingPct = savingExact !== null && clinicExact ? Math.round((savingExact / clinicExact) * 1000) / 10 : null;
+  return {
+    perDose: round2(exact),
+    total: round2(exact * doses),
+    missing,
+    complete,
+    clinicPerDose: clinicExact === null ? null : round2(clinicExact),
+    savingPerDose: savingExact === null ? null : round2(savingExact),
+    savingPct,
+  };
 }
 
 /** 每克 → 每 100 克（显示用） */
