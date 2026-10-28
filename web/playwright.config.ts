@@ -21,6 +21,8 @@ const MOCK_PORT = 54400;
 
 export default defineConfig({
   testDir: "./e2e",
+  // 线上冒烟测试有自己的配置（playwright.smoke.config.ts）；不排除的话 /clinic\.spec\.ts/ 会把 smoke/clinic.spec.ts 也匹配进来
+  testIgnore: "**/smoke/**",
   fullyParallel: false,
   workers: 1,
   retries: 0,
