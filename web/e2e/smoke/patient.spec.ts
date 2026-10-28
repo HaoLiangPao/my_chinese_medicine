@@ -1,13 +1,13 @@
 /**
- * 登录后的线上冒烟测试，用专门的测试账号（SMOKE_EMAIL / SMOKE_PASSWORD，放在 GitHub Actions secrets）。
- * 只在这个账号自己的药柜里录一张药方再删掉，不碰别人的数据；没配置账号就跳过。
+ * 病人（家庭）账号的线上冒烟测试：SMOKE_PATIENT_EMAIL / SMOKE_PATIENT_PASSWORD（GitHub Actions 的 variables / secrets）。
+ * 只在这个账号自己的家庭药柜里录一张药方再删掉，不碰别人的数据；没配置账号就跳过。
  * SMOKE_PARSE=1 时额外测一次真实的拍照识别（会花一点 OpenRouter 额度，照片会留在这个账号的存储里）。
  */
 import { expect, test, type Page } from "@playwright/test";
+import { account, login, useWorkspace } from "./shared";
 
-const email = process.env.SMOKE_EMAIL;
-const password = process.env.SMOKE_PASSWORD;
-test.skip(!email || !password, "没有配置 SMOKE_EMAIL / SMOKE_PASSWORD");
+const acct = account("SMOKE_PATIENT");
+test.skip(!acct, "没有配置 SMOKE_PATIENT_EMAIL / SMOKE_PATIENT_PASSWORD");
 test.describe.configure({ mode: "serial" });
 
 const TITLE = `冒烟测试 ${new Date().toISOString().slice(0, 16)}`;
@@ -19,14 +19,10 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => page.close());
 
-test("登录", async () => {
-  await page.goto("/login");
-  await page.getByLabel("邮箱").fill(email!);
-  await page.getByLabel("密码").fill(password!);
-  await page.getByRole("button", { name: "登录" }).click();
-  await page.waitForURL((u) => !u.pathname.startsWith("/login"));
-  await page.goto("/");
-  await expect(page.getByRole("button", { name: `退出登录 ${email}` })).toBeVisible(); // 自动建好了药柜，总览页正常
+test("登录，切到家庭药柜", async () => {
+  await login(page, acct!);
+  await useWorkspace(page, "household");
+  await expect(page.getByTestId("nav").getByRole("link", { name: "比价" })).toBeVisible();
 });
 
 test("录一张药方（别名匹配）→ 详情页 → 删除", async () => {
@@ -36,6 +32,8 @@ test("录一张药方（别名匹配）→ 详情页 → 删除", async () => {
   const names = page.getByLabel("药名", { exact: true });
   while ((await names.count()) < 2) await page.getByRole("button", { name: "＋ 加一味" }).click();
   await names.nth(0).fill("北芪"); // 别名 → 黄芪
+  await expect(page.getByTestId("alias-hint")).toContainText("北芪 = 黄芪");
+  await expect(names.nth(0)).not.toHaveClass(/border-cinnabar/);
   await page.getByLabel("每副克数").nth(0).fill("15");
   await names.nth(1).fill("党参");
   await page.getByLabel("每副克数").nth(1).fill("12");

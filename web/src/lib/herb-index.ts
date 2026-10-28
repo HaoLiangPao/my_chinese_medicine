@@ -58,3 +58,14 @@ export function searchHerbs(index: HerbIndex, query: string, limit = 20): HerbEn
   }
   return scored.sort((a, b) => a[0] - b[0] || a[1].pinyin.localeCompare(b[1].pinyin)).slice(0, limit).map((x) => x[1]);
 }
+
+/**
+ * 搜索框里要不要显示「＋ 新增『…』」：
+ * - 只接受汉字药名（搜「bx」这种拼音缩写时不能新增一味叫 bx 的药）；
+ * - 结果里已经有同名的药，或者同名的炮制品（搜「法半夏」时结果是带炮制品的「半夏」），就不提示。
+ */
+export function canAddHerb(query: string, results: HerbEntry[]): boolean {
+  const q = query.trim();
+  if (!/^[㐀-鿿]+$/.test(q)) return false;
+  return !results.some((e) => e.name === q || e.variants.some((v) => v.name === q));
+}

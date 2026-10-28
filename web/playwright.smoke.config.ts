@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // 线上冒烟测试：不启动本地服务，直接测 SMOKE_BASE_URL（默认生产环境）。
-// 设计见 docs/design/0007-ci-cd.md。用法：npm run smoke（可选 SMOKE_EMAIL / SMOKE_PASSWORD 跑登录后的流程）
+// 设计见 docs/design/0007-ci-cd.md。用法：npm run smoke（可选 SMOKE_PATIENT_* / SMOKE_CLINIC_* 账号跑登录后的流程）
 export default defineConfig({
   testDir: "./e2e/smoke",
   fullyParallel: false,

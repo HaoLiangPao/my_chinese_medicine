@@ -7,11 +7,23 @@ import { Empty, Loading, PageHeader } from "@/components/ui";
 export default function PrescriptionsPage() {
   return (
     <>
-      <PageHeader title="药方" subtitle="李医生开的每一张方子" action={{ href: "/prescriptions/new", label: "＋ 新药方" }} />
+      <Suspense fallback={<PageHeader title="药方" />}>
+        <Header />
+      </Suspense>
       <Suspense fallback={<Loading />}>
         <List />
       </Suspense>
     </>
+  );
+}
+
+/** 家庭：自己录药方；诊所：去开方页（诊所不用家庭的录方表单） */
+async function Header() {
+  const { workspaceKind, workspaceName } = await getContext();
+  return workspaceKind === "clinic" ? (
+    <PageHeader title="处方" subtitle={`${workspaceName}开出的每一张处方`} action={{ href: "/clinic/prescribe", label: "＋ 开方" }} />
+  ) : (
+    <PageHeader title="药方" subtitle="家里的每一张药方" action={{ href: "/prescriptions/new", label: "＋ 新药方" }} />
   );
 }
 

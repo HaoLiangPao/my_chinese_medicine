@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { SPECIAL_PREPS, money } from "@/lib/format";
-import { searchHerbs, type HerbChoice, type HerbEntry, type HerbIndex } from "@/lib/herb-index";
+import { canAddHerb, searchHerbs, type HerbChoice, type HerbEntry, type HerbIndex } from "@/lib/herb-index";
 import { COMMON_GRAMS, lineCosts, moveLine, removeLine, upsertLine, validateLines, type RxLine } from "@/lib/rx-lines";
 import { summarizeCost } from "@/lib/pricing";
 import { patientLabel } from "@/lib/rx-message";
@@ -308,7 +308,7 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
                 {e.variants.length > 0 && <span className="ml-1 text-xs text-muted">+{e.variants.length}</span>}
               </button>
             ))}
-            {q.trim() && !list.some((e) => e.name === q.trim()) && (
+            {canAddHerb(q, list) && (
               <button
                 type="button"
                 disabled={adding}

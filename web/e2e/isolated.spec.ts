@@ -345,6 +345,29 @@ test.describe("表单校验", () => {
     await expect(page.locator("table").first().getByRole("row")).toHaveCount(2); // 药材表：表头 + 1 味（合并后）
   });
 
+  test("药方：手动输入别名不标红，提示对应的标准名；目录里没有的才标红", async ({ page }) => {
+    await signUp(page, fresh());
+    await page.goto("/prescriptions/new");
+    const names = page.getByLabel("药名", { exact: true });
+    await names.nth(0).fill(" 北芪 ");
+    await page.getByLabel("每副克数").nth(0).fill("15");
+    await names.nth(1).fill("不存在的药");
+    await page.getByLabel("每副克数").nth(1).fill("3");
+    await names.nth(2).fill("党参");
+
+    await expect(names.nth(0)).not.toHaveClass(/border-cinnabar/);
+    await expect(page.getByTestId("alias-hint")).toHaveText("北芪 = 黄芪（别名，保存为 黄芪）");
+    await expect(page.getByTestId("alias-hint")).toHaveCount(1); // 标准名（党参）不提示
+    await expect(names.nth(1)).toHaveClass(/border-cinnabar/);
+    await expect(names.nth(2)).not.toHaveClass(/border-cinnabar/);
+
+    await names.nth(1).fill(""); // 清掉新药名，免得往全局目录里加东西
+    await page.getByLabel("每副克数").nth(1).fill("");
+    await page.getByRole("button", { name: "保存药方" }).click();
+    await page.waitForURL(/\/prescriptions\/[0-9a-f-]{36}$/);
+    await expect(page.getByText("（原文 北芪）")).toBeVisible();
+  });
+
   test("采购：没有完整的行不能保存；价格 0 可以；新店铺自动建", async ({ page }) => {
     const u = fresh();
     await signUp(page, u);

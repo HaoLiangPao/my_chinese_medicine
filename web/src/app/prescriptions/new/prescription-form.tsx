@@ -4,11 +4,12 @@ import { useActionState, useRef, useState } from "react";
 import { createPrescription, type SaveState } from "../actions";
 import { SPECIAL_PREPS } from "@/lib/format";
 import type { ParseResponse } from "@/app/api/parse-prescription/route";
+import { buildMatcher, type HerbCatalog } from "@/lib/herb-match";
 
-type Item = { key: number; name: string; grams: string; prep: string; raw: string | null; known: boolean };
+type Item = { key: number; name: string; grams: string; prep: string; raw: string | null };
 
 let nextKey = 1;
-const blank = (): Item => ({ key: nextKey++, name: "", grams: "", prep: "", raw: null, known: true });
+const blank = (): Item => ({ key: nextKey++, name: "", grams: "", prep: "", raw: null });
 
 /** 手机照片动辄 5MB+，先在浏览器里缩到长边 1600px 的 JPEG 再上传 */
 async function shrink(file: File): Promise<Blob> {
@@ -21,7 +22,7 @@ async function shrink(file: File): Promise<Blob> {
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85));
 }
 
-export function PrescriptionForm({ herbNames, today }: { herbNames: string[]; today: string }) {
+export function PrescriptionForm({ catalog, today }: { catalog: HerbCatalog; today: string }) {
   const [state, action, pending] = useActionState<SaveState, FormData>(createPrescription, {});
   const [items, setItems] = useState<Item[]>([blank(), blank(), blank()]);
   const [meta, setMeta] = useState({ title: "", issued_on: today, dose_count: "7", instructions: "", patient_label: "" });
@@ -30,10 +31,10 @@ export function PrescriptionForm({ herbNames, today }: { herbNames: string[]; to
   const [parsing, setParsing] = useState(false);
   const [parseMsg, setParseMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const known = new Set(herbNames);
+  const [match] = useState(() => buildMatcher(catalog));
 
   const update = (key: number, patch: Partial<Item>) =>
-    setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch, known: patch.name !== undefined ? known.has(patch.name.trim()) : x.known } : x)));
+    setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
 
   async function onPhoto(file: File) {
     setParsing(true);
@@ -66,7 +67,6 @@ export function PrescriptionForm({ herbNames, today }: { herbNames: string[]; to
           grams: String(it.grams ?? ""),
           prep: it.special_prep ?? "",
           raw: it.name,
-          known: it.matched_name !== null,
         })),
       );
       const unknown = r.items.filter((i) => !i.matched_name).length;
@@ -149,42 +149,50 @@ export function PrescriptionForm({ herbNames, today }: { herbNames: string[]; to
           </span>
         </div>
         <datalist id="herb-names">
-          {herbNames.map((n) => (
+          {catalog.names.map((n) => (
             <option key={n} value={n} />
           ))}
         </datalist>
-        {items.map((it) => (
-          <div key={it.key} className="grid grid-cols-[1fr_5rem_5.5rem_2rem] items-center gap-2">
-            <input
-              list="herb-names"
-              value={it.name}
-              onChange={(e) => update(it.key, { name: e.target.value })}
-              placeholder="药名"
-              aria-label="药名"
-              className={`input ${it.name && !it.known ? "border-cinnabar text-cinnabar" : ""}`}
-              title={it.raw && it.raw !== it.name ? `原文：${it.raw}` : undefined}
-            />
-            <input
-              type="number"
-              step="0.5"
-              min={0}
-              value={it.grams}
-              onChange={(e) => update(it.key, { grams: e.target.value })}
-              placeholder="克"
-              aria-label="每副克数"
-              className="input"
-            />
-            <select aria-label="脚注" value={it.prep} onChange={(e) => update(it.key, { prep: e.target.value })} className="input px-1">
-              <option value="">—</option>
-              {SPECIAL_PREPS.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </select>
-            <button type="button" onClick={() => setItems((xs) => xs.filter((x) => x.key !== it.key))} className="text-muted hover:text-cinnabar" aria-label="删除">
-              ✕
-            </button>
-          </div>
-        ))}
+        {items.map((it) => {
+          const m = match(it.name);
+          return (
+            <div key={it.key} className="grid grid-cols-[1fr_5rem_5.5rem_2rem] items-center gap-x-2 gap-y-1">
+              <input
+                list="herb-names"
+                value={it.name}
+                onChange={(e) => update(it.key, { name: e.target.value })}
+                placeholder="药名"
+                aria-label="药名"
+                className={`input ${m.kind === "unknown" ? "border-cinnabar text-cinnabar" : ""}`}
+                title={it.raw && it.raw !== it.name ? `原文：${it.raw}` : undefined}
+              />
+              <input
+                type="number"
+                step="0.5"
+                min={0}
+                value={it.grams}
+                onChange={(e) => update(it.key, { grams: e.target.value })}
+                placeholder="克"
+                aria-label="每副克数"
+                className="input"
+              />
+              <select aria-label="脚注" value={it.prep} onChange={(e) => update(it.key, { prep: e.target.value })} className="input px-1">
+                <option value="">—</option>
+                {SPECIAL_PREPS.map((p) => (
+                  <option key={p}>{p}</option>
+                ))}
+              </select>
+              <button type="button" onClick={() => setItems((xs) => xs.filter((x) => x.key !== it.key))} className="text-muted hover:text-cinnabar" aria-label="删除">
+                ✕
+              </button>
+              {m.kind === "alias" && (
+                <p className="col-span-4 text-xs text-muted" data-testid="alias-hint">
+                  {it.name.trim()} = {m.canonical}（别名，保存为 {m.canonical}）
+                </p>
+              )}
+            </div>
+          );
+        })}
         <button type="button" onClick={() => setItems((xs) => [...xs, blank()])} className="btn-ghost w-full">
           ＋ 加一味
         </button>
