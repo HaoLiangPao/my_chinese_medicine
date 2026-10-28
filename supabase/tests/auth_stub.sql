@@ -8,10 +8,15 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then
     create role authenticated nologin;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon nologin;
+  end if;
 end $$;
 
 -- 和 Supabase 一样：对象「创建时」默认授权给 authenticated（之后 migration 里的 revoke 才有意义）
-grant usage on schema public to authenticated;
-alter default privileges for role postgres in schema public grant all on tables to authenticated;
-alter default privileges for role postgres in schema public grant all on sequences to authenticated;
-alter default privileges for role postgres in schema public grant execute on functions to authenticated;
+-- anon（未登录）也一样：Supabase 默认给 anon 同样的授权，靠 RLS 和 revoke 收紧
+grant usage on schema public to authenticated, anon;
+grant usage on schema auth to authenticated, anon;
+alter default privileges for role postgres in schema public grant all on tables to authenticated, anon;
+alter default privileges for role postgres in schema public grant all on sequences to authenticated, anon;
+alter default privileges for role postgres in schema public grant execute on functions to authenticated, anon;

@@ -10,7 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "smoke": "playwright test -c playwright.smoke.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
