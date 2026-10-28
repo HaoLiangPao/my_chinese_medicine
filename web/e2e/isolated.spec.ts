@@ -194,7 +194,7 @@ test.describe("拍照识别", () => {
 
     // 模型收到了图片，并且要求了结构化输出
     const reqs = await (await request.get(`${MOCK}/__requests`)).json();
-    expect(reqs.slice(before)).toEqual([{ model: "claude-sonnet-5-5", hasImage: true, hasFormat: true }]);
+    expect(reqs.slice(before)).toEqual([{ model: "test/free-vl:free", hasImage: true, hasFormat: true, auth: true }]);
 
     const names = page.getByLabel("药名", { exact: true });
     await expect(names).toHaveCount(5);
@@ -243,6 +243,18 @@ test.describe("拍照识别", () => {
     await page.getByRole("button", { name: "删除这张药方" }).click();
     await page.waitForURL(/\/prescriptions(\?.*)?$/);
     expect(fs.existsSync(file)).toBe(false);
+  });
+
+  test("免费模型限流 → 自动换 DeepSeek，照样识别出来", async ({ page, request }) => {
+    await signUp(page, fresh());
+    await page.goto("/prescriptions/new");
+    await request.post(`${MOCK}/__next`, { data: { failModels: ["test/free-vl:free"] } });
+    const before = (await (await request.get(`${MOCK}/__requests`)).json()).length;
+
+    await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
+    await expect(page.getByText(/识别出 5 味药/)).toBeVisible({ timeout: 30_000 });
+    const reqs = await (await request.get(`${MOCK}/__requests`)).json();
+    expect(reqs.slice(before).map((r: { model: string }) => r.model)).toEqual(["test/free-vl:free", "test/deepseek-vl"]);
   });
 
   test("模型服务出错 → 提示失败，照片仍保留，可以手动录入", async ({ page, request }) => {

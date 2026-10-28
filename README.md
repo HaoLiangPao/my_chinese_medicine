@@ -37,7 +37,7 @@ web/                    Next.js 16 应用
 ```bash
 scripts/local-stack.sh up     # 启动本地 Supabase-lite，会自动写好 web/.env.local
 cd web && npm install
-echo "ANTHROPIC_API_KEY=sk-ant-..." >> .env.local   # 可选：拍照识别要用
+echo "OPENROUTER_API_KEY=sk-or-..." >> .env.local   # 可选：拍照识别要用
 npm run dev                   # http://localhost:3000
 # 用完：scripts/local-stack.sh down（每次 up 都会清空数据）
 ```
@@ -81,6 +81,6 @@ E2E 的完整场景：10 张常用药方、5 家药行不同价格的采购、9 
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase → Project Settings → API |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | 同上（publishable / anon key，不是 service_role） |
-| `ANTHROPIC_API_KEY` | 拍照识别要用 | |
-| `ANTHROPIC_MODEL` | 可选 | 默认 `claude-sonnet-5-5` |
+| `OPENROUTER_API_KEY` | 拍照识别要用 | 设成 Sensitive |
+| `OPENROUTER_MODELS` | 可选 | 逗号分隔，按顺序尝试；默认 `nvidia/nemotron-3.5-super-vl:free,deepseek/deepseek-v4.1-flash`（免费模型优先，失败再用 DeepSeek）。免费模型的服务商可能记录输入，诊所正式用前建议只留付费模型，见 [0001 §4](docs/design/0001-mvp1.md#4-照片识别) |
 | `PARSE_DAILY_LIMIT` | 可选 | 每人每天识别次数上限 |

@@ -45,9 +45,9 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `node e2e/mock-anthropic.mjs`,
+      command: `node e2e/mock-openrouter.mjs`,
       port: MOCK_PORT,
-      env: { MOCK_ANTHROPIC_PORT: String(MOCK_PORT) },
+      env: { MOCK_OPENROUTER_PORT: String(MOCK_PORT) },
       reuseExistingServer: false,
     },
     {
@@ -57,9 +57,9 @@ export default defineConfig({
       timeout: 60_000,
       env: {
         ...stackEnv,
-        ANTHROPIC_API_KEY: "test-key",
-        ANTHROPIC_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
-        ANTHROPIC_MODEL: "claude-sonnet-5-5",
+        OPENROUTER_API_KEY: "test-key",
+        OPENROUTER_BASE_URL: `http://127.0.0.1:${MOCK_PORT}/api/v1`,
+        OPENROUTER_MODELS: "test/free-vl:free,test/deepseek-vl",
         PARSE_DAILY_LIMIT: "5",
       },
     },

@@ -86,7 +86,7 @@ inventory_txns    + decoction_id：每味实际用量 > 0 的药写一条扣减�
 - 药材统计（出现次数、累计用量）和比价、成本，都由测试独立计算期望值
 - 家人看到的是同一个药柜，陌生人什么都看不到
 
-另外 `isolated.spec.ts` 覆盖登录/权限、拍照识别（用假的 Anthropic 服务，`e2e/mock-anthropic.mjs`）、表单校验、补货提醒；`mobile.spec.ts` 在手机尺寸下检查所有页面没有横向溢出。
+另外 `isolated.spec.ts` 覆盖登录/权限、拍照识别（用假的 OpenRouter 服务，`e2e/mock-openrouter.mjs`，包括第一个模型失败后换第二个）、表单校验、补货提醒；`mobile.spec.ts` 在手机尺寸下检查所有页面没有横向溢出。
 
 ## 3. 测试发现并修复的问题
 
