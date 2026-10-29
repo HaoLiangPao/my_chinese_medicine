@@ -14,10 +14,11 @@ const TITLE = `冒烟测试 ${new Date().toISOString().slice(0, 16)}`;
 let page: Page;
 
 test.beforeAll(async ({ browser }) => {
-  page = await browser.newPage();
+  // 用 newContext（不是 browser.newPage）：后面要在同一个上下文里再开页面画药方图片
+  page = await (await browser.newContext()).newPage();
   page.on("dialog", (d) => d.accept());
 });
-test.afterAll(async () => page.close());
+test.afterAll(async () => page.context().close());
 
 test("登录，切到家庭药柜", async () => {
   await login(page, acct!);
@@ -59,6 +60,8 @@ test("拍照识别（真实模型）", async () => {
   await img.close();
 
   await page.goto("/prescriptions/new");
+  // 线上冷启动慢：等 React 水合完成再选文件，否则文件框的 onChange 还没挂上，选了也不会识别
+  await page.waitForLoadState("networkidle");
   await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer });
   await expect(page.getByText(/识别出 \d+ 味药/)).toBeVisible({ timeout: 120_000 });
   const got = await page.getByLabel("药名", { exact: true }).evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));

@@ -14,10 +14,11 @@ const PATIENT = "冒烟测试病人";
 let page: Page;
 
 test.beforeAll(async ({ browser }) => {
-  page = await browser.newPage();
+  // 用 newContext（不是 browser.newPage），和 patient.spec.ts 一致：需要时可以在同一个上下文里再开页面
+  page = await (await browser.newContext()).newPage();
   page.on("dialog", (d) => d.accept());
 });
-test.afterAll(async () => page.close());
+test.afterAll(async () => page.context().close());
 
 test("登录，切到诊所；导航是诊所的", async () => {
   await login(page, acct!);
