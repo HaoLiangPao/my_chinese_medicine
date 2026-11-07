@@ -183,11 +183,11 @@ test.describe("登录与权限", () => {
   });
 });
 
-test("药柜按拼音排序：白术 → 川芎 → 甘草 → 黄芪（不按汉字编码）", { tag: ["@FIX-6", "@INV-1"] }, async ({ page }) => {
+test("药柜按拼音排序：白术 → 川芎 → 丁香 → 甘草 → 黄芪（不按汉字编码；目录外的药也按拼音）", { tag: ["@FIX-6", "@INV-1"] }, async ({ page }) => {
   await signUp(page, fresh());
   await page.goto("/inventory");
-  // 故意不按拼音顺序录入；按 Unicode 编码排是 川芎 → 甘草 → 白术 → 黄芪
-  for (const herb of ["黄芪", "甘草", "白术", "川芎"]) {
+  // 故意不按拼音顺序录入；按 Unicode 编码排是 丁香 → 川芎 → 甘草 → 白术 → 黄芪。丁香不在目录里（录入时新建，没有拼音）
+  for (const herb of ["黄芪", "丁香", "甘草", "白术", "川芎"]) {
     await page.locator('input[name="herb_name"]').fill(herb);
     await page.locator('input[name="actual"]').last().fill("100");
     await page.getByRole("button", { name: "录入" }).click();
@@ -195,7 +195,7 @@ test("药柜按拼音排序：白术 → 川芎 → 甘草 → 黄芪（不按�
   }
   await page.locator("main").screenshot({ path: path.resolve(__dirname, `../../.local/screenshots/药柜-排序${process.env.SHOT_SUFFIX ?? ""}.png`) });
   const names = await page.locator('[data-testid^="stock-card-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("stock-card-", "")));
-  expect(names).toEqual(["白术", "川芎", "甘草", "黄芪"]);
+  expect(names).toEqual(["白术", "川芎", "丁香", "甘草", "黄芪"]);
 });
 
 test.describe("拍照识别", () => {
@@ -209,6 +209,8 @@ test.describe("拍照识别", () => {
     await page.goto("/prescriptions/new");
     const before = (await (await request.get(`${MOCK}/__requests`)).json()).length;
 
+    // 等 React 水合完成再选文件，否则文件框的 onChange 还没挂上（页面第一次编译慢时会碰到，冒烟测试同样的问题见 dcbe979）
+    await page.waitForLoadState("networkidle");
     await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别出 5 味药，其中 1 味不在药材目录里/)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("AI 备注：第 5 味字迹潦草，请核对")).toBeVisible();
@@ -272,6 +274,8 @@ test.describe("拍照识别", () => {
     await request.post(`${MOCK}/__next`, { data: { failModels: ["test/free-vl:free"] } });
     const before = (await (await request.get(`${MOCK}/__requests`)).json()).length;
 
+    // 等 React 水合完成再选文件，否则文件框的 onChange 还没挂上（页面第一次编译慢时会碰到，冒烟测试同样的问题见 dcbe979）
+    await page.waitForLoadState("networkidle");
     await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别出 5 味药/)).toBeVisible({ timeout: 30_000 });
     const reqs = await (await request.get(`${MOCK}/__requests`)).json();
@@ -282,6 +286,8 @@ test.describe("拍照识别", () => {
     await signUp(page, fresh());
     await page.goto("/prescriptions/new");
     await request.post(`${MOCK}/__next`, { data: { fail: true } });
+    // 等 React 水合完成再选文件，否则文件框的 onChange 还没挂上（页面第一次编译慢时会碰到，冒烟测试同样的问题见 dcbe979）
+    await page.waitForLoadState("networkidle");
     await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别失败：.*可以手动填写/)).toBeVisible({ timeout: 60_000 });
     await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();

@@ -142,7 +142,7 @@ describe("nextPending", () => {
     expect(nextPending([m("md", "麦冬", "mai dong")], "md")).toBeNull();
     expect(nextPending([m("md", "麦冬", "mai dong", "reviewed")], "x")).toBeNull();
   });
-  it("没有拼音的（用户自己加的药）按药名排", () => {
+  it("没有拼音的（用户自己加的药）按现算的拼音排", () => {
     expect(nextPending([m("a", "甲药", null), m("b", "乙药", null)], "a")).toBe("b");
   });
 });

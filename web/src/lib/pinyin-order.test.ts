@@ -15,7 +15,7 @@ describe("byPinyin", () => {
   it("炮制品按自己的拼音（炙甘草在 Z）", () => {
     expect(names([h("炙甘草", "zhi gan cao"), h("甘草", "gan cao"), h("白术", "bai zhu")])).toEqual(["白术", "甘草", "炙甘草"]);
   });
-  it("没有拼音的（用户自己加的）排在后面，彼此按中文拼音排序", () => {
-    expect(names([h("乙药", null), h("黄芪", "huang qi"), h("甲药", null), h("白术", "bai zhu")])).toEqual(["白术", "黄芪", "甲药", "乙药"]);
+  it("没有拼音的（用户自己加的）现算拼音，一起排（丁香在川芎和甘草之间）", () => {
+    expect(names([h("甘草", "gan cao"), h("丁香", null), h("黄芪", "huang qi"), h("川芎", "chuan xiong"), h("白术", "bai zhu")])).toEqual(["白术", "川芎", "丁香", "甘草", "黄芪"]);
   });
 });
