@@ -1,3 +1,5 @@
+import { byPinyin } from "./pinyin-order";
+
 /**
  * 药材资料（docs/design/0010 §3.1）：显示用的格式、炮制品回退到原药材、核对页表单的解析和检查。
  * 数据库里有同样的约束（herb_monographs 的 check + review_herb_monograph），这里先在页面上提示。
@@ -119,11 +121,6 @@ export function checkMonograph(c: MonographContent): string | null {
   if (!c.traditional_use) return "请填写传统用途";
   if (DOSE.test(c.traditional_use) || DOSE.test(c.cautions ?? "")) return "药材资料里不写用量（传统用途、使用注意里不能有「数字 + 克」）";
   return null;
-}
-
-/** 核对页的顺序：按拼音（没有拼音的按药名） */
-export function byPinyin<T extends { name_zh: string; pinyin: string | null }>(a: T, b: T) {
-  return (a.pinyin ?? a.name_zh).localeCompare(b.pinyin ?? b.name_zh) || a.name_zh.localeCompare(b.name_zh);
 }
 
 /** 审核完一味以后跳到哪：按顺序排在它后面的第一味待审核的药；后面没有了就从头找；一味都没有了返回 null */

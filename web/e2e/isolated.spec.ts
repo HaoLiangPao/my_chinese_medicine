@@ -183,6 +183,21 @@ test.describe("登录与权限", () => {
   });
 });
 
+test("药柜按拼音排序：白术 → 川芎 → 甘草 → 黄芪（不按汉字编码）", { tag: ["@FIX-6", "@INV-1"] }, async ({ page }) => {
+  await signUp(page, fresh());
+  await page.goto("/inventory");
+  // 故意不按拼音顺序录入；按 Unicode 编码排是 川芎 → 甘草 → 白术 → 黄芪
+  for (const herb of ["黄芪", "甘草", "白术", "川芎"]) {
+    await page.locator('input[name="herb_name"]').fill(herb);
+    await page.locator('input[name="actual"]').last().fill("100");
+    await page.getByRole("button", { name: "录入" }).click();
+    await expect(page.getByTestId(`stock-${herb}`)).toHaveText("100 g");
+  }
+  await page.locator("main").screenshot({ path: path.resolve(__dirname, `../../.local/screenshots/药柜-排序${process.env.SHOT_SUFFIX ?? ""}.png`) });
+  const names = await page.locator('[data-testid^="stock-card-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("stock-card-", "")));
+  expect(names).toEqual(["白术", "川芎", "甘草", "黄芪"]);
+});
+
 test.describe("拍照识别", () => {
   test.beforeEach(async ({ request }) => {
     await request.post(`${MOCK}/__reset`);
