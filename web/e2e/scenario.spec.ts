@@ -32,7 +32,7 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => page.close());
 
-test("1. 注册账号，自动创建药柜；邀请家人，对方接受后共用一个药柜", async ({ browser }) => {
+test("1. 注册账号，自动创建药柜；邀请家人，对方接受后共用一个药柜", { tag: ["@ACC-1", "@ACC-3"] }, async ({ browser }) => {
   await signUp(page, users.hao);
   await expect(page.getByText("还没有药方，先录第一张吧。")).toBeVisible();
 
@@ -62,7 +62,7 @@ test("1. 注册账号，自动创建药柜；邀请家人，对方接受后共�
   expect(await sql("select 1 from workspaces where id = $1", [tinaOwnWs])).toHaveLength(0);
 });
 
-test("2. 录入 10 张药方", async () => {
+test("2. 录入 10 张药方", { tag: ["@RX-1", "@RX-4"] }, async () => {
   for (const f of FORMULAS) {
     await page.goto("/prescriptions/new");
     await expect(page.getByRole("button", { name: "保存药方" })).toBeDisabled(); // 没填药不能保存
@@ -125,7 +125,7 @@ test("2. 录入 10 张药方", async () => {
   await expect(page.getByRole("cell", { name: "31.5 g" })).toBeVisible(); // 4.5 × 7
 });
 
-test("3. 第一次盘点：家里原本就有的药材", async () => {
+test("3. 第一次盘点：家里原本就有的药材", { tag: ["@INV-1"] }, async () => {
   await page.goto("/inventory");
   await expect(page.getByText("药柜还是空的")).toBeVisible();
   for (const s of INITIAL_STOCK) {
@@ -140,7 +140,7 @@ test("3. 第一次盘点：家里原本就有的药材", async () => {
   expect(rows.map((r) => r.kind)).toEqual(["adjust", "adjust"]); // 不算采购
 });
 
-test("4. 五家药行采购", async () => {
+test("4. 五家药行采购", { tag: ["@BUY-1"] }, async () => {
   for (const p of PURCHASES) {
     await page.goto("/purchases/new");
     await page.locator('input[name="store_name"]').fill(p.shop.name);
@@ -216,7 +216,7 @@ async function decoctInPlace(doses: number) {
   await expect(entries).toHaveCount(before + 1);
 }
 
-test("5. 煎药（含各种边界情况）", async () => {
+test("5. 煎药（含各种边界情况）", { tag: ["@DEC-1", "@DEC-2"] }, async () => {
   for (const d of DECOCTIONS) await test.step(`${d.formula} ${d.doses} 副：${d.label}`, () => decoct(d));
 
   const ws = await workspaceOf(users.hao.email);
@@ -263,7 +263,7 @@ test("5. 煎药（含各种边界情况）", async () => {
   await expect(page.getByText("生姜 多用 45→51g")).toBeVisible();
 });
 
-test("6. 非法输入被拦下", async () => {
+test("6. 非法输入被拦下", { tag: ["@DEC-1"] }, async () => {
   await page.goto(`/prescriptions/${rxIds.get("四君子汤")}`);
   const entries = page.getByTestId("decoction-entry");
   const before = await entries.count();
@@ -285,7 +285,7 @@ test("6. 非法输入被拦下", async () => {
   await expect(entries).toHaveCount(before);
 });
 
-test("7. 称重校准、删除药方", async () => {
+test("7. 称重校准、删除药方", { tag: ["@INV-1", "@RX-4"] }, async () => {
   const before = expectedStock({ includeCalibration: false }).get(CALIBRATION.herb)!;
   await page.goto("/inventory");
   const card = page.getByTestId(`stock-card-${CALIBRATION.herb}`);
@@ -317,7 +317,7 @@ test("7. 称重校准、删除药方", async () => {
   ).toHaveLength(1);
 });
 
-test("8. 对账：数据库库存 = 独立账本", async () => {
+test("8. 对账：数据库库存 = 独立账本", { tag: ["@INV-3"] }, async () => {
   const expected = expectedStock({ includeCalibration: true });
   const rows = await sql<{ name_zh: string; g: string }>(
     "select name_zh, on_hand_grams::text g from v_inventory where workspace_id = $1",
@@ -334,7 +334,7 @@ test("8. 对账：数据库库存 = 独立账本", async () => {
   expect(expected.get("枸杞子")).toBe(200); // 只盘点、没用过
 });
 
-test("9. 对账：药柜页面显示的每一味药", async () => {
+test("9. 对账：药柜页面显示的每一味药", { tag: ["@INV-3"] }, async () => {
   const expected = expectedStock({ includeCalibration: true });
   await page.goto("/inventory");
   const cards = page.locator('[data-testid^="stock-card-"]');
@@ -348,7 +348,7 @@ test("9. 对账：药柜页面显示的每一味药", async () => {
   await expect(page.getByRole("link", { name: /防风 -42 g/ })).toBeVisible();
 });
 
-test("10. 对账：药材使用统计", async () => {
+test("10. 对账：药材使用统计", { tag: ["@STAT-1"] }, async () => {
   const expected = expectedUsage();
   const rows = await sql<{ name_zh: string; c: number; t: string }>(
     "select name_zh, prescription_count::int c, total_grams::text t from v_herb_usage where workspace_id = $1",
@@ -372,7 +372,7 @@ test("10. 对账：药材使用统计", async () => {
   await expect(page.getByText("仁和堂（测试）")).toBeVisible(); // 购买记录
 });
 
-test("11. 家人看到同一个药柜；陌生人什么都看不到", async ({ browser }) => {
+test("11. 家人看到同一个药柜；陌生人什么都看不到", { tag: ["@ACC-5"] }, async ({ browser }) => {
   const expected = expectedStock({ includeCalibration: true });
 
   const tina = await browser.newPage();

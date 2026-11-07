@@ -1,7 +1,7 @@
 /** 学堂（MVP4 原型）：不登录也能看；五行图的生克关系和对应表；阴阳图的时间滑块 */
 import { expect, test } from "@playwright/test";
 
-test("学习路径对所有人公开", async ({ page }) => {
+test("学习路径对所有人公开", { tag: ["@LEARN-1"] }, async ({ page }) => {
   await page.goto("/learn");
   await expect(page).toHaveURL(/\/learn$/);
   await expect(page.getByRole("heading", { name: "药柜学堂" })).toBeVisible();
@@ -13,7 +13,7 @@ test("学习路径对所有人公开", async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test("五行：相生/相克箭头、点选后显示关系和对应", async ({ page }) => {
+test("五行：相生/相克箭头、点选后显示关系和对应", { tag: ["@LEARN-2"] }, async ({ page }) => {
   await page.goto("/learn/wuxing");
   // 默认只显示相生：5 条
   await expect(page.locator('[data-testid^="sheng-"]')).toHaveCount(5);
@@ -44,7 +44,7 @@ test("五行：相生/相克箭头、点选后显示关系和对应", async ({ p
   await expect(page.locator('[data-testid^="rel-"]')).toHaveCount(0);
 });
 
-test("五行 ↔ 人体脏腑图联动", async ({ page }) => {
+test("五行 ↔ 人体脏腑图联动", { tag: ["@LEARN-2"] }, async ({ page }) => {
   await page.goto("/learn/wuxing");
   const organs = ["肝", "胆", "心", "小肠", "脾", "胃", "肺", "大肠", "肾", "膀胱"];
   for (const o of organs) await expect(page.getByTestId(`organ-${o}`)).toHaveAttribute("data-lit", "false");
@@ -70,7 +70,7 @@ test("五行 ↔ 人体脏腑图联动", async ({ page }) => {
   await expectLit([]);
 });
 
-test("阴阳：拖动时间，阴阳比例和时辰跟着变", async ({ page }) => {
+test("阴阳：拖动时间，阴阳比例和时辰跟着变", { tag: ["@LEARN-3"] }, async ({ page }) => {
   await page.goto("/learn/yinyang");
   const slider = page.getByLabel("一天中的时间");
   await slider.fill("0");
@@ -91,7 +91,7 @@ test("阴阳：拖动时间，阴阳比例和时辰跟着变", async ({ page }) 
   await page.getByRole("button", { name: "暂停" }).click();
 });
 
-test("手机上学堂页面不横向溢出", async ({ browser }) => {
+test("手机上学堂页面不横向溢出", { tag: ["@LEARN-1", "@PLAT-2"] }, async ({ browser }) => {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   for (const url of ["/learn", "/learn/wuxing", "/learn/yinyang"]) {
     await page.goto(url);

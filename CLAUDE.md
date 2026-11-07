@@ -9,4 +9,6 @@
 - 写操作（server action）结束时调用 `invalidateAll()`（`src/lib/invalidate.ts`）。
 - 纯计算逻辑放在 `web/src/lib/*.ts` 并写 `*.test.ts`；改动后跑 `scripts/test-all.sh`（非 root）。
 - E2E 场景数据和期望值在 `web/e2e/fixtures/scenario.ts`；期望值要独立计算，不要读 App 的结果。
+- 功能清单和 E2E 对照在 `docs/features.md`：新功能先在那里加一行并写好验收 E2E；E2E 用 `{ tag: ["@编号"] }` 标上功能编号（`scripts/check-features.mjs` 会检查）。
+- 生产环境有真实病人数据（2026-11-06 起）：开发流程见 `docs/design/0008`；migration 必须兼容线上正在跑的旧代码（先扩展、后收缩），迁移已有数据要在有数据的库上测过。
 - AI 只做转录和科普，不生成面向患者的用药/剂量建议。
