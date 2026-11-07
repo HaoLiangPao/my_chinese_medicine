@@ -38,13 +38,16 @@ values (:'w1', :'huangqi', 200, 'adjust', '第一次盘点'), (:'w1', :'gancao',
 insert into stores (workspace_id, name) values (:'w1', '同仁堂') returning id as s1 \gset
 insert into purchases (workspace_id, store_id, purchased_on) values (:'w1', :'s1', '2026-10-20') returning id as p1 \gset
 insert into purchase_items (purchase_id, herb_id, grams, price) values (:'p1', :'huangqi', 500, 0.06), (:'p1', :'baizhu', 300, 0.08);
+-- 同月更晚又进了一次黄芪，但先记的是它（回填批号要按购入日期排，不按记录顺序）
+insert into purchases (workspace_id, store_id, purchased_on, created_at) values (:'w1', :'s1', '2026-10-28', '2026-10-01') returning id as p1b \gset
+insert into purchase_items (purchase_id, herb_id, grams, price) values (:'p1b', :'huangqi', 100, 0.07);
 insert into prescriptions (workspace_id, title, prescriber, dose_count, price_paid)
 values (:'w1', '补气方', '李医生', 5, 120) returning id as rx1 \gset
 insert into prescription_items (prescription_id, herb_id, grams_per_dose, sort_order)
 values (:'rx1', :'huangqi', 30, 1), (:'rx1', :'baizhu', 12, 2), (:'rx1', :'gancao', 6, 3);
 insert into prescriptions (workspace_id, title, dose_count) values (:'w1', '还没煎的方', 3) returning id as rx2 \gset
 insert into prescription_items (prescription_id, herb_id, grams_per_dose, raw_name) values (:'rx2', :'dangshen', 15, '党参');
--- 目录里原来的「沙参」（2026-11-07 改名南沙参）
+-- 目录里原来的「沙参」（2026-11-07 改名南沙参；main 上已经没有「沙参」时这条什么都不插）
 insert into prescription_items (prescription_id, herb_id, grams_per_dose, raw_name)
 select :'rx2', id, 10, '沙参' from herbs where name_zh = '沙参';
 select record_decoction(:'rx1', 2);
@@ -80,7 +83,7 @@ values (:'w3', '只有电话的病人', 3, :'pt2', 'clinic') returning id as rx5
 insert into prescription_items (prescription_id, herb_id, grams_per_dose) values (:'rx5', :'gancao', 9);
 select record_decoction(:'rx4', 7);
 -- 医生自己在开方时新增过一味目录里还没有的药（以后目录也加了同名的）
-insert into herbs (name_zh) values ('铁皮石斛');
+insert into herbs (name_zh) values ('铁皮石斛') on conflict (name_zh) do nothing; -- main 上已经有了就跳过（fixture 总是跑在最新的 main 上）
 
 -- ---- u4 两种都有数据 ----
 :as_u4;
