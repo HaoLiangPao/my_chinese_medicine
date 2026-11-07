@@ -59,8 +59,8 @@ test("拍照识别（真实模型）", { tag: ["@RX-3"] }, async () => {
   await img.close();
 
   await page.goto("/prescriptions/new");
-  // 线上冷启动慢：等 React 水合完成再选文件，否则文件框的 onChange 还没挂上，选了也不会识别
-  await page.waitForLoadState("networkidle");
+  // 线上冷启动慢：等页面水合完成（按钮从「加载中」变成可以点）再选文件，否则文件框的 onChange 还没挂上
+  await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled({ timeout: 30_000 });
   await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer });
   await expect(page.getByText(/识别出 \d+ 味药/)).toBeVisible({ timeout: 120_000 });
   const got = await page.getByLabel("药名", { exact: true }).evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));

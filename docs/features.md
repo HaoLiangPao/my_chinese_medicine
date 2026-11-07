@@ -43,7 +43,7 @@ test("开方：……", { tag: ["@CLN-3"] }, async ({ page }) => { … });
 |---|---|---|---|---|---|
 | RX-1 | 手动录方：空行忽略、同名合并、去空格、没有药不能保存 | `/prescriptions/new` | ✅ scenario 2、isolated「表单校验」 | 单元 `rx.test.ts` | ✅ patient |
 | RX-2 | 别名匹配（北芪 = 黄芪）；目录里没有的才标红 | 同上 | ✅ isolated | 单元 `herb-match.test.ts`；SQL `match_herb` | ✅ patient |
-| RX-3 | 拍照识别：预填表单、换模型重试、出错可手动录、每日次数上限、只收图片、≤5MB | 同上 + `/api/parse-prescription` | ✅ isolated（假 OpenRouter） | 单元 `ai-parse.test.ts` | ✅ patient（手动触发、真实模型） |
+| RX-3 | 拍照识别：预填表单、换模型重试、出错可手动录、每日次数上限、只收图片、≤5MB；页面加载完之前按钮显示「加载中」、点不了 | 同上 + `/api/parse-prescription` | ✅ isolated（假 OpenRouter） | 单元 `ai-parse.test.ts` | ✅ patient（手动触发、真实模型） |
 | RX-4 | 药方列表、详情（原始照片）、删除 | `/prescriptions`、`/prescriptions/[id]` | ✅ scenario 2、7 | | ✅ patient |
 
 ### INV · 药柜（库存）
