@@ -227,6 +227,25 @@ export const PURCHASES: Purchase[] = [
   ]),
 ];
 
+/**
+ * 购买记录页应该显示的内容（BUY-2）：按日期倒序；同一张单子里同名的药合并成一行；
+ * 合计 = 各行总价之和；每 100 g 单价 = 总价 ÷ 克数 × 100。
+ */
+export function purchaseListView() {
+  return [...PURCHASES]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((p) => {
+      const merged = new Map<string, { grams: number; price: number }>();
+      for (const l of p.lines) {
+        const m = merged.get(l.herb) ?? { grams: 0, price: 0 };
+        merged.set(l.herb, { grams: m.grams + l.grams, price: m.price + (l.price ?? 0) });
+      }
+      const rows = [...merged].map(([herb, m]) => [herb, `${m.grams} g`, `$${m.price.toFixed(2)}`, `$${((m.price / m.grams) * 100).toFixed(2)}/100g`]);
+      const total = [...merged.values()].reduce((s, m) => s + m.price, 0);
+      return { store: p.shop.name, summary: `${p.date} · $${total.toFixed(2)}`, rows };
+    });
+}
+
 /** 第一次盘点：家里原本就有的 */
 export const INITIAL_STOCK: { herb: string; grams: number }[] = [
   { herb: "麦冬", grams: 120 },

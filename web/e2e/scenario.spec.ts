@@ -18,6 +18,7 @@ import {
   PURCHASES,
   expectedStock,
   expectedUsage,
+  purchaseListView,
 } from "./fixtures/scenario";
 import { activeWorkspaceOf, ensureRows, parseGrams, signIn, signUp, sql, users, workspaceOf } from "./helpers";
 
@@ -187,6 +188,24 @@ test("4. 五家药行采购", { tag: ["@BUY-1"] }, async () => {
   await expect(page.getByTestId("stock-黄芪")).toHaveText("1750 g");
   await expect(page.getByTestId("stock-茯苓")).toHaveText("1000 g");
   await expect(page.getByTestId("stock-麦冬")).toHaveText("370 g");
+});
+
+test("4.1 购买记录列表：按日期倒序；每笔的店名、日期、合计；明细（同名合并、每 100 g 单价）", { tag: ["@BUY-2"] }, async () => {
+  await page.goto("/purchases");
+  const cards = page.getByTestId("purchase");
+  const expected = purchaseListView();
+  await expect(cards).toHaveCount(expected.length);
+  for (const [i, e] of expected.entries()) {
+    const card = cards.nth(i);
+    await expect(card.getByTestId("purchase-store")).toHaveText(e.store);
+    await expect(card.getByTestId("purchase-summary")).toHaveText(e.summary);
+    const rows = await card.getByTestId("purchase-row").evaluateAll((trs) =>
+      trs.map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent?.trim() ?? "")),
+    );
+    // 明细行的顺序不固定，按药名比
+    const byHerb = (a: string[], b: string[]) => a[0].localeCompare(b[0]);
+    expect(rows.sort(byHerb), e.store).toEqual([...e.rows].sort(byHerb));
+  }
 });
 
 async function decoct(d: (typeof DECOCTIONS)[number]) {
