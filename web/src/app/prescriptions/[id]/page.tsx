@@ -117,6 +117,8 @@ async function Detail({
     });
   }
   const unit = isClinic ? "剂" : "副";
+  const verb = isClinic ? "配" : "煎";
+  const rxWord = isClinic ? "处方" : "药方";
 
   const STATUS_LABEL = { over: "多用", under: "少用", omitted: "没放", extra: "加了", exact: "" } as const;
 
@@ -126,13 +128,13 @@ async function Detail({
         {patient ? (
           <Link href={`/clinic/patients/${patient.id}`} className="text-sm text-muted" data-testid="back-to-patient">← {patient.name || patient.phone} 的病历</Link>
         ) : (
-          <Link href="/prescriptions" className="text-sm text-muted">← 药方</Link>
+          <Link href="/prescriptions" className="text-sm text-muted">← {rxWord}</Link>
         )}
-        <h1 className="mt-1 font-serif text-2xl font-bold">{rx.title || "未命名药方"}</h1>
+        <h1 className="mt-1 font-serif text-2xl font-bold">{rx.title || `未命名${rxWord}`}</h1>
         <p className="mt-1 text-sm text-muted">
-          {rx.issued_on} · {rx.prescriber} · {rx.dose_count} {unit} · {items.length} 味 · 每副 {grams(perDose)}
+          {rx.issued_on} · {rx.prescriber} · {rx.dose_count} {unit} · {items.length} 味 · 每{unit} {grams(perDose)}
           {rx.patient_label && ` · ${rx.patient_label}`}
-          {rx.price_paid != null && ` · 实付 ${money(rx.price_paid)}（约 ${money(Number(rx.price_paid) / rx.dose_count)}/副）`}
+          {rx.price_paid != null && ` · 实付 ${money(rx.price_paid)}（约 ${money(Number(rx.price_paid) / rx.dose_count)}/${unit}）`}
         </p>
         {rx.instructions && <p className="mt-2 text-sm">煎服法：{rx.instructions}</p>}
       </div>
@@ -144,7 +146,7 @@ async function Detail({
           <thead>
             <tr>
               <th>药材</th>
-              <th className="text-right">每副</th>
+              <th className="text-right">每{unit}</th>
               <th className="text-right">共 {rx.dose_count} {unit}</th>
               <th className="text-right">{isClinic ? "库存" : "药柜存量"}</th>
             </tr>
@@ -184,16 +186,17 @@ async function Detail({
           defaultDoses={Math.min(rx.dose_count, Math.max(canMake, 1))}
           maxDoses={canMake}
           herbNames={herbs.map((h) => h.name_zh)}
+          clinic={isClinic}
         />
       </div>
 
       {history.size > 0 && (
         <div className="card" data-testid="decoction-history">
-          <h2 className="mb-2 font-serif text-lg font-bold">煎药记录（{history.size} 次）</h2>
+          <h2 className="mb-2 font-serif text-lg font-bold">{verb}药记录（{history.size} 次）</h2>
           <ul className="space-y-2 text-sm">
             {[...history.entries()].map(([decId, h]) => (
               <li key={decId} className="flex flex-wrap items-center gap-y-1" data-testid="decoction-entry">
-                <span className="text-muted">{h.at.slice(0, 16).replace("T", " ")}</span> · 煎 {h.doses} 副
+                <span className="text-muted">{h.at.slice(0, 16).replace("T", " ")}</span> · {verb} {h.doses} {unit}
                 {h.diffs.length === 0 ? (
                   <span className="ml-1 text-jade">按处方</span>
                 ) : (
@@ -206,7 +209,7 @@ async function Detail({
                 <form action={deleteDecoction} className="ml-auto">
                   <input type="hidden" name="decoction_id" value={decId} />
                   <input type="hidden" name="prescription_id" value={rx.id} />
-                  <ConfirmButton message="撤销这次煎药？扣掉的库存会加回去。" className="text-xs text-muted underline hover:text-cinnabar">撤销</ConfirmButton>
+                  <ConfirmButton message={`撤销这次${verb}药？扣掉的库存会加回去。`} className="text-xs text-muted underline hover:text-cinnabar">撤销</ConfirmButton>
                 </form>
               </li>
             ))}
@@ -226,7 +229,7 @@ async function Detail({
 
       <form action={deletePrescription}>
         <input type="hidden" name="id" value={rx.id} />
-        <ConfirmButton message="确定删除这张药方？（已扣的库存不会退回）" className="text-sm text-muted underline hover:text-cinnabar">删除这张药方</ConfirmButton>
+        <ConfirmButton message={`确定删除这张${rxWord}？（已扣的库存不会退回）`} className="text-sm text-muted underline hover:text-cinnabar">删除这张{rxWord}</ConfirmButton>
       </form>
     </div>
   );

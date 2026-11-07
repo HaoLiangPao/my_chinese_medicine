@@ -117,10 +117,14 @@ test.describe("登录与权限", () => {
     await vp.close();
   });
 
-  test("同时在两个药柜：只显示当前的那个，校准只影响当前的；可以切换、退出", { tag: ["@ACC-4", "@INV-1"] }, async ({ browser }) => {
+  test("一个账号只有一个药柜：接受邀请 = 搬进对方的，自己原来的隐藏；没有切换；退出后回到自己的", { tag: ["@ACC-4", "@INV-1"] }, async ({ browser }) => {
     const owner = fresh(), tina = fresh();
     const tp = await browser.newPage();
-    tp.on("dialog", (d) => d.accept());
+    const dialogs: string[] = [];
+    tp.on("dialog", (d) => {
+      dialogs.push(d.message());
+      void d.accept();
+    });
     await signUp(tp, tina);
     // Tina 自己的药柜里有数据
     await tp.goto("/inventory");
@@ -141,9 +145,12 @@ test.describe("登录与权限", () => {
 
     await tp.goto("/");
     await tp.getByTestId("incoming-invites").getByRole("button", { name: "接受" }).click();
-    await expect(tp.getByTestId("workspace-switcher")).toContainText("你在 2 个药柜里");
+    await expect(tp.getByTestId("incoming-invites")).toHaveCount(0);
+    expect(dialogs[0]).toContain("你自己现在的药柜会隐藏起来");
+    await expect(tp.getByTestId("member-list").locator("li")).toHaveCount(2);
+    await expect(tp.getByText(/切换/)).toHaveCount(0); // 没有切换
 
-    // 当前是对方的药柜：只看到 500，不是两边混在一起
+    // 现在只有对方的药柜：只看到 500，不是两边混在一起
     await tp.goto("/inventory");
     await expect(tp.locator('[data-testid^="stock-card-"]')).toHaveCount(1);
     await expect(tp.getByTestId("stock-黄芪")).toHaveText("500 g");
@@ -158,24 +165,13 @@ test.describe("登录与权限", () => {
         join auth.users u on u.id = m.user_id where u.email = $1 and m.role = 'owner') and i.name_zh = '黄芪'`,
       [tina.email],
     );
-    expect(Number(own[0].g)).toBe(100); // Tina 自己的药柜没被动
+    expect(Number(own[0].g)).toBe(100); // Tina 自己的药柜没被动，也没被删
 
-    // 切回自己的药柜（等切换完成再跳转，否则跳转会打断请求）
+    // 退出对方的药柜 → 回到自己原来的，数据都在
     await tp.goto("/");
-    await expect(tp.getByTestId("workspace-switcher")).toContainText("加入的，当前");
-    await tp.getByTestId("workspace-switcher").getByRole("button", { name: /切换到.*我创建的/ }).click();
-    await expect(tp.getByTestId("workspace-switcher")).toContainText("我创建的，当前");
-    await expect(tp.getByTestId("member-list").locator("li")).toHaveCount(1);
-    await tp.goto("/inventory");
-    await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
-
-    // 切回去再退出
-    await tp.goto("/");
-    await tp.getByTestId("workspace-switcher").getByRole("button", { name: /切换到.*加入的/ }).click();
-    await expect(tp.getByTestId("workspace-switcher")).toContainText("加入的，当前");
-    await expect(tp.getByRole("button", { name: "退出这个药柜" })).toBeVisible();
     await tp.getByRole("button", { name: "退出这个药柜" }).click();
-    await expect(tp.getByTestId("workspace-switcher")).toHaveCount(0);
+    await expect(tp.getByRole("button", { name: "退出这个药柜" })).toHaveCount(0);
+    await expect(tp.getByTestId("member-list").locator("li")).toHaveCount(1);
     await tp.goto("/inventory");
     await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
 

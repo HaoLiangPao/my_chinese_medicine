@@ -4,7 +4,7 @@
  * SMOKE_PARSE=1 时额外测一次真实的拍照识别（会花一点 OpenRouter 额度，照片会留在这个账号的存储里）。
  */
 import { expect, test, type Page } from "@playwright/test";
-import { account, login, useWorkspace } from "./shared";
+import { account, login } from "./shared";
 
 const acct = account("SMOKE_PATIENT");
 test.skip(!acct, "没有配置 SMOKE_PATIENT_EMAIL / SMOKE_PATIENT_PASSWORD");
@@ -20,9 +20,8 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => page.context().close());
 
-test("登录，切到家庭药柜", { tag: ["@ACC-4"] }, async () => {
-  await login(page, acct!);
-  await useWorkspace(page, "household");
+test("登录（家庭账号）；导航有比价", { tag: ["@ACCT-1"] }, async () => {
+  await login(page, acct!, "household");
   await expect(page.getByTestId("nav").getByRole("link", { name: "比价" })).toBeVisible();
 });
 

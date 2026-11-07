@@ -4,7 +4,6 @@ import { getContext } from "@/lib/auth";
 import { listHerbs } from "@/lib/herbs";
 import { buildHerbIndex } from "@/lib/herb-index";
 import { Loading, PageHeader } from "@/components/ui";
-import { CreateClinicForm } from "../create-clinic-form";
 import { PrescribeForm } from "./prescribe-form";
 import type { Patient } from "../actions";
 
@@ -20,8 +19,7 @@ export default function PrescribePage({ searchParams }: PageProps<"/clinic/presc
 }
 
 async function Loader({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const { supabase, workspaceId, workspaceKind, workspaceName } = await getContext();
-  if (workspaceKind !== "clinic") return <CreateClinicForm />;
+  const { supabase, workspaceId, workspaceName } = await getContext();
 
   const sp = await searchParams;
   const patientId = typeof sp.patient === "string" ? sp.patient : null;

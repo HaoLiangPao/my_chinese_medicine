@@ -21,6 +21,7 @@ export async function CostSection({
   strategy: Strategy;
   clinic?: boolean;
 }) {
+  const unit = clinic ? "剂" : "副";
   const [{ data: rowsRaw, error }, { data: byStoreRaw }] = await Promise.all([
     supabase
       .rpc("prescription_cost", {
@@ -47,17 +48,17 @@ export async function CostSection({
 
   return (
     <div className="card space-y-3" data-testid="cost-section">
-      <h2 className="font-serif text-lg font-bold">{clinic ? "成本（按进货价，只有诊所成员看得到）" : "成本（自己买药）"}</h2>
+      <h2 className="font-serif text-lg font-bold">{clinic ? "成本（按进货价，只有你看得到，不会发给病人）" : "成本（自己买药）"}</h2>
       <div className="flex flex-wrap gap-2 text-sm">
         {tab({ kind: "cheapest" }, "各店最低价")}
-        {tab({ kind: "average" }, "我买入的平均成本")}
+        {tab({ kind: "average" }, clinic ? "平均进货成本" : "我买入的平均成本")}
         {byStore.map((b) => tab({ kind: "store", storeId: b.store_id }, `只在${b.store_name}`))}
       </div>
 
       <div className="overflow-x-auto">
         <table className="data-table">
           <thead>
-            <tr><th>药材</th><th className="text-right">每副</th><th className="text-right">每 100 g</th><th>来源</th><th className="text-right">每副成本</th></tr>
+            <tr><th>药材</th><th className="text-right">每{unit}</th><th className="text-right">每 100 g</th><th>来源</th><th className="text-right">每{unit}成本</th></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -74,7 +75,7 @@ export async function CostSection({
       </div>
 
       <p className="text-sm" data-testid="cost-summary">
-        每副 <b>{money(s.perDose)}</b> · {rx.dose_count} 副共 <b>{money(s.total)}</b>
+        每{unit} <b>{money(s.perDose)}</b> · {rx.dose_count} {unit}共 <b>{money(s.total)}</b>
         {!s.complete && s.missing.length > 0 && (
           <span className="ml-1 text-cinnabar" data-testid="cost-missing">（不含没有价格的：{s.missing.join("、")}）</span>
         )}
@@ -109,7 +110,7 @@ export async function CostSection({
               <li key={b.store_id} className="flex justify-between gap-2" data-testid={`by-store-${b.store_name}`}>
                 <span>{b.store_name} <span className="text-xs text-muted">{KIND_LABEL[b.store_kind]}</span></span>
                 <span>
-                  每副 {money(b.cost_per_dose)}
+                  每{unit} {money(b.cost_per_dose)}
                   {b.missing_items > 0 ? <span className="ml-1 text-xs text-cinnabar">缺 {b.missing_items} 味</span> : <span className="ml-1 text-xs text-jade">齐全</span>}
                 </span>
               </li>

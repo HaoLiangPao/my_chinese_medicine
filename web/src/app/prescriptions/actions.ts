@@ -100,7 +100,7 @@ export async function recordDecoction(_prev: SaveState, form: FormData): Promise
   const { supabase } = await getContext();
   const id = String(form.get("id"));
   const doses = num(form.get("doses"));
-  if (!doses || doses <= 0 || !Number.isInteger(doses)) return { error: "副数必须是正整数" };
+  if (!doses || doses <= 0 || !Number.isInteger(doses)) return { error: "数量必须是正整数" };
 
   const { data: items, error: itemsErr } = await supabase
     .from("prescription_items")

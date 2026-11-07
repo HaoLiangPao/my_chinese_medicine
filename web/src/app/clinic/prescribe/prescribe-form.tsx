@@ -74,7 +74,7 @@ export function PrescribeForm({
       <section className="card space-y-2">
         <div className="flex items-baseline justify-between">
           <h2 className="font-serif text-lg font-bold">3. 处方</h2>
-          <span className="text-sm text-muted">{lines.length} 味 · 每副 {lines.reduce((s, l) => s + l.grams, 0)} g</span>
+          <span className="text-sm text-muted">{lines.length} 味 · 每剂 {lines.reduce((s, l) => s + l.grams, 0)} g</span>
         </div>
         {!lines.length ? (
           <p className="text-sm text-muted">还没有药。用上面的首字母按钮或搜索添加。</p>
@@ -82,7 +82,7 @@ export function PrescribeForm({
           <div className="overflow-x-auto">
             <table className="data-table" data-testid="rx-lines">
               <thead>
-                <tr><th>药材</th><th className="text-right">克数</th><th>脚注 / 备注</th><th className="text-right">每副成本</th><th /></tr>
+                <tr><th>药材</th><th className="text-right">克数</th><th>脚注 / 备注</th><th className="text-right">每剂成本</th><th /></tr>
               </thead>
               <tbody>
                 {lines.map((l, i) => (
@@ -116,7 +116,7 @@ export function PrescribeForm({
         {lines.length > 0 && (
           <p className="rounded-lg bg-paper p-2 text-sm" data-testid="cost-summary">
             <span className="text-xs text-muted">成本（按进货价，只有你看得到，不会发给病人）：</span>
-            每副 <b>{money(summary.perDose)}</b> · {n} 剂共 <b>{money(summary.total)}</b>
+            每剂 <b>{money(summary.perDose)}</b> · {n} 剂共 <b>{money(summary.total)}</b>
             {summary.missing.length > 0 && <span className="ml-1 text-cinnabar">（不含没有进货价的：{summary.missing.join("、")}）</span>}
           </p>
         )}

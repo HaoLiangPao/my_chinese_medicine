@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
+import { termsFor } from "@/lib/terms";
 import { grams, money } from "@/lib/format";
 import { Loading, Stat } from "@/components/ui";
 
@@ -21,7 +22,8 @@ type Use = {
 
 async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, workspaceId } = await getContext();
+  const { supabase, workspaceId, accountKind } = await getContext();
+  const t = termsFor(accountKind);
 
   const { data: herbRow } = await supabase
     .from("herbs")
@@ -57,22 +59,22 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <Stat label="药柜存量" value={inv ? grams(inv.on_hand_grams) : "—"} />
+        <Stat label={`${t.stock}存量`} value={inv ? grams(inv.on_hand_grams) : "—"} />
         <Stat label="出现在几张方子" value={usage?.prescription_count ?? 0} />
         <Stat label="累计用量" value={grams(usage?.total_grams ?? 0)} />
       </div>
 
       <section className="card overflow-x-auto">
-        <h2 className="mb-2 font-serif text-lg font-bold">出现在这些药方里</h2>
+        <h2 className="mb-2 font-serif text-lg font-bold">出现在这些{t.rx}里</h2>
         {!sortedUses.length ? (
           <p className="text-sm text-muted">还没有。</p>
         ) : (
           <table className="data-table">
-            <thead><tr><th>药方</th><th>日期</th><th className="text-right">每副</th><th className="text-right">副数</th></tr></thead>
+            <thead><tr><th>{t.rx}</th><th>日期</th><th className="text-right">每{t.dose}</th><th className="text-right">{t.dose}数</th></tr></thead>
             <tbody>
               {sortedUses.map((u) => (
                 <tr key={u.prescriptions?.id}>
-                  <td><Link href={`/prescriptions/${u.prescriptions?.id}`} className="hover:text-cinnabar">{u.prescriptions?.title || "未命名药方"}</Link>{u.special_prep && <span className="ml-1 text-xs text-amber">{u.special_prep}</span>}</td>
+                  <td><Link href={`/prescriptions/${u.prescriptions?.id}`} className="hover:text-cinnabar">{u.prescriptions?.title || `未命名${t.rx}`}</Link>{u.special_prep && <span className="ml-1 text-xs text-amber">{u.special_prep}</span>}</td>
                   <td className="text-muted">{u.prescriptions?.issued_on}</td>
                   <td className="text-right">{grams(u.grams_per_dose)}</td>
                   <td className="text-right">{u.prescriptions?.dose_count}</td>
@@ -84,7 +86,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       </section>
 
       <section className="card overflow-x-auto">
-        <h2 className="mb-2 font-serif text-lg font-bold">购买记录</h2>
+        <h2 className="mb-2 font-serif text-lg font-bold">{accountKind === "clinic" ? "进货" : "购买"}记录</h2>
         {!prices?.length ? (
           <p className="text-sm text-muted">还没有。</p>
         ) : (

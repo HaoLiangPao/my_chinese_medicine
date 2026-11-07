@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
 import { listHerbs } from "@/lib/herbs";
 import { grams } from "@/lib/format";
+import { termsFor } from "@/lib/terms";
 import { Loading, PageHeader } from "@/components/ui";
 
 export default function HerbsPage() {
@@ -17,7 +18,8 @@ export default function HerbsPage() {
 }
 
 async function Herbs() {
-  const { supabase, workspaceId } = await getContext();
+  const { supabase, workspaceId, accountKind } = await getContext();
+  const t = termsFor(accountKind);
   const [{ data: usage }, { data: inv }, all] = await Promise.all([
     supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).order("prescription_count", { ascending: false }),
     supabase.from("v_inventory").select("herb_id, on_hand_grams").eq("workspace_id", workspaceId),
@@ -31,7 +33,7 @@ async function Herbs() {
       <section className="card overflow-x-auto">
         <h2 className="mb-2 font-serif text-lg font-bold">用过的药材</h2>
         {!usage?.length ? (
-          <p className="text-sm text-muted">录入药方后这里会出现统计。</p>
+          <p className="text-sm text-muted">{accountKind === "clinic" ? "开方后这里会出现统计。" : "录入药方后这里会出现统计。"}</p>
         ) : (
           <table className="data-table">
             <thead>
@@ -40,7 +42,7 @@ async function Herbs() {
                 <th className="text-right">出现次数</th>
                 <th className="text-right">常用剂量</th>
                 <th className="text-right">累计用量</th>
-                <th className="text-right">药柜</th>
+                <th className="text-right">{t.stock}</th>
                 <th>最近</th>
               </tr>
             </thead>

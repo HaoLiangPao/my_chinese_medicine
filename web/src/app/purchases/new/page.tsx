@@ -1,13 +1,16 @@
 import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
 import { listHerbs } from "@/lib/herbs";
+import { termsFor } from "@/lib/terms";
 import { Loading, PageHeader } from "@/components/ui";
 import { PurchaseForm } from "./purchase-form";
 
-export default function NewPurchasePage() {
+export default async function NewPurchasePage() {
+  const { accountKind } = await getContext();
+  const t = termsFor(accountKind);
   return (
     <>
-      <PageHeader title="记一笔采购" subtitle="买进来的药材会自动加到药柜里" />
+      <PageHeader title={`记一笔${t.purchase}`} subtitle={`${accountKind === "clinic" ? "进来" : "买进来"}的药材会自动加到${t.stock}里`} />
       <Suspense fallback={<Loading />}>
         <Loader />
       </Suspense>

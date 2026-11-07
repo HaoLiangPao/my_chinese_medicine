@@ -2,24 +2,20 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { ConfirmButton } from "@/components/confirm-button";
 import { signOut } from "./login/actions";
 import { InviteForm } from "./member-form";
-import { CreateClinicForm } from "./clinic/create-clinic-form";
-import { acceptInvitation, declineInvitation, leaveWorkspace, removeMember, revokeInvitation, switchWorkspace } from "./actions";
+import { acceptInvitation, declineInvitation, leaveWorkspace, removeMember, revokeInvitation } from "./actions";
 
 type Member = { user_id: string; email: string; role: string };
 type Incoming = { id: string; workspace_name: string; invited_by_email: string | null };
-type Ws = { workspace_id: string; name: string; role: string; is_active: boolean; kind: string };
 
-/** 总览页底部：收到的邀请、家庭成员、发出的邀请、切换药柜 */
+/** 病人账号总览页底部：收到的邀请、家庭成员、发出的邀请（诊所不用，见 ClinicAccount）。一个账号只有一个药柜，没有切换 */
 export async function Family({ supabase, user, workspaceId }: { supabase: SupabaseClient; user: User; workspaceId: string }) {
-  const [{ data: m }, { data: inc }, { data: sent }, { data: wss }] = await Promise.all([
+  const [{ data: m }, { data: inc }, { data: sent }] = await Promise.all([
     supabase.rpc("list_members", { ws: workspaceId }),
     supabase.rpc("my_invitations"),
     supabase.from("invitations").select("id, email").eq("workspace_id", workspaceId).eq("status", "pending").order("created_at"),
-    supabase.rpc("my_workspaces"),
   ]);
   const members = (m ?? []) as Member[];
   const incoming = (inc ?? []) as Incoming[];
-  const workspaces = (wss ?? []) as Ws[];
   const me = members.find((x) => x.user_id === user.id);
   const isOwner = me?.role === "owner";
 
@@ -36,7 +32,12 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
               <span className="flex gap-2">
                 <form action={acceptInvitation}>
                   <input type="hidden" name="id" value={i.id} />
-                  <button className="btn-primary py-1">接受</button>
+                  <ConfirmButton
+                    message={`加入「${i.workspace_name}」？\n以后你只用这个药柜，你自己现在的药柜会隐藏起来（数据不删，退出「${i.workspace_name}」后会回来）。`}
+                    className="btn-primary py-1"
+                  >
+                    接受
+                  </ConfirmButton>
                 </form>
                 <form action={declineInvitation}>
                   <input type="hidden" name="id" value={i.id} />
@@ -45,7 +46,7 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
               </span>
             </div>
           ))}
-          <p className="text-xs text-muted">接受后你记录的药方、库存都会和对方共享。</p>
+          <p className="text-xs text-muted">一个账号只有一个药柜：接受后你会搬进对方的药柜，和对方共用药方、库存。</p>
         </section>
       )}
 
@@ -92,33 +93,24 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
         ) : (
           <form action={leaveWorkspace}>
             <input type="hidden" name="workspace_id" value={workspaceId} />
-            <ConfirmButton message="退出这个共享药柜？之后就看不到这里的数据了。" className="text-sm text-muted underline">退出这个药柜</ConfirmButton>
+            <ConfirmButton message="退出这个共享药柜？之后就看不到这里的数据了，会回到你自己原来的药柜。" className="text-sm text-muted underline">退出这个药柜</ConfirmButton>
           </form>
-        )}
-
-        {!workspaces.some((w) => w.kind === "clinic") && (
-          <details className="border-t border-line pt-3 text-sm" data-testid="clinic-entry">
-            <summary className="cursor-pointer text-muted">我是医生：创建诊所（给病人开方）</summary>
-            <div className="mt-2"><CreateClinicForm compact /></div>
-          </details>
-        )}
-
-        {workspaces.length > 1 && (
-          <div className="border-t border-line pt-3 text-sm" data-testid="workspace-switcher">
-            <span className="text-muted">你在 {workspaces.length} 个药柜里：</span>
-            {workspaces.map((w) =>
-              w.is_active ? (
-                <span key={w.workspace_id} className="ml-2 font-medium text-cinnabar">{w.kind === "clinic" ? "诊所·" : ""}{w.name}（{w.role === "owner" ? "我创建的" : "加入的"}，当前）</span>
-              ) : (
-                <form key={w.workspace_id} action={switchWorkspace} className="ml-2 inline">
-                  <input type="hidden" name="workspace_id" value={w.workspace_id} />
-                  <button className="underline">切换到 {w.kind === "clinic" ? "诊所·" : ""}{w.name}（{w.role === "owner" ? "我创建的" : "加入的"}）</button>
-                </form>
-              ),
-            )}
-          </div>
         )}
       </section>
     </>
+  );
+}
+
+/** 医生账号总览页底部：只有账号（不做成员管理、没有切换，docs/design/0008 §4.3） */
+export function ClinicAccount({ user }: { user: User }) {
+  return (
+    <section className="card space-y-3" data-testid="account">
+      <div className="flex items-center justify-between">
+        <h2 className="font-serif text-lg font-bold">账号</h2>
+        <form action={signOut}>
+          <button className="text-sm text-muted underline">退出登录 {user.email}</button>
+        </form>
+      </div>
+    </section>
   );
 }

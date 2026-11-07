@@ -1,4 +1,4 @@
-// 冒烟测试共用：登录、切到需要的药柜类型
+// 冒烟测试共用：登录（第一次遇到「选择账号类型」就按账号选好）
 import { expect, type Page } from "@playwright/test";
 
 export type Account = { email: string; password: string };
@@ -10,23 +10,29 @@ export function account(prefix: "SMOKE_PATIENT" | "SMOKE_CLINIC"): Account | nul
   return email && password ? { email, password } : null;
 }
 
-export async function login(page: Page, a: Account) {
+/**
+ * 登录，并确认账号类型是 kind。
+ * 上线前注册的账号还没选类型，会先到选择页（docs/design/0008 §2.3）：这里按账号选好——
+ * 病人账号选家庭、诊所账号选诊所。两个测试账号原来都同时有家庭和诊所，选完另一种就隐藏了。
+ */
+export async function login(page: Page, a: Account, kind: "household" | "clinic") {
   await page.goto("/login");
   await page.getByLabel("邮箱").fill(a.email);
   await page.getByLabel("密码").fill(a.password);
   await page.getByRole("button", { name: "登录" }).click();
   await page.waitForURL((u) => !u.pathname.startsWith("/login"));
   await page.goto("/");
-  await expect(page.getByRole("button", { name: `退出登录 ${a.email}` })).toBeVisible(); // 总览页正常（自动建好了药柜）
-}
 
-/** 账号同时有家庭和诊所时，切到需要的那个（在总览页点「切换到 …」） */
-export async function useWorkspace(page: Page, kind: "household" | "clinic") {
-  await page.goto("/");
-  const inClinic = (await page.getByTestId("clinic-badge").count()) > 0;
-  if (inClinic === (kind === "clinic")) return;
-  const btn = page.getByRole("button", { name: kind === "clinic" ? /^切换到 诊所·/ : /^切换到 (?!诊所·)/ }).first();
-  if (!(await btn.count())) throw new Error(`这个账号没有${kind === "clinic" ? "诊所" : "家庭药柜"}`);
-  await btn.click();
-  await expect(page.getByTestId("clinic-badge")).toHaveCount(kind === "clinic" ? 1 : 0);
+  const signOut = page.getByRole("button", { name: `退出登录 ${a.email}` });
+  const welcome = page.getByTestId("welcome");
+  await expect(signOut.or(welcome).first()).toBeVisible();
+  if (await welcome.isVisible()) {
+    await welcome.getByLabel(kind === "clinic" ? "我是医生" : "我是病人", { exact: true }).check();
+    if (await welcome.getByLabel("诊所名称").count()) throw new Error("诊所测试账号没有诊所，请先手动建好再跑冒烟测试");
+    await welcome.getByRole("button", { name: "确定" }).click();
+    await page.waitForURL((u) => !u.pathname.startsWith("/welcome"));
+    await page.goto("/");
+  }
+  await expect(signOut).toBeVisible();
+  await expect(page.getByTestId("clinic-badge"), `这个账号应该是${kind === "clinic" ? "诊所" : "家庭"}账号`).toHaveCount(kind === "clinic" ? 1 : 0);
 }
