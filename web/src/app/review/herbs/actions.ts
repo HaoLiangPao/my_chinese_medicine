@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { getContext } from "@/lib/auth";
 import { invalidateAll } from "@/lib/invalidate";
 import { str } from "@/lib/format";
-import { checkMonograph, nextPending, parseMonographForm } from "@/lib/herb-monograph";
+import { checkMonograph, parseMonographForm } from "@/lib/herb-monograph";
+import { nextPending } from "@/lib/review-order";
 import { listForReview } from "./data";
 
 /** values：刚提交的表单内容。表单提交后 React 会重置成默认值，报错时用它把审核人填的内容放回去 */
