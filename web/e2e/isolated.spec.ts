@@ -24,7 +24,7 @@ async function prescriptionImage(page: Page): Promise<Buffer> {
 }
 
 test.describe("登录与权限", () => {
-  test("未登录访问内部页面 → 跳到登录页；未登录调用识别接口 → 401", async ({ page, request }) => {
+  test("未登录访问内部页面 → 跳到登录页；未登录调用识别接口 → 401", { tag: ["@ACC-2", "@PLAT-1"] }, async ({ page, request }) => {
     for (const path of ["/", "/inventory", "/prescriptions/new", "/herbs"]) {
       await page.goto(path);
       await expect(page).toHaveURL(/\/login$/);
@@ -37,7 +37,7 @@ test.describe("登录与权限", () => {
     expect(await res.json()).toEqual({ error: "未登录" });
   });
 
-  test("安全响应头：不能被 iframe 嵌入、不暴露框架", async ({ request }) => {
+  test("安全响应头：不能被 iframe 嵌入、不暴露框架", { tag: ["@PLAT-1"] }, async ({ request }) => {
     for (const path of ["/login", "/learn", "/api/parse-prescription"]) {
       const h = (await request.get(path, { maxRedirects: 0 })).headers();
       expect(h["x-frame-options"], path).toBe("DENY");
@@ -47,7 +47,7 @@ test.describe("登录与权限", () => {
     }
   });
 
-  test("密码错误；退出登录后不能再访问", async ({ page }) => {
+  test("密码错误；退出登录后不能再访问", { tag: ["@ACC-1"] }, async ({ page }) => {
     const u = fresh();
     await signUp(page, u);
     await page.getByRole("button", { name: /退出/ }).click();
@@ -62,7 +62,7 @@ test.describe("登录与权限", () => {
     await signIn(page, u);
   });
 
-  test("用已注册的邮箱再注册，不会进入别人的账号", async ({ page }) => {
+  test("用已注册的邮箱再注册，不会进入别人的账号", { tag: ["@ACC-1", "@ACC-5"] }, async ({ page }) => {
     const u = fresh();
     await signUp(page, u);
     await page.getByRole("button", { name: /退出/ }).click();
@@ -74,7 +74,7 @@ test.describe("登录与权限", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test("邀请：不泄露邮箱是否注册；不能邀请自己；可以撤销", async ({ page }) => {
+  test("邀请：不泄露邮箱是否注册；不能邀请自己；可以撤销", { tag: ["@ACC-3"] }, async ({ page }) => {
     const u = fresh();
     await signUp(page, u);
     await page.getByLabel("邀请邮箱").fill("nobody-here@example.com");
@@ -89,7 +89,7 @@ test.describe("登录与权限", () => {
     await expect(sent).toHaveCount(0);
   });
 
-  test("没接受邀请之前，邀请方看不到对方的任何数据（不能偷偷拉人）", async ({ browser }) => {
+  test("没接受邀请之前，邀请方看不到对方的任何数据（不能偷偷拉人）", { tag: ["@ACC-3", "@ACC-5"] }, async ({ browser }) => {
     const mallory = fresh(), victim = fresh();
     const mp = await browser.newPage();
     await signUp(mp, mallory);
@@ -117,7 +117,7 @@ test.describe("登录与权限", () => {
     await vp.close();
   });
 
-  test("同时在两个药柜：只显示当前的那个，校准只影响当前的；可以切换、退出", async ({ browser }) => {
+  test("同时在两个药柜：只显示当前的那个，校准只影响当前的；可以切换、退出", { tag: ["@ACC-4", "@INV-1"] }, async ({ browser }) => {
     const owner = fresh(), tina = fresh();
     const tp = await browser.newPage();
     tp.on("dialog", (d) => d.accept());
@@ -192,7 +192,7 @@ test.describe("拍照识别", () => {
     await request.post(`${MOCK}/__reset`);
   });
 
-  test("识别 → 预填表单 → 别名匹配、新药材标红 → 保存 → 详情页显示原图", async ({ page, request }) => {
+  test("识别 → 预填表单 → 别名匹配、新药材标红 → 保存 → 详情页显示原图", { tag: ["@RX-3", "@RX-2"] }, async ({ page, request }) => {
     const u = fresh();
     await signUp(page, u);
     await page.goto("/prescriptions/new");
@@ -255,7 +255,7 @@ test.describe("拍照识别", () => {
     expect(fs.existsSync(file)).toBe(false);
   });
 
-  test("免费模型限流 → 自动换 DeepSeek，照样识别出来", async ({ page, request }) => {
+  test("免费模型限流 → 自动换 DeepSeek，照样识别出来", { tag: ["@RX-3"] }, async ({ page, request }) => {
     await signUp(page, fresh());
     await page.goto("/prescriptions/new");
     await request.post(`${MOCK}/__next`, { data: { failModels: ["test/free-vl:free"] } });
@@ -267,7 +267,7 @@ test.describe("拍照识别", () => {
     expect(reqs.slice(before).map((r: { model: string }) => r.model)).toEqual(["test/free-vl:free", "test/deepseek-vl"]);
   });
 
-  test("模型服务出错 → 提示失败，照片仍保留，可以手动录入", async ({ page, request }) => {
+  test("模型服务出错 → 提示失败，照片仍保留，可以手动录入", { tag: ["@RX-3"] }, async ({ page, request }) => {
     await signUp(page, fresh());
     await page.goto("/prescriptions/new");
     await request.post(`${MOCK}/__next`, { data: { fail: true } });
@@ -282,7 +282,7 @@ test.describe("拍照识别", () => {
     await expect(page.getByRole("img", { name: "药方照片" })).toBeVisible();
   });
 
-  test("每人每天识别次数有上限（E2E 里设为 5 次）", async ({ page }) => {
+  test("每人每天识别次数有上限（E2E 里设为 5 次）", { tag: ["@RX-3"] }, async ({ page }) => {
     await signUp(page, fresh());
     const statuses = await page.evaluate(async () => {
       const out: number[] = [];
@@ -296,7 +296,7 @@ test.describe("拍照识别", () => {
     expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
   });
 
-  test("只接受图片类型", async ({ page }) => {
+  test("只接受图片类型", { tag: ["@RX-3"] }, async ({ page }) => {
     await signUp(page, fresh());
     const r = await page.evaluate(async () => {
       const fd = new FormData();
@@ -307,7 +307,7 @@ test.describe("拍照识别", () => {
     expect(r).toEqual([415, "只支持 JPEG / PNG / WebP 图片"]);
   });
 
-  test("服务器拒绝超过 5MB 的照片、拒绝没有照片的请求", async ({ page }) => {
+  test("服务器拒绝超过 5MB 的照片、拒绝没有照片的请求", { tag: ["@RX-3"] }, async ({ page }) => {
     await signUp(page, fresh());
     const result = await page.evaluate(async () => {
       const big = new FormData();
@@ -321,7 +321,7 @@ test.describe("拍照识别", () => {
 });
 
 test.describe("表单校验", () => {
-  test("药方：空行忽略、没有药不能保存、同名两行合并、首尾空格去掉", async ({ page }) => {
+  test("药方：空行忽略、没有药不能保存、同名两行合并、首尾空格去掉", { tag: ["@RX-1"] }, async ({ page }) => {
     await signUp(page, fresh());
     await page.goto("/prescriptions/new");
     const save = page.getByRole("button", { name: "保存药方" });
@@ -345,7 +345,7 @@ test.describe("表单校验", () => {
     await expect(page.locator("table").first().getByRole("row")).toHaveCount(2); // 药材表：表头 + 1 味（合并后）
   });
 
-  test("药方：手动输入别名不标红，提示对应的标准名；目录里没有的才标红", async ({ page }) => {
+  test("药方：手动输入别名不标红，提示对应的标准名；目录里没有的才标红", { tag: ["@RX-2"] }, async ({ page }) => {
     await signUp(page, fresh());
     await page.goto("/prescriptions/new");
     const names = page.getByLabel("药名", { exact: true });
@@ -368,7 +368,7 @@ test.describe("表单校验", () => {
     await expect(page.getByText("（原文 北芪）")).toBeVisible();
   });
 
-  test("采购：没有完整的行不能保存；价格 0 可以；新店铺自动建", async ({ page }) => {
+  test("采购：没有完整的行不能保存；价格 0 可以；新店铺自动建", { tag: ["@BUY-1"] }, async ({ page }) => {
     const u = fresh();
     await signUp(page, u);
     await page.goto("/purchases/new");
@@ -387,7 +387,7 @@ test.describe("表单校验", () => {
   });
 });
 
-test("罐子设置与补货提醒", async ({ page }) => {
+test("罐子设置与补货提醒", { tag: ["@INV-2"] }, async ({ page }) => {
   await signUp(page, fresh());
   await page.goto("/inventory");
   await page.locator('input[name="herb_name"]').fill("麦冬");

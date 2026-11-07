@@ -55,7 +55,7 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => page.close());
 
-test("比价页：每味药各店现价、最便宜的高亮、价差、赠品不参与", async () => {
+test("比价页：每味药各店现价、最便宜的高亮、价差、赠品不参与", { tag: ["@PRICE-1"] }, async () => {
   await page.locator(`nav a[href="/prices"]`).click();
   await expect(page.getByRole("heading", { name: "比价" })).toBeVisible();
 
@@ -93,7 +93,7 @@ test("比价页：每味药各店现价、最便宜的高亮、价差、赠品�
   await expect(page.getByTestId("price-row-生姜")).toBeVisible();
 });
 
-test("药方成本：各店最低价 / 平均成本 / 指定一家店", async () => {
+test("药方成本：各店最低价 / 平均成本 / 指定一家店", { tag: ["@PRICE-2"] }, async () => {
   const id = await rxId("四君子汤");
   await page.goto(`/prescriptions/${id}`);
   const section = page.getByTestId("cost-section");
@@ -132,7 +132,7 @@ test("药方成本：各店最低价 / 平均成本 / 指定一家店", async ()
   }
 });
 
-test("和诊所实付比较；有药没价格时不比较", async () => {
+test("和诊所实付比较；有药没价格时不比较", { tag: ["@PRICE-3"] }, async () => {
   const id = await rxId("四君子汤");
   await page.goto(`/prescriptions/${id}`);
   await page.getByLabel(/诊所实付/).fill("70");
@@ -161,7 +161,7 @@ test("和诊所实付比较；有药没价格时不比较", async () => {
   await expect(page.getByTestId("clinic-compare")).toHaveCount(0);
 });
 
-test("药柜价值 = Σ 正库存 × 加权平均成本", async () => {
+test("药柜价值 = Σ 正库存 × 加权平均成本", { tag: ["@PRICE-4"] }, async () => {
   const stock = expectedStock({ includeCalibration: true });
   let total = 0;
   for (const [herb, g] of stock) {
@@ -174,7 +174,7 @@ test("药柜价值 = Σ 正库存 × 加权平均成本", async () => {
   await expect(page.getByTestId("inventory-value")).toContainText($(r2(total)));
 });
 
-test("在诊所买药：新店类型为诊所，比价表里标出；价格更低时成为最便宜", async () => {
+test("在诊所买药：新店类型为诊所，比价表里标出；价格更低时成为最便宜", { tag: ["@PRICE-5", "@BUY-1"] }, async () => {
   await page.goto("/purchases/new");
   await page.locator('input[name="store_name"]').fill("李医生诊所");
   await page.locator("#store_kind").selectOption("clinic");

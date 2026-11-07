@@ -8,7 +8,7 @@ import { signIn, sql, users } from "./helpers";
 
 const SHOTS = path.resolve(__dirname, "../../.local/screenshots");
 
-test("手机上每个页面都不横向溢出", async ({ page }) => {
+test("手机上每个页面都不横向溢出", { tag: ["@PLAT-2"] }, async ({ page }) => {
   await signIn(page, users.hao);
   const [rx] = await sql<{ id: string }>(
     `select p.id from prescriptions p join workspace_members m on m.workspace_id = p.workspace_id
@@ -41,7 +41,7 @@ test("手机上每个页面都不横向溢出", async ({ page }) => {
   }
 });
 
-test("手机上能完成一次煎药", async ({ page }) => {
+test("手机上能完成一次煎药", { tag: ["@PLAT-2", "@DEC-1"] }, async ({ page }) => {
   page.on("dialog", (d) => d.accept());
   await signIn(page, users.hao);
   await page.locator(`nav a[href="/prescriptions"]`).click();

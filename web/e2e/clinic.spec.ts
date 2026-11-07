@@ -51,7 +51,7 @@ async function fillLine(grams: number | string, opts: { prep?: string; note?: st
 }
 const lineNames = () => page.getByTestId("rx-lines").locator("tbody tr td:first-child").allTextContents();
 
-test("1. 医生注册、创建诊所；导航切换成诊所模式", async () => {
+test("1. 医生注册、创建诊所；导航切换成诊所模式", { tag: ["@CLN-1"] }, async () => {
   await signUp(page, doctor);
   await page.getByTestId("clinic-entry").locator("summary").click();
   await page.getByLabel("诊所名称").fill(CLINIC);
@@ -72,7 +72,7 @@ test("1. 医生注册、创建诊所；导航切换成诊所模式", async () =>
   await page.waitForURL(/\/clinic\/prescribe$/);
 });
 
-test("2. 诊所进货（成本用这些价格）", async () => {
+test("2. 诊所进货（成本用这些价格）", { tag: ["@CLN-8"] }, async () => {
   await page.goto("/purchases/new");
   await page.locator('input[name="store_name"]').fill("供应商甲");
   for (let i = 2; i < STOCK.length; i++) await page.getByRole("button", { name: "＋ 加一行" }).click();
@@ -85,7 +85,7 @@ test("2. 诊所进货（成本用这些价格）", async () => {
   await page.waitForURL(/\/purchases(\?.*)?$/);
 });
 
-test("3. 开方：新病人、选药（首字母、炮制品、搜索、新药材）、修改、删除、排序、成本", async () => {
+test("3. 开方：新病人、选药（首字母、炮制品、搜索、新药材）、修改、删除、排序、成本", { tag: ["@CLN-2", "@CLN-3", "@CLN-4"] }, async () => {
   await page.goto("/clinic/prescribe");
   const save = page.getByRole("button", { name: /保存并生成消息|先选一个病人|先加药/ });
   await expect(save).toBeDisabled();
@@ -198,7 +198,7 @@ const EXPECTED = [
   "医嘱：忌生冷",
 ].join("\n");
 
-test("4. 保存 → 微信消息全文正确、没有价格、可以一键复制", async () => {
+test("4. 保存 → 微信消息全文正确、没有价格、可以一键复制", { tag: ["@CLN-5"] }, async () => {
   await page.getByLabel("剂数").fill("7");
   await page.getByLabel("日期").fill("2026-10-27");
   await page.getByLabel("医嘱（可选）").fill("忌生冷");
@@ -231,7 +231,7 @@ test("4. 保存 → 微信消息全文正确、没有价格、可以一键复制
   await expect(page.getByLabel(/诊所实付/)).toHaveCount(0);
 });
 
-test("5. 病历：查到这张处方；从病历再开一张（病人自动选好）", async () => {
+test("5. 病历：查到这张处方；从病历再开一张（病人自动选好）", { tag: ["@CLN-6"] }, async () => {
   await page.getByTestId("back-to-patient").click();
   await expect(page.getByTestId("patient-name")).toHaveText("张三");
   await expect(page.getByTestId("patient-rx")).toHaveCount(1);
@@ -247,7 +247,7 @@ test("5. 病历：查到这张处方；从病历再开一张（病人自动选�
   await expect(page.getByTestId("patient-rx")).toHaveCount(2);
 });
 
-test("6. 找病人：按电话后几位；电话重复时提示并可以直接选；只有电话的病人", async () => {
+test("6. 找病人：按电话后几位；电话重复时提示并可以直接选；只有电话的病人", { tag: ["@CLN-2"] }, async () => {
   await page.goto("/clinic/prescribe");
   await page.getByLabel("搜病人").fill("0101");
   await expect(page.getByTestId("patient-result")).toHaveCount(1);
@@ -283,7 +283,7 @@ test("6. 找病人：按电话后几位；电话重复时提示并可以直接�
   await expect(page.getByTestId("patient-list").locator("a")).toHaveCount(2);
 });
 
-test("7. 和家庭药柜隔离：切回自己的药柜看不到病人和诊所处方；别人更看不到", async ({ browser }) => {
+test("7. 和家庭药柜隔离：切回自己的药柜看不到病人和诊所处方；别人更看不到", { tag: ["@CLN-7", "@ACC-5"] }, async ({ browser }) => {
   await page.goto("/");
   await page.getByTestId("workspace-switcher").getByRole("button", { name: /切换到/ }).click();
   await expect(page.getByTestId("workspace-switcher")).toContainText("我们家（我创建的，当前）");
@@ -308,7 +308,7 @@ test("7. 和家庭药柜隔离：切回自己的药柜看不到病人和诊所�
   await expect(page.getByTestId("clinic-badge")).toHaveText(CLINIC);
 });
 
-test("8. 手机上：开方页、病人页、处方页不横向溢出，首字母按钮点得到", async ({ browser }) => {
+test("8. 手机上：开方页、病人页、处方页不横向溢出，首字母按钮点得到", { tag: ["@PLAT-2", "@CLN-3"] }, async ({ browser }) => {
   const m = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true });
   await m.goto("/login");
   await m.getByLabel("邮箱").fill(doctor.email);

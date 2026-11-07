@@ -20,7 +20,7 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => page.context().close());
 
-test("登录，切到诊所；导航是诊所的", async () => {
+test("登录，切到诊所；导航是诊所的", { tag: ["@CLN-1"] }, async () => {
   await login(page, acct!);
   await useWorkspace(page, "clinic");
   const nav = page.getByTestId("nav");
@@ -31,7 +31,7 @@ test("登录，切到诊所；导航是诊所的", async () => {
   await expect(page.getByRole("link", { name: "＋ 开方" })).toHaveAttribute("href", "/clinic/prescribe");
 });
 
-test("开方：选病人 → 搜药（拼音首字母、炮制品）→ 保存 → 微信消息没有价格 → 删除", async () => {
+test("开方：选病人 → 搜药（拼音首字母、炮制品）→ 保存 → 微信消息没有价格 → 删除", { tag: ["@CLN-3", "@CLN-5"] }, async () => {
   await page.goto("/clinic/prescribe");
   await page.getByLabel("搜病人").fill(PATIENT);
   const hit = page.getByTestId("patient-results").getByTestId("patient-result").filter({ hasText: PATIENT });

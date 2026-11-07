@@ -20,13 +20,13 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => page.context().close());
 
-test("登录，切到家庭药柜", async () => {
+test("登录，切到家庭药柜", { tag: ["@ACC-4"] }, async () => {
   await login(page, acct!);
   await useWorkspace(page, "household");
   await expect(page.getByTestId("nav").getByRole("link", { name: "比价" })).toBeVisible();
 });
 
-test("录一张药方（别名匹配）→ 详情页 → 删除", async () => {
+test("录一张药方（别名匹配）→ 详情页 → 删除", { tag: ["@RX-1", "@RX-2", "@RX-4"] }, async () => {
   await page.goto("/prescriptions/new");
   await page.locator('input[name="title"]').fill(TITLE);
   await page.locator('input[name="dose_count"]').fill("3");
@@ -48,7 +48,7 @@ test("录一张药方（别名匹配）→ 详情页 → 删除", async () => {
   await expect(page.getByText(TITLE, { exact: true })).toHaveCount(0);
 });
 
-test("拍照识别（真实模型）", async () => {
+test("拍照识别（真实模型）", { tag: ["@RX-3"] }, async () => {
   test.skip(process.env.SMOKE_PARSE !== "1", "SMOKE_PARSE=1 才跑");
   // 画一张打印体药方
   const img = await page.context().newPage();

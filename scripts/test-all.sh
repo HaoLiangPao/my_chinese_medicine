@@ -8,8 +8,9 @@ node -e 'const [a,b]=process.versions.node.split(".").map(Number); if (a<22||(a=
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 
+step "功能清单 ↔ E2E";  node "$ROOT/scripts/check-features.mjs"   # docs/features.md
 cd "$ROOT/web"
-step "类型检查";   npm run typecheck --silent   # 先 next typegen 生成 PageProps 等路由类型（新 clone 的仓库里没有）
+step "类型检查";  npm run typecheck --silent   # 先 next typegen 生成 PageProps 等路由类型（新 clone 的仓库里没有）
 step "Lint";       npm run lint --silent
 step "单元测试";   npx vitest run
 step "SQL 测试";   "$ROOT/scripts/test-db.sh"
