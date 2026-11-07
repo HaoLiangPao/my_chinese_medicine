@@ -38,15 +38,15 @@ async function List() {
       {data.map((p) => {
         const total = p.purchase_items.reduce((s, i) => s + Number(i.price), 0);
         return (
-          <div key={p.id} className="card">
+          <div key={p.id} className="card" data-testid="purchase">
             <div className="flex items-baseline justify-between">
-              <span className="font-medium">{p.stores?.name ?? "未填店铺"}</span>
-              <span className="text-sm text-muted">{p.purchased_on} · {money(total)}</span>
+              <span className="font-medium" data-testid="purchase-store">{p.stores?.name ?? "未填店铺"}</span>
+              <span className="text-sm text-muted" data-testid="purchase-summary">{p.purchased_on} · {money(total)}</span>
             </div>
             <table className="data-table mt-2">
               <tbody>
                 {p.purchase_items.map((i, idx) => (
-                  <tr key={idx}>
+                  <tr key={idx} data-testid="purchase-row">
                     <td>{i.herbs?.name_zh}</td>
                     <td className="text-right">{grams(i.grams)}</td>
                     <td className="text-right">{money(i.price)}</td>
