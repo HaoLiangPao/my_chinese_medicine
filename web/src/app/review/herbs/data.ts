@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { byPinyin } from "@/lib/herb-monograph";
+import { byPinyin } from "@/lib/pinyin-order";
 
 export type ReviewRow = {
   herb_id: string;

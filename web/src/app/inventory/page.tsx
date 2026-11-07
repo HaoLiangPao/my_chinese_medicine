@@ -4,6 +4,7 @@ import { getContext } from "@/lib/auth";
 import { listHerbs } from "@/lib/herbs";
 import { grams, money } from "@/lib/format";
 import { termsFor, type AccountKind } from "@/lib/terms";
+import { byPinyin } from "@/lib/pinyin-order";
 import { Empty, Loading, PageHeader } from "@/components/ui";
 import { adjustInventory, savePantrySettings } from "./actions";
 
@@ -29,13 +30,14 @@ async function Inventory({ kind }: { kind: AccountKind }) {
   const place = kind === "clinic" ? "诊所" : "家里";
   const { supabase, workspaceId } = await getContext();
   const [{ data: rows, error }, herbs, { data: value }] = await Promise.all([
-    supabase.from("v_inventory").select("*").eq("workspace_id", workspaceId).order("name_zh"),
+    supabase.from("v_inventory").select("*").eq("workspace_id", workspaceId),
     listHerbs(supabase),
     supabase.from("v_inventory_value").select("herb_id, value").eq("workspace_id", workspaceId),
   ]);
   const valueByHerb = new Map((value ?? []).map((v) => [v.herb_id, v.value === null ? null : Number(v.value)]));
   const totalValue = [...valueByHerb.values()].reduce<number>((s, v) => s + (v ?? 0), 0);
   if (error) throw new Error(error.message);
+  rows?.sort(byPinyin);
 
   return (
     <div className="space-y-5">

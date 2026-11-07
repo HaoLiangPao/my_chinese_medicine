@@ -120,16 +120,3 @@ export function checkMonograph(c: MonographContent): string | null {
   if (DOSE.test(c.traditional_use) || DOSE.test(c.cautions ?? "")) return "药材资料里不写用量（传统用途、使用注意里不能有「数字 + 克」）";
   return null;
 }
-
-/** 核对页的顺序：按拼音（没有拼音的按药名） */
-export function byPinyin<T extends { name_zh: string; pinyin: string | null }>(a: T, b: T) {
-  return (a.pinyin ?? a.name_zh).localeCompare(b.pinyin ?? b.name_zh) || a.name_zh.localeCompare(b.name_zh);
-}
-
-/** 审核完一味以后跳到哪：按顺序排在它后面的第一味待审核的药；后面没有了就从头找；一味都没有了返回 null */
-export function nextPending<T extends { herb_id: string; name_zh: string; pinyin: string | null; status: string }>(all: T[], currentId: string) {
-  const sorted = [...all].sort(byPinyin);
-  const at = sorted.findIndex((m) => m.herb_id === currentId);
-  const rotated = at < 0 ? sorted : [...sorted.slice(at + 1), ...sorted.slice(0, at)];
-  return rotated.find((m) => m.status === "draft" && m.herb_id !== currentId)?.herb_id ?? null;
-}
