@@ -7,6 +7,7 @@ import { grams, money } from "@/lib/format";
 import { Loading, Stat } from "@/components/ui";
 import { resolveMonograph, type Monograph } from "@/lib/herb-monograph";
 import { MonographSection, MonographTags } from "./monograph";
+import { BatchesSection, type BatchRow } from "./batches";
 
 export default function HerbPage({ params }: PageProps<"/herbs/[id]">) {
   return (
@@ -36,7 +37,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   if (!herb) notFound();
 
   const monographIds = [herb.id, ...(herb.base ? [herb.base.id] : [])];
-  const [{ data: uses }, { data: inv }, { data: prices }, { data: usage }, { data: monographs }, { data: isReviewer }] = await Promise.all([
+  const [{ data: uses }, { data: inv }, { data: prices }, { data: usage }, { data: monographs }, { data: isReviewer }, { data: batchRows }] = await Promise.all([
     supabase
       .from("prescription_items")
       .select("grams_per_dose, special_prep, prescriptions!inner(id, title, issued_on, dose_count, workspace_id)")
@@ -48,7 +49,14 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
     supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).eq("herb_id", id).maybeSingle(),
     supabase.from("herb_monographs").select("*").in("herb_id", monographIds).returns<Monograph[]>(),
     supabase.rpc("is_monograph_reviewer"),
+    supabase
+      .from("purchase_items")
+      .select("id, grams, price, origin, lot_no, supplier_lot, packed_on, purchases!inner(purchased_on, created_at, workspace_id, stores(name))")
+      .eq("herb_id", id)
+      .eq("purchases.workspace_id", workspaceId)
+      .returns<(Omit<BatchRow, "purchased_on" | "created_at" | "store"> & { purchases: { purchased_on: string; created_at: string; stores: { name: string } | null } })[]>(),
   ]);
+  const batches: BatchRow[] = (batchRows ?? []).map(({ purchases: pu, ...b }) => ({ ...b, purchased_on: pu.purchased_on, created_at: pu.created_at, store: pu.stores?.name ?? null }));
   const byHerb = new Map((monographs ?? []).map((m) => [m.herb_id, m]));
   const monograph = resolveMonograph(byHerb.get(herb.id) ?? null, herb.base ? (byHerb.get(herb.base.id) ?? null) : null);
   const sortedUses = (uses ?? []).sort((a, b) => (b.prescriptions?.issued_on ?? "").localeCompare(a.prescriptions?.issued_on ?? ""));
@@ -76,6 +84,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       {monograph && (
         <MonographSection m={monograph.data} fromBase={monograph.fromBase} inheritsDraft={monograph.inheritsDraft} baseName={herb.base?.name_zh ?? null} isReviewer={isReviewer === true} />
       )}
+
+      <BatchesSection batches={batches} onHand={Number(inv?.on_hand_grams ?? 0)} />
 
       <section className="card overflow-x-auto">
         <h2 className="mb-2 font-serif text-lg font-bold">出现在这些{t.rx}里</h2>

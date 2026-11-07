@@ -46,6 +46,7 @@ export default defineConfig({
     { name: "clinic", testMatch: /clinic\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "account-types", testMatch: /account-types\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "herb-monographs", testMatch: /herb-monographs\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "batches", testMatch: /batches\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {

@@ -389,7 +389,7 @@ test("10. 对账：药材使用统计", { tag: ["@STAT-1"] }, async () => {
   for (const f of FORMULAS.filter((x) => x.name !== DELETED_FORMULA && x.items.some((i) => i.herb === "白术"))) {
     await expect(page.getByRole("link", { name: f.name })).toBeVisible();
   }
-  await expect(page.getByText("仁和堂（测试）")).toBeVisible(); // 购买记录
+  await expect(page.getByRole("cell", { name: "仁和堂（测试）" })).toBeVisible(); // 购买记录表格（批次资料里也会出现店名）
 });
 
 test("11. 家人看到同一个药柜；陌生人什么都看不到", { tag: ["@ACC-5"] }, async ({ browser }) => {
