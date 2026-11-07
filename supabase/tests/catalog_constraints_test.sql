@@ -4,7 +4,7 @@
 -- ---- 种子数据 ----
 select assert_eq((select count(*) >= 100 from herbs), true, '种子药材 >= 100');
 select assert_eq((select b.name_zh from herbs h join herbs b on b.id = h.base_herb_id where h.name_zh = '炙黄芪'), '黄芪', '炮制品指回原药材');
-select assert_eq((select count(*) from herbs where base_herb_id is not null), 13::bigint, '13 个炮制品');
+select assert_eq((select count(*) from herbs where base_herb_id is not null), 14::bigint, '14 个炮制品（2026-11-07 加了制何首乌）');
 select assert_eq((select count(*) from herb_aliases a join herbs h on h.name_zh = a.alias), 0::bigint, '别名不能和标准名重名');
 
 -- ---- match_herb ----
@@ -13,6 +13,11 @@ select assert_eq((select name_zh from herbs where id = match_herb('  麦冬 ')),
 select assert_eq((select name_zh from herbs where id = match_herb('山萸肉')), '山茱萸', '别名 山萸肉');
 select assert_eq((select name_zh from herbs where id = match_herb('炒枣仁')), '炒酸枣仁', '炮制品的别名');
 select assert_eq(match_herb('不存在的药'), null::uuid, '查不到 → null');
+-- 2026-11-07：同名不同药分开（docs/design/0010 §3.4）；李医生说的「沙参」是南沙参
+select assert_eq((select name_zh from herbs where id = match_herb('沙参')), '南沙参', '沙参 = 南沙参');
+select assert_eq((select name_zh from herbs where id = match_herb('制首乌')), '制何首乌', '别名 制首乌');
+select assert_eq((select b.name_zh from herbs h join herbs b on b.id = h.base_herb_id where h.name_zh = '制何首乌'), '何首乌', '制何首乌是何首乌的炮制品');
+select assert_eq((select count(*) from herbs where name_zh in ('关黄柏', '广藿香', '川牛膝', '北沙参', '南沙参', '铁皮石斛')), 6::bigint, '分开的药都在目录里');
 select assert_eq(match_herb(''), null::uuid, '空串 → null');
 
 :as_hao;

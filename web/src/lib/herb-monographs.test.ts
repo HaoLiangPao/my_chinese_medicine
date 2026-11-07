@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import * as impl from "./herb-monograph";
 
 type Entry = {
   name: string;
@@ -29,12 +30,22 @@ const seedNames = new Set([...seed.matchAll(/\('([一-鿿]+)', '[a-z ]+'/g)].map
 const processedBlock = seed.slice(seed.indexOf("base_herb_id"), seed.indexOf("herb_aliases"));
 const seedBase = new Map([...processedBlock.matchAll(/\('([一-鿿]+)', '[a-z ]+', '([一-鿿]+)'\)/g)].map((m) => [m[1], m[2]]));
 
+// 测试自己写一份，不用实现里的（实现写错时这里要能发现）
 const NATURES = ["寒", "凉", "平", "温", "热"].flatMap((n) => [n, `微${n}`, `大${n}`]);
 const FLAVORS = ["酸", "苦", "甘", "辛", "咸", "淡", "涩"].flatMap((f) => [f, `微${f}`]);
 const MERIDIANS = ["肺", "大肠", "胃", "脾", "心", "小肠", "膀胱", "肾", "心包", "三焦", "胆", "肝"];
+const TOXICITY = ["none", "minor", "toxic", "severe"];
 const DOSE = /\d+(\.\d+)?\s*(g|克|钱|两|mg|毫克)/i;
 
 describe("药材资料草稿", () => {
+  it("页面用的列表和这里的一致", () => {
+    expect(impl.NATURES).toEqual(NATURES);
+    expect(impl.FLAVORS).toEqual(FLAVORS);
+    expect(impl.MERIDIANS).toEqual(MERIDIANS);
+    expect(Object.keys(impl.TOXICITY)).toEqual(TOXICITY);
+    expect(impl.DOSE.source).toBe(DOSE.source);
+  });
+
   it("种子目录里的每味药都有资料，没有多出来的", () => {
     expect(seedNames.size).toBeGreaterThan(100);
     expect(new Set(herbs.map((h) => h.name))).toEqual(seedNames);
@@ -54,7 +65,7 @@ describe("药材资料草稿", () => {
     for (const f of h.flavors) expect(FLAVORS).toContain(f);
     expect(h.meridians.length).toBeGreaterThan(0);
     for (const m of h.meridians) expect(MERIDIANS).toContain(m);
-    if (h.toxicity) expect(["none", "minor", "toxic", "severe"]).toContain(h.toxicity);
+    if (h.toxicity) expect(TOXICITY).toContain(h.toxicity);
     expect(["中国药典", "中药学教材"]).toContain(h.reference);
   });
 

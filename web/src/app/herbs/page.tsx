@@ -20,16 +20,26 @@ export default function HerbsPage() {
 async function Herbs() {
   const { supabase, workspaceId, accountKind } = await getContext();
   const t = termsFor(accountKind);
-  const [{ data: usage }, { data: inv }, all] = await Promise.all([
+  const [{ data: usage }, { data: inv }, all, { data: isReviewer }] = await Promise.all([
     supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).order("prescription_count", { ascending: false }),
     supabase.from("v_inventory").select("herb_id, on_hand_grams").eq("workspace_id", workspaceId),
     listHerbs(supabase),
+    supabase.rpc("is_monograph_reviewer"),
   ]);
+  const { count: pending } = isReviewer === true
+    ? await supabase.from("herb_monographs").select("herb_id", { count: "exact", head: true }).eq("status", "draft")
+    : { count: null };
   const onHand = new Map((inv ?? []).map((r) => [r.herb_id, Number(r.on_hand_grams)]));
   const used = new Set((usage ?? []).map((u) => u.herb_id));
 
   return (
     <div className="space-y-6">
+      {isReviewer === true && (
+        <Link href="/review/herbs" className="card flex items-center justify-between hover:border-cinnabar" data-testid="review-entry">
+          <span>核对药材资料</span>
+          <span className="text-sm text-muted">{pending ? `${pending} 味待审核 →` : "全部审核完了 →"}</span>
+        </Link>
+      )}
       <section className="card overflow-x-auto">
         <h2 className="mb-2 font-serif text-lg font-bold">用过的药材</h2>
         {!usage?.length ? (

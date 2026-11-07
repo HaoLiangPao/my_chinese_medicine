@@ -44,6 +44,9 @@ insert into prescription_items (prescription_id, herb_id, grams_per_dose, sort_o
 values (:'rx1', :'huangqi', 30, 1), (:'rx1', :'baizhu', 12, 2), (:'rx1', :'gancao', 6, 3);
 insert into prescriptions (workspace_id, title, dose_count) values (:'w1', '还没煎的方', 3) returning id as rx2 \gset
 insert into prescription_items (prescription_id, herb_id, grams_per_dose, raw_name) values (:'rx2', :'dangshen', 15, '党参');
+-- 目录里原来的「沙参」（2026-11-07 改名南沙参）
+insert into prescription_items (prescription_id, herb_id, grams_per_dose, raw_name)
+select :'rx2', id, 10, '沙参' from herbs where name_zh = '沙参';
 select record_decoction(:'rx1', 2);
 select record_decoction(:'rx1', 1, jsonb_build_array(jsonb_build_object('herb_id', :'huangqi', 'grams', 35)));
 insert into pantry_settings (workspace_id, herb_id, jar_label, low_stock_grams) values (:'w1', :'huangqi', 'A1', 100);
@@ -76,6 +79,8 @@ insert into prescriptions (workspace_id, title, dose_count, patient_id, source)
 values (:'w3', '只有电话的病人', 3, :'pt2', 'clinic') returning id as rx5 \gset
 insert into prescription_items (prescription_id, herb_id, grams_per_dose) values (:'rx5', :'gancao', 9);
 select record_decoction(:'rx4', 7);
+-- 医生自己在开方时新增过一味目录里还没有的药（以后目录也加了同名的）
+insert into herbs (name_zh) values ('铁皮石斛');
 
 -- ---- u4 两种都有数据 ----
 :as_u4;
