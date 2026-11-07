@@ -1,14 +1,21 @@
 import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
 import { grams, money } from "@/lib/format";
+import { termsFor } from "@/lib/terms";
 import { Empty, Loading, PageHeader } from "@/components/ui";
 
-export default function PurchasesPage() {
+export default async function PurchasesPage() {
+  const { accountKind } = await getContext();
+  const t = termsFor(accountKind);
   return (
     <>
-      <PageHeader title="采购" subtitle="在哪儿买的、多少克、多少钱" action={{ href: "/purchases/new", label: "＋ 记一笔" }} />
+      <PageHeader
+        title={t.purchase}
+        subtitle={accountKind === "clinic" ? "从哪家进的、多少克、多少钱" : "在哪儿买的、多少克、多少钱"}
+        action={{ href: "/purchases/new", label: "＋ 记一笔" }}
+      />
       <Suspense fallback={<Loading />}>
-        <List />
+        <List purchase={t.purchase} />
       </Suspense>
     </>
   );
@@ -22,7 +29,7 @@ type Row = {
   purchase_items: { grams: number; price: number; herbs: { name_zh: string } | null }[];
 };
 
-async function List() {
+async function List({ purchase }: { purchase: string }) {
   const { supabase, workspaceId } = await getContext();
   const { data, error } = await supabase
     .from("purchases")
@@ -31,7 +38,7 @@ async function List() {
     .order("purchased_on", { ascending: false })
     .returns<Row[]>();
   if (error) throw new Error(error.message);
-  if (!data.length) return <Empty>还没有采购记录。</Empty>;
+  if (!data.length) return <Empty>还没有{purchase}记录。</Empty>;
 
   return (
     <div className="space-y-3">

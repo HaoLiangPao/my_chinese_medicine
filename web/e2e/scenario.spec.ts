@@ -42,6 +42,7 @@ test("1. 注册账号，自动创建药柜；邀请家人，对方接受后共�
   await expect(page.getByText(`已邀请 ${users.tina.email}，等待对方接受`)).toBeVisible();
 
   const tinaPage = await browser.newPage();
+  tinaPage.on("dialog", (d) => d.accept()); // 接受邀请前的确认框
   await signUp(tinaPage, users.tina);
   const tinaOwnWs = await activeWorkspaceOf(users.tina.email);
   // 没接受之前还在自己的药柜
@@ -274,7 +275,7 @@ test("6. 非法输入被拦下", { tag: ["@DEC-1"] }, async () => {
   await page.locator("#doses").evaluate((el: HTMLInputElement) => el.setAttribute("step", "any"));
   await page.locator("#doses").fill("1.5");
   await page.getByRole("button", { name: /煎 1.5 副/ }).click();
-  await expect(page.getByText("副数必须是正整数")).toBeVisible();
+  await expect(page.getByText("数量必须是正整数")).toBeVisible();
   // 负数实际用量 → 服务器拒绝
   await page.locator("#doses").fill("1");
   const ginseng = page.getByLabel("人参 实际用量");

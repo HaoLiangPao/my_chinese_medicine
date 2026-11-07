@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "药柜",
-  description: "家庭中药方与药材库存记录",
+  description: "中药方、病人处方与药材库存记录",
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };

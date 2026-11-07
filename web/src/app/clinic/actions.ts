@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getContext } from "@/lib/auth";
 import { invalidateAll } from "@/lib/invalidate";
 import { resolveHerbId } from "@/lib/herbs";
-import { parseJsonField, str, SPECIAL_PREPS } from "@/lib/format";
+import { parseJsonField, SPECIAL_PREPS } from "@/lib/format";
 import { validateLines } from "@/lib/rx-lines";
 import { patientLabel } from "@/lib/rx-message";
 
@@ -13,20 +13,8 @@ export type Patient = { id: string; name: string | null; phone: string | null; n
 
 async function clinicContext() {
   const ctx = await getContext();
-  if (ctx.workspaceKind !== "clinic") throw new Error("请先切换到诊所");
+  if (ctx.accountKind !== "clinic") throw new Error("只有诊所账号可以开方");
   return ctx;
-}
-
-// ---------------------------------------------------------------------------
-// 诊所
-// ---------------------------------------------------------------------------
-export type ClinicState = { error?: string };
-export async function createClinic(_prev: ClinicState, form: FormData): Promise<ClinicState> {
-  const { supabase } = await getContext();
-  const { error } = await supabase.rpc("create_clinic", { clinic_name: str(form.get("name")) ?? "" });
-  if (error) return { error: error.message };
-  invalidateAll();
-  redirect("/clinic/prescribe");
 }
 
 // ---------------------------------------------------------------------------

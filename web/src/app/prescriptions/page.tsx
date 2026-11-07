@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
+import { termsFor } from "@/lib/terms";
 import { money } from "@/lib/format";
 import { Empty, Loading, PageHeader } from "@/components/ui";
 
@@ -19,8 +20,8 @@ export default function PrescriptionsPage() {
 
 /** 家庭：自己录药方；诊所：去开方页（诊所不用家庭的录方表单） */
 async function Header() {
-  const { workspaceKind, workspaceName } = await getContext();
-  return workspaceKind === "clinic" ? (
+  const { accountKind, workspaceName } = await getContext();
+  return accountKind === "clinic" ? (
     <PageHeader title="处方" subtitle={`${workspaceName}开出的每一张处方`} action={{ href: "/clinic/prescribe", label: "＋ 开方" }} />
   ) : (
     <PageHeader title="药方" subtitle="家里的每一张药方" action={{ href: "/prescriptions/new", label: "＋ 新药方" }} />
@@ -38,7 +39,8 @@ type Row = {
 };
 
 async function List() {
-  const { supabase, workspaceId } = await getContext();
+  const { supabase, workspaceId, accountKind } = await getContext();
+  const t = termsFor(accountKind);
   const { data, error } = await supabase
     .from("prescriptions")
     .select("id, title, issued_on, dose_count, patient_label, price_paid, prescription_items(grams_per_dose, herbs(name_zh))")
@@ -46,18 +48,18 @@ async function List() {
     .order("issued_on", { ascending: false })
     .returns<Row[]>();
   if (error) throw new Error(error.message);
-  if (!data.length) return <Empty>还没有药方。点右上角录入，或者直接拍照识别。</Empty>;
+  if (!data.length) return <Empty>{accountKind === "clinic" ? "还没有处方。点右上角开方。" : "还没有药方。点右上角录入，或者直接拍照识别。"}</Empty>;
 
   return (
     <div className="space-y-3">
       {data.map((p) => (
         <Link key={p.id} href={`/prescriptions/${p.id}`} className="card block hover:border-cinnabar">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="font-serif text-lg font-bold">{p.title || "未命名药方"}</span>
+            <span className="font-serif text-lg font-bold">{p.title || `未命名${t.rx}`}</span>
             <span className="shrink-0 text-sm text-muted">{p.issued_on}</span>
           </div>
           <div className="mt-1 text-sm text-muted">
-            {p.dose_count} 副 · {p.prescription_items.length} 味
+            {p.dose_count} {t.dose} · {p.prescription_items.length} 味
             {p.patient_label && ` · ${p.patient_label}`}
             {p.price_paid != null && ` · ${money(p.price_paid)}`}
           </div>

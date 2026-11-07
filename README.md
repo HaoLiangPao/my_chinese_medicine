@@ -9,7 +9,7 @@
 | **MVP3** | 药柜学堂（公开科普）：学习路径、阴阳/五行等交互图、中药图鉴、经典选读（原计划的 MVP4，提前） | 🚧 原型：`/learn` |
 | **MVP4** | 医生开方：病人档案、首字母选药（炮制品归原药材）、克数/脚注/备注、实时成本（只给医生看）、一键复制微信消息、病历查询 | ✅ 第一版，测试覆盖 |
 
-设计文档在 [`docs/design/`](docs/design/)：[0001 MVP1](docs/design/0001-mvp1.md) · [0002 煎药记录与测试体系](docs/design/0002-decoctions-and-testing.md) · [0003 MVP2 比价](docs/design/0003-mvp2-pricing.md) · [0004 独立代码审查与修复](docs/design/0004-security-review.md) · [0005 学堂与动态图](docs/design/0005-learn-and-visuals.md) · [0006 医生开方](docs/design/0006-clinic-prescribing.md) · [0007 CI/CD](docs/design/0007-ci-cd.md) · [0009 有真实用户之后的开发流程](docs/design/0009-dev-workflow-with-real-users.md)。功能清单和每个功能的 E2E 测试见 [`docs/features.md`](docs/features.md)。
+设计文档在 [`docs/design/`](docs/design/)：[0001 MVP1](docs/design/0001-mvp1.md) · [0002 煎药记录与测试体系](docs/design/0002-decoctions-and-testing.md) · [0003 MVP2 比价](docs/design/0003-mvp2-pricing.md) · [0004 独立代码审查与修复](docs/design/0004-security-review.md) · [0005 学堂与动态图](docs/design/0005-learn-and-visuals.md) · [0006 医生开方](docs/design/0006-clinic-prescribing.md) · [0007 CI/CD](docs/design/0007-ci-cd.md) · [0008 账号类型](docs/design/0008-account-types.md) · [0009 有真实用户之后的开发流程](docs/design/0009-dev-workflow-with-real-users.md)。功能清单和每个功能的 E2E 测试见 [`docs/features.md`](docs/features.md)。
 
 ## 目录结构
 

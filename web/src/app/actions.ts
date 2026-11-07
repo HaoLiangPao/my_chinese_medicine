@@ -40,6 +40,3 @@ export async function removeMember(form: FormData) {
   const { workspaceId } = await getContext();
   await rpc("remove_member", { ws: workspaceId, member: String(form.get("user_id")) });
 }
-export async function switchWorkspace(form: FormData) {
-  await rpc("set_active_workspace", { ws: String(form.get("workspace_id")) });
-}

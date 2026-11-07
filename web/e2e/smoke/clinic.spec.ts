@@ -4,7 +4,7 @@
  * 不扣库存、不进货，不改诊所的真实数据。
  */
 import { expect, test, type Page } from "@playwright/test";
-import { account, login, useWorkspace } from "./shared";
+import { account, login } from "./shared";
 
 const acct = account("SMOKE_CLINIC");
 test.skip(!acct, "没有配置 SMOKE_CLINIC_EMAIL / SMOKE_CLINIC_PASSWORD");
@@ -20,12 +20,12 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => page.context().close());
 
-test("登录，切到诊所；导航是诊所的", { tag: ["@CLN-1"] }, async () => {
-  await login(page, acct!);
-  await useWorkspace(page, "clinic");
+test("登录（诊所账号）；导航是诊所的，没有比价", { tag: ["@CLN-1", "@ACCT-1"] }, async () => {
+  await login(page, acct!, "clinic");
   const nav = page.getByTestId("nav");
   await expect(nav.getByRole("link", { name: "开方" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "病人" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "比价" })).toHaveCount(0);
   // 处方页的入口是开方，不是家庭的录方表单
   await page.goto("/prescriptions");
   await expect(page.getByRole("link", { name: "＋ 开方" })).toHaveAttribute("href", "/clinic/prescribe");
@@ -62,6 +62,6 @@ test("开方：选病人 → 搜药（拼音首字母、炮制品）→ 保存 �
   await expect(msg).toHaveValue(/1\. 法半夏 9g/);
   expect(await msg.inputValue()).not.toContain("$"); // 消息里没有价格
 
-  await page.getByRole("button", { name: "删除这张药方" }).click();
+  await page.getByRole("button", { name: "删除这张处方" }).click();
   await page.waitForURL(/\/prescriptions(\?.*)?$/);
 });

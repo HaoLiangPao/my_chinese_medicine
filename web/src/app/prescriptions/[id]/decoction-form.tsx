@@ -14,13 +14,18 @@ export function DecoctionForm({
   defaultDoses,
   maxDoses,
   herbNames,
+  clinic = false,
 }: {
   prescriptionId: string;
   plan: PlanItem[];
   defaultDoses: number;
   maxDoses: number;
   herbNames: string[];
+  /** 诊所叫「配 N 剂」，家庭叫「煎 N 副」 */
+  clinic?: boolean;
 }) {
+  const verb = clinic ? "配" : "煎";
+  const unit = clinic ? "剂" : "副";
   const [state, action, pending] = useActionState<SaveState, FormData>(recordDecoction, {});
   const [doses, setDoses] = useState(String(defaultDoses));
   const [actual, setActual] = useState<Record<string, string>>({});
@@ -41,12 +46,12 @@ export function DecoctionForm({
         value={JSON.stringify(extras.map((e) => ({ name: e.name, grams: Number(e.grams) })))}
       />
       <p className="text-sm text-muted">
-        按现有库存最多能煎 <b className="text-ink">{maxDoses}</b> 副。默认按处方量扣库存；实际多放、少放或没放的，直接改右边的克数（是这次的总量）。
+        按现有库存最多能{verb} <b className="text-ink">{maxDoses}</b> {unit}。默认按处方量扣库存；实际多放、少放或没放的，直接改右边的克数（是这次的总量）。
       </p>
       <div className="flex items-center gap-2">
-        <label className="text-sm" htmlFor="doses">煎</label>
+        <label className="text-sm" htmlFor="doses">{verb}</label>
         <input id="doses" name="doses" type="number" min={1} step={1} value={doses} onChange={(e) => setDoses(e.target.value)} className="input w-20" />
-        <span className="text-sm">副</span>
+        <span className="text-sm">{unit}</span>
       </div>
 
       <div className="grid grid-cols-[1fr_6rem_6rem] items-center gap-x-2 gap-y-1 text-sm">
@@ -109,7 +114,7 @@ export function DecoctionForm({
       </button>
       <input name="note" placeholder="备注（可选）" className="input" />
       {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
-      <button disabled={pending || n <= 0} className="btn-primary">{pending ? "记录中…" : `煎 ${n} 副，扣库存`}</button>
+      <button disabled={pending || n <= 0} className="btn-primary">{pending ? "记录中…" : `${verb} ${n} ${unit}，扣库存`}</button>
     </form>
   );
 }

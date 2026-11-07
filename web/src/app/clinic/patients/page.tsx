@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
 import { Empty, Loading, PageHeader } from "@/components/ui";
-import { CreateClinicForm } from "../create-clinic-form";
 
 export default function PatientsPage({ searchParams }: PageProps<"/clinic/patients">) {
   return (
@@ -18,8 +17,7 @@ export default function PatientsPage({ searchParams }: PageProps<"/clinic/patien
 type Row = { id: string; name: string | null; phone: string | null; created_at: string; prescriptions: { issued_on: string }[] };
 
 async function List({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const { supabase, workspaceId, workspaceKind } = await getContext();
-  if (workspaceKind !== "clinic") return <CreateClinicForm />;
+  const { supabase, workspaceId } = await getContext();
   const q = typeof (await searchParams).q === "string" ? String((await searchParams).q).trim() : "";
 
   let req = supabase.from("patients").select("id, name, phone, created_at, prescriptions(issued_on)").eq("workspace_id", workspaceId);

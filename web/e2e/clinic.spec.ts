@@ -1,6 +1,6 @@
 /**
  * MVP4 医生开方 E2E：建诊所 → 进货 → 新病人 → 用首字母 / 搜索选药（含炮制品、新药材）→ 修改、删除、排序
- * → 实时成本 → 保存 → 微信消息全文 → 复制 → 病历 → 再开一张 → 电话去重 → 和家庭药柜隔离。
+ * → 实时成本 → 保存 → 微信消息全文 → 复制 → 病历 → 再开一张 → 电话去重 → 和家庭账号隔离。
  * 期望的成本和消息全文都在测试里独立写出来，不读 App 的计算结果。
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -51,12 +51,8 @@ async function fillLine(grams: number | string, opts: { prep?: string; note?: st
 }
 const lineNames = () => page.getByTestId("rx-lines").locator("tbody tr td:first-child").allTextContents();
 
-test("1. 医生注册、创建诊所；导航切换成诊所模式", { tag: ["@CLN-1"] }, async () => {
-  await signUp(page, doctor);
-  await page.getByTestId("clinic-entry").locator("summary").click();
-  await page.getByLabel("诊所名称").fill(CLINIC);
-  await page.getByRole("button", { name: "创建诊所" }).click();
-  await page.waitForURL(/\/clinic\/prescribe$/);
+test("1. 医生注册成诊所账号；导航是诊所的", { tag: ["@CLN-1", "@ACCT-1"] }, async () => {
+  await signUp(page, doctor, CLINIC);
   await expect(page.getByTestId("clinic-badge")).toHaveText(CLINIC);
   await expect(page.getByTestId("nav").getByRole("link", { name: "开方" })).toBeVisible();
   await expect(page.getByTestId("nav").getByRole("link", { name: "病人" })).toBeVisible();
@@ -175,7 +171,7 @@ test("3. 开方：新病人、选药（首字母、炮制品、搜索、新药�
 
   // 成本（独立计算）：有进货价的药加起来，白术和鸡血藤没有进货价
   const perDose = 18 * ppg["炙黄芪"] + 15 * ppg["党参"] + 6 * ppg["炙甘草"] + 3 * ppg["薄荷"];
-  await expect(page.getByTestId("cost-summary")).toContainText(`每副 $${perDose.toFixed(2)} · 7 剂共 $${(perDose * 7).toFixed(2)}`);
+  await expect(page.getByTestId("cost-summary")).toContainText(`每剂 $${perDose.toFixed(2)} · 7 剂共 $${(perDose * 7).toFixed(2)}`);
   await expect(page.getByTestId("cost-summary")).toContainText("不含没有进货价的：白术、鸡血藤");
   await expect(page.getByTestId("line-cost-白术")).toHaveText("无进货价");
   await expect(page.getByTestId("line-cost-炙黄芪")).toHaveText(`$${(18 * ppg["炙黄芪"]).toFixed(2)}`);
@@ -227,8 +223,9 @@ test("4. 保存 → 微信消息全文正确、没有价格、可以一键复制
   );
   expect(notes).toEqual([{ name_zh: "薄荷", note: "最后 5 分钟放" }, { name_zh: "白术", note: "另包" }]);
   // 页面上成本是诊所看的，不出现「诊所实付」对比
-  await expect(page.getByTestId("cost-section")).toContainText("只有诊所成员看得到");
+  await expect(page.getByTestId("cost-section")).toContainText("只有你看得到，不会发给病人");
   await expect(page.getByLabel(/诊所实付/)).toHaveCount(0);
+  await expect(page.getByTestId("cost-section")).not.toContainText("副");
 });
 
 test("5. 病历：查到这张处方；从病历再开一张（病人自动选好）", { tag: ["@CLN-6"] }, async () => {
@@ -283,29 +280,24 @@ test("6. 找病人：按电话后几位；电话重复时提示并可以直接�
   await expect(page.getByTestId("patient-list").locator("a")).toHaveCount(2);
 });
 
-test("7. 和家庭药柜隔离：切回自己的药柜看不到病人和诊所处方；别人更看不到", { tag: ["@CLN-7", "@ACC-5"] }, async ({ browser }) => {
+test("7. 诊所账号只有诊所：没有切换、没有成员管理；家庭账号打不开诊所页面", { tag: ["@CLN-7", "@ACC-5", "@ACCT-1"] }, async ({ browser }) => {
   await page.goto("/");
-  await page.getByTestId("workspace-switcher").getByRole("button", { name: /切换到/ }).click();
-  await expect(page.getByTestId("workspace-switcher")).toContainText("我们家（我创建的，当前）");
-  await expect(page.getByTestId("clinic-badge")).toHaveCount(0);
-  await page.goto("/prescriptions");
-  await expect(page.getByText("还没有药方")).toBeVisible();
-  await page.goto("/clinic/patients");
-  await expect(page.getByTestId("create-clinic")).toBeVisible(); // 不在诊所里
+  await expect(page.getByTestId("account")).toBeVisible();
+  await expect(page.getByText(/切换/)).toHaveCount(0);
+  await expect(page.getByTestId("family")).toHaveCount(0);
+  await expect(page.getByText("家庭成员")).toHaveCount(0);
 
   const other = await browser.newPage();
   await signUp(other, { email: `nosy+${RUN}@example.com`, password: "secret-nosy-123" });
-  await other.goto("/clinic/patients");
-  await expect(other.getByTestId("create-clinic")).toBeVisible();
+  await expect(other.getByTestId("nav").getByRole("link", { name: "开方" })).toHaveCount(0);
   const [{ id }] = await sql<{ id: string }>("select id from patients where name = '张三' order by created_at desc limit 1");
-  await other.goto(`/clinic/patients/${id}`);
-  await expect(other.getByText("找不到这个页面")).toBeVisible();
+  for (const url of ["/clinic/prescribe", "/clinic/patients", `/clinic/patients/${id}`]) {
+    const res = await other.goto(url);
+    expect(res?.status(), url).toBe(404);
+    await expect(other.getByText("找不到这个页面")).toBeVisible();
+  }
+  await expect(other.getByText("张三")).toHaveCount(0);
   await other.close();
-
-  // 切回诊所
-  await page.goto("/");
-  await page.getByTestId("workspace-switcher").getByRole("button", { name: /切换到 诊所·/ }).click();
-  await expect(page.getByTestId("clinic-badge")).toHaveText(CLINIC);
 });
 
 test("8. 手机上：开方页、病人页、处方页不横向溢出，首字母按钮点得到", { tag: ["@PLAT-2", "@CLN-3"] }, async ({ browser }) => {

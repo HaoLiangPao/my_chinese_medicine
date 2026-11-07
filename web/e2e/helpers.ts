@@ -42,12 +42,16 @@ export async function activeWorkspaceOf(email: string): Promise<string | null> {
   return r?.ws ?? null;
 }
 
-export async function signUp(page: Page, u: { email: string; password: string }) {
+/** 注册。默认家庭账号；传 clinic（诊所名称）就注册成诊所账号，落在开方页之前的总览页 */
+export async function signUp(page: Page, u: { email: string; password: string }, clinic?: string) {
   await page.goto("/login");
   await page.getByLabel("邮箱").fill(u.email);
   await page.getByLabel("密码").fill(u.password);
+  await page.getByText("第一次用？先选你是病人还是医生").click();
+  await page.getByTestId("account-kind").getByLabel(clinic ? "我是医生" : "我是病人", { exact: true }).check();
+  if (clinic) await page.getByLabel("诊所名称").fill(clinic);
   await page.getByRole("button", { name: "注册" }).click();
-  await expect(page.getByRole("heading", { name: "最近的药方" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: clinic ? "最近的处方" : "最近的药方" })).toBeVisible();
 }
 
 export async function signIn(page: Page, u: { email: string; password: string }) {
