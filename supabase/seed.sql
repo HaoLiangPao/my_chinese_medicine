@@ -23,6 +23,7 @@ insert into public.herbs (name_zh, pinyin, category) values
   ('黄芩', 'huang qin', '清热药'),
   ('黄连', 'huang lian', '清热药'),
   ('黄柏', 'huang bai', '清热药'),
+  ('关黄柏', 'guan huang bai', '清热药'),
   ('金银花', 'jin yin hua', '清热药'),
   ('连翘', 'lian qiao', '清热药'),
   ('蒲公英', 'pu gong ying', '清热药'),
@@ -35,6 +36,7 @@ insert into public.herbs (name_zh, pinyin, category) values
   ('独活', 'du huo', '祛风湿药'),
   ('羌活', 'qiang huo', '解表药'),
   ('藿香', 'huo xiang', '化湿药'),
+  ('广藿香', 'guang huo xiang', '化湿药'),
   ('苍术', 'cang zhu', '化湿药'),
   ('厚朴', 'hou po', '化湿药'),
   ('砂仁', 'sha ren', '化湿药'),
@@ -62,6 +64,7 @@ insert into public.herbs (name_zh, pinyin, category) values
   ('桃仁', 'tao ren', '活血化瘀药'),
   ('红花', 'hong hua', '活血化瘀药'),
   ('牛膝', 'niu xi', '活血化瘀药'),
+  ('川牛膝', 'chuan niu xi', '活血化瘀药'),
   ('益母草', 'yi mu cao', '活血化瘀药'),
   ('三七', 'san qi', '止血药'),
   ('半夏', 'ban xia', '化痰止咳平喘药'),
@@ -94,10 +97,12 @@ insert into public.herbs (name_zh, pinyin, category) values
   ('龙眼肉', 'long yan rou', '补血药'),
   ('麦冬', 'mai dong', '补阴药'),
   ('天冬', 'tian dong', '补阴药'),
-  ('沙参', 'sha shen', '补阴药'),
+  ('南沙参', 'nan sha shen', '补阴药'),
+  ('北沙参', 'bei sha shen', '补阴药'),
   ('玉竹', 'yu zhu', '补阴药'),
   ('百合', 'bai he', '补阴药'),
   ('石斛', 'shi hu', '补阴药'),
+  ('铁皮石斛', 'tie pi shi hu', '补阴药'),
   ('枸杞子', 'gou qi zi', '补阴药'),
   ('女贞子', 'nv zhen zi', '补阴药'),
   ('杜仲', 'du zhong', '补阳药'),
@@ -128,7 +133,8 @@ from (values
   ('酒当归', 'jiu dang gui', '当归'),
   ('醋香附', 'cu xiang fu', '香附'),
   ('煅龙骨', 'duan long gu', '龙骨'),
-  ('煅牡蛎', 'duan mu li', '牡蛎')
+  ('煅牡蛎', 'duan mu li', '牡蛎'),
+  ('制何首乌', 'zhi he shou wu', '何首乌')
 ) as v(name_zh, pinyin, base)
 join public.herbs b on b.name_zh = v.base
 on conflict (name_zh) do nothing;
@@ -154,7 +160,11 @@ from (values
   ('生黄芪', '黄芪'),
   ('生白术', '白术'),
   ('桂圆肉', '龙眼肉'),
-  ('怀牛膝', '牛膝')
+  ('怀牛膝', '牛膝'),
+  ('沙参', '南沙参'),
+  ('制首乌', '制何首乌'),
+  ('川黄柏', '黄柏'),
+  ('土藿香', '藿香')
 ) as v(alias, herb_name)
 join public.herbs h on h.name_zh = v.herb_name
 where v.alias <> v.herb_name

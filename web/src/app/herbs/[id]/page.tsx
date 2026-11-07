@@ -5,6 +5,8 @@ import { getContext } from "@/lib/auth";
 import { termsFor } from "@/lib/terms";
 import { grams, money } from "@/lib/format";
 import { Loading, Stat } from "@/components/ui";
+import { resolveMonograph, type Monograph } from "@/lib/herb-monograph";
+import { MonographSection, MonographTags } from "./monograph";
 
 export default function HerbPage({ params }: PageProps<"/herbs/[id]">) {
   return (
@@ -33,7 +35,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const herb = herbRow as unknown as { id: string; name_zh: string; pinyin: string | null; category: string | null; notes: string | null; base: { id: string; name_zh: string } | null; herb_aliases: { alias: string }[] } | null;
   if (!herb) notFound();
 
-  const [{ data: uses }, { data: inv }, { data: prices }, { data: usage }] = await Promise.all([
+  const monographIds = [herb.id, ...(herb.base ? [herb.base.id] : [])];
+  const [{ data: uses }, { data: inv }, { data: prices }, { data: usage }, { data: monographs }, { data: isReviewer }] = await Promise.all([
     supabase
       .from("prescription_items")
       .select("grams_per_dose, special_prep, prescriptions!inner(id, title, issued_on, dose_count, workspace_id)")
@@ -43,7 +46,11 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
     supabase.from("v_inventory").select("on_hand_grams").eq("workspace_id", workspaceId).eq("herb_id", id).maybeSingle(),
     supabase.from("v_purchase_prices").select("*").eq("workspace_id", workspaceId).eq("herb_id", id).order("purchased_on", { ascending: false }),
     supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).eq("herb_id", id).maybeSingle(),
+    supabase.from("herb_monographs").select("*").in("herb_id", monographIds).returns<Monograph[]>(),
+    supabase.rpc("is_monograph_reviewer"),
   ]);
+  const byHerb = new Map((monographs ?? []).map((m) => [m.herb_id, m]));
+  const monograph = resolveMonograph(byHerb.get(herb.id) ?? null, herb.base ? (byHerb.get(herb.base.id) ?? null) : null);
   const sortedUses = (uses ?? []).sort((a, b) => (b.prescriptions?.issued_on ?? "").localeCompare(a.prescriptions?.issued_on ?? ""));
 
   return (
@@ -56,6 +63,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           {herb.base && <> · 炮制品，原药材 <Link href={`/herbs/${herb.base.id}`} className="underline">{herb.base.name_zh}</Link></>}
           {herb.herb_aliases.length > 0 && ` · 别名 ${herb.herb_aliases.map((a) => a.alias).join("、")}`}
         </p>
+        {monograph?.data.latin_name && <p className="text-sm italic text-muted">{monograph.data.latin_name}</p>}
+        {monograph && <MonographTags m={monograph.data} />}
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -63,6 +72,10 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         <Stat label="出现在几张方子" value={usage?.prescription_count ?? 0} />
         <Stat label="累计用量" value={grams(usage?.total_grams ?? 0)} />
       </div>
+
+      {monograph && (
+        <MonographSection m={monograph.data} fromBase={monograph.fromBase} inheritsDraft={monograph.inheritsDraft} baseName={herb.base?.name_zh ?? null} isReviewer={isReviewer === true} />
+      )}
 
       <section className="card overflow-x-auto">
         <h2 className="mb-2 font-serif text-lg font-bold">出现在这些{t.rx}里</h2>

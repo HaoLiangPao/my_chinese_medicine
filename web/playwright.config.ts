@@ -45,6 +45,7 @@ export default defineConfig({
     { name: "learn", testMatch: /learn\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "clinic", testMatch: /clinic\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "account-types", testMatch: /account-types\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "herb-monographs", testMatch: /herb-monographs\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {
