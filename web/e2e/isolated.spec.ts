@@ -209,8 +209,8 @@ test.describe("拍照识别", () => {
     await page.goto("/prescriptions/new");
     const before = (await (await request.get(`${MOCK}/__requests`)).json()).length;
 
-    // 等 React 水合完成再选文件，否则文件框的 onChange 还没挂上（页面第一次编译慢时会碰到，冒烟测试同样的问题见 dcbe979）
-    await page.waitForLoadState("networkidle");
+    // 等页面水合完成（按钮从「加载中」变成可以点）再选文件，否则文件框的 onChange 还没挂上
+    await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
     await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别出 5 味药，其中 1 味不在药材目录里/)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("AI 备注：第 5 味字迹潦草，请核对")).toBeVisible();
@@ -268,14 +268,35 @@ test.describe("拍照识别", () => {
     expect(fs.existsSync(file)).toBe(false);
   });
 
+  test("页面还没加载完（水合前）拍照按钮显示「加载中」、点不了", { tag: ["@RX-3"] }, async ({ browser }) => {
+    const u = fresh();
+    const p = await browser.newPage();
+    await signUp(p, u);
+    const cookies = await p.context().cookies();
+    await p.close();
+    // 拦住 React 的程序文件：服务器渲染的 HTML（和把流式内容放进页面的内联小脚本）照常出来，但 React 永远不会接管页面
+    // = 水合之前的样子。不能直接关 JavaScript：那样 Suspense 里的表单根本放不进页面
+    const ctx = await browser.newContext();
+    await ctx.addCookies(cookies);
+    await ctx.route(/\/_next\/static\/chunks\/.*\.js(\?|$)/, (r) => r.abort());
+    try {
+      const raw = await ctx.newPage();
+      await raw.goto("/prescriptions/new");
+      await expect(raw.getByRole("button", { name: "加载中…" })).toBeDisabled();
+      await raw.screenshot({ path: path.resolve(__dirname, "../../.local/screenshots/拍照按钮-加载中.png"), clip: { x: 0, y: 0, width: 1280, height: 260 } });
+    } finally {
+      await ctx.close();
+    }
+  });
+
   test("免费模型限流 → 自动换 DeepSeek，照样识别出来", { tag: ["@RX-3"] }, async ({ page, request }) => {
     await signUp(page, fresh());
     await page.goto("/prescriptions/new");
     await request.post(`${MOCK}/__next`, { data: { failModels: ["test/free-vl:free"] } });
     const before = (await (await request.get(`${MOCK}/__requests`)).json()).length;
 
-    // 等 React 水合完成再选文件，否则文件框的 onChange 还没挂上（页面第一次编译慢时会碰到，冒烟测试同样的问题见 dcbe979）
-    await page.waitForLoadState("networkidle");
+    // 等页面水合完成（按钮从「加载中」变成可以点）再选文件，否则文件框的 onChange 还没挂上
+    await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
     await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别出 5 味药/)).toBeVisible({ timeout: 30_000 });
     const reqs = await (await request.get(`${MOCK}/__requests`)).json();
@@ -286,8 +307,8 @@ test.describe("拍照识别", () => {
     await signUp(page, fresh());
     await page.goto("/prescriptions/new");
     await request.post(`${MOCK}/__next`, { data: { fail: true } });
-    // 等 React 水合完成再选文件，否则文件框的 onChange 还没挂上（页面第一次编译慢时会碰到，冒烟测试同样的问题见 dcbe979）
-    await page.waitForLoadState("networkidle");
+    // 等页面水合完成（按钮从「加载中」变成可以点）再选文件，否则文件框的 onChange 还没挂上
+    await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
     await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别失败：.*可以手动填写/)).toBeVisible({ timeout: 60_000 });
     await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();

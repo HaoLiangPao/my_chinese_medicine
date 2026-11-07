@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useRef, useState, useSyncExternalStore } from "react";
 import { createPrescription, type SaveState } from "../actions";
 import { SPECIAL_PREPS } from "@/lib/format";
 import type { ParseResponse } from "@/app/api/parse-prescription/route";
@@ -29,6 +29,8 @@ export function PrescriptionForm({ catalog, today }: { catalog: HerbCatalog; tod
   const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
+  // 服务器渲染的 HTML 先显示出来，React 水合完成前按钮点了没反应（onClick 还没挂上）→ 先显示「加载中」、点不了
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [parseMsg, setParseMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [match] = useState(() => buildMatcher(catalog));
@@ -95,10 +97,11 @@ export function PrescriptionForm({ catalog, today }: { catalog: HerbCatalog; tod
           accept="image/*"
           capture="environment"
           className="hidden"
+          disabled={!hydrated}
           onChange={(e) => e.target.files?.[0] && onPhoto(e.target.files[0])}
         />
-        <button type="button" onClick={() => fileRef.current?.click()} disabled={parsing} className="btn-primary">
-          {parsing ? "识别中…（10–30 秒）" : "📷 拍照 / 选照片识别"}
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={parsing || !hydrated} className="btn-primary">
+          {!hydrated ? "加载中…" : parsing ? "识别中…（10–30 秒）" : "📷 拍照 / 选照片识别"}
         </button>
         {preview && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -214,3 +217,5 @@ export function PrescriptionForm({ catalog, today }: { catalog: HerbCatalog; tod
     </form>
   );
 }
+
+const noopSubscribe = () => () => {};
