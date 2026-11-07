@@ -22,7 +22,7 @@
 3. 改数据模型？→ 先写设计文档 docs/design/NNNN-*.md（CLAUDE.md 的规则）
 4. 写代码 + 单元 / SQL / E2E 测试，测试带上功能编号的 tag，状态改成 ✅
 5. 本地：scripts/test-all.sh 全过；scripts/local-stack.sh up + npm run dev 自己点一遍
-6. 开 PR → CI 跑全部测试
+6. 开 PR → CI 跑全部测试。改了前端的，PR 正文贴截图（`scripts/pr-screenshots.sh`，见 CLAUDE.md）
 7. 合并 → （批准）→ migration → 部署 → 线上冒烟测试
 8. 自己用测试账号在线上看一眼新功能
 ```

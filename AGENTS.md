@@ -9,4 +9,5 @@
 - 写操作（server action）结束时调用 `invalidateAll()`（`src/lib/invalidate.ts`）。
 - 纯计算逻辑放在 `web/src/lib/*.ts` 并写 `*.test.ts`；改动后跑 `scripts/test-all.sh`（非 root）。
 - E2E 场景数据和期望值在 `web/e2e/fixtures/scenario.ts`；期望值要独立计算，不要读 App 的结果。
+- **前端改动的 PR 要有截图**（2026-11-07 起，所有 PR）：改了页面、样式、文案的 PR，正文里必须贴改动后的截图（改了已有页面的，前后对比；涉及手机的，加 390px 宽的截图）。截图用本地环境（`scripts/local-stack.sh`）和测试数据拍，E2E 里可以 `page.screenshot()` 存到 `.local/screenshots/`；用 `scripts/pr-screenshots.sh <分支名> <图片>...` 传到 `pr-assets` 分支，把它打印的 Markdown 贴进 PR 正文。**仓库是公开的：截图里不能有真实病人、真实账号或线上数据。**
 - AI 只做转录和科普，不生成面向患者的用药/剂量建议。
