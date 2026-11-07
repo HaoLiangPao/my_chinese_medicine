@@ -41,6 +41,33 @@ test("手机上每个页面都不横向溢出", { tag: ["@PLAT-2"] }, async ({ p
   }
 });
 
+test("手机上展开药柜卡片：输入框够宽，提示文字不被截断", { tag: ["@PLAT-2", "@FIX-7"] }, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, users.hao);
+  await page.goto("/inventory");
+  const card = page.getByTestId("stock-card-黄芪");
+  await card.locator("summary").click();
+  const inputs = card.locator('input:not([type="hidden"])');
+  await expect(inputs.first()).toBeVisible();
+  const sizes = await inputs.evaluateAll((els) =>
+    (els as HTMLInputElement[]).map((el) => {
+      const cs = getComputedStyle(el);
+      const ctx = document.createElement("canvas").getContext("2d")!;
+      ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      return { name: el.name, width: el.getBoundingClientRect().width, placeholder: el.placeholder, need: ctx.measureText(el.placeholder).width, room };
+    }),
+  );
+  expect(sizes.length).toBeGreaterThanOrEqual(3);
+  for (const s of sizes) {
+    expect(s.width, `${s.name} 宽度`).toBeGreaterThanOrEqual(s.name === "jar_label" ? 56 : 120);
+    expect(s.need, `${s.name} 的提示「${s.placeholder}」显示不全`).toBeLessThanOrEqual(s.room);
+  }
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await card.screenshot({ path: `${SHOTS}/药柜-展开卡片.png` });
+});
+
 test("手机上能完成一次煎药", { tag: ["@PLAT-2", "@DEC-1"] }, async ({ page }) => {
   page.on("dialog", (d) => d.accept());
   await signIn(page, users.hao);

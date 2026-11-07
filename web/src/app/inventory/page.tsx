@@ -43,7 +43,7 @@ async function Inventory() {
             const g = Number(r.on_hand_grams);
             const tone = g <= 0 ? "border-cinnabar" : r.is_low ? "border-amber" : "";
             return (
-              <details key={r.herb_id} className={`card group ${tone}`} data-testid={`stock-card-${r.name_zh}`}>
+              <details key={r.herb_id} className={`card group open:col-span-2 ${tone}`} data-testid={`stock-card-${r.name_zh}`}>
                 <summary className="cursor-pointer list-none">
                   <div className="flex items-baseline justify-between">
                     <span className="font-serif text-lg font-bold">{r.name_zh}</span>
