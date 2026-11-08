@@ -41,12 +41,19 @@ export function ReusePicker({
   // 「当前病人的」：页面只带了 URL 里那个病人的全部处方；开方时换了病人，就按需加载这个病人的
   const [loaded, setLoaded] = useState<Record<string, ReuseSource[]>>({});
   const [loading, startLoading] = useTransition();
+  const [loadFailed, setLoadFailed] = useState<string | null>(null); // 加载失败的病人 id
   const ensurePatient = () => {
     if (!patientId || loaded[patientId]) return;
     const id = patientId;
+    setLoadFailed(null);
     startLoading(async () => {
-      const more = await patientReuseSources(id);
-      setLoaded((m) => ({ ...m, [id]: more }));
+      // 出错（断网、数据库报错）只在面板里提示，不能让整个开方页变成错误页：正在填的处方会丢
+      try {
+        const more = await patientReuseSources(id);
+        setLoaded((m) => ({ ...m, [id]: more }));
+      } catch {
+        setLoadFailed(id);
+      }
     });
   };
   const all = useMemo(() => {
@@ -136,7 +143,15 @@ export function ReusePicker({
                 </div>
                 <ul className="min-h-0 flex-1 overflow-y-auto" data-testid="reuse-list">
                   {scope === "patient" && loading && <li className="p-4 text-sm text-muted">加载中…</li>}
-                  {list.length === 0 && !(scope === "patient" && loading) && (
+                  {scope === "patient" && !loading && patientId && loadFailed === patientId && (
+                    <li className="flex items-center justify-between gap-2 p-4 text-sm text-cinnabar" role="alert">
+                      这个病人更早的处方没加载出来（下面只有最近的）。
+                      <button type="button" onClick={ensurePatient} className="btn-ghost min-h-11 shrink-0">
+                        重试
+                      </button>
+                    </li>
+                  )}
+                  {list.length === 0 && !(scope === "patient" && (loading || (patientId !== null && loadFailed === patientId))) && (
                     <li className="p-4 text-sm text-muted">
                       {scope === "patient" && !patientId
                         ? "先选一个病人，这里会列出他以前的处方。"

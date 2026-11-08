@@ -188,18 +188,6 @@ test("预设药方管理：改名（重名提示）、删除；家庭账号打�
   await home.close();
 });
 
-test("开方时才选病人：「当前病人的」按需加载这个病人的处方", { tag: ["@RX-9"] }, async () => {
-  await page.goto("/clinic/prescribe");
-  await page.getByLabel("搜病人").fill("0101");
-  await page.getByTestId("patient-result").filter({ hasText: "张三" }).click();
-  await expect(page.getByTestId("selected-patient")).toContainText("张三");
-  await openPicker();
-  await page.getByRole("button", { name: "当前病人的" }).click();
-  await expect(page.getByTestId("reuse-item")).toHaveCount(1);
-  await expect(page.getByTestId("reuse-item")).toContainText("2026-10-15 的处方");
-  await page.keyboard.press("Escape");
-});
-
 test("表单里已经有药时换来源：先确认，点「取消」不替换", { tag: ["@RX-9"] }, async () => {
   await page.goto(`/clinic/prescribe?patient=${li}`);
   await openPicker();
@@ -256,6 +244,70 @@ test("开方期间预设被删了：照样保存，不报错，来源记成空",
   const id = page.url().match(/prescriptions\/([0-9a-f-]{36})/)![1];
   const [rx] = await sql<{ t: string | null }>("select source_template_id t from prescriptions where id = $1", [id]);
   expect(rx.t).toBeNull();
+});
+
+test("老病人的处方在「最近 200 张」以外：「全部」里没有，「当前病人的」照样列出来；加载失败可以重试", { tag: ["@RX-9"] }, async () => {
+  // 别的病人有 200 张更新的处方，张三 2026-10-15 那张挤出了「最近 200 张」
+  const [{ id: wang }] = await sql<{ id: string }>("insert into patients (workspace_id, name) values ($1, '王五') returning id", [ws]);
+  await sql(
+    `with rx as (
+       insert into prescriptions (workspace_id, patient_id, source, title, issued_on, dose_count)
+       select $1, $2, 'clinic', '王五', date '2026-11-01' + (g % 5), 7 from generate_series(1, 200) g returning id)
+     insert into prescription_items (prescription_id, herb_id, grams_per_dose) select rx.id, h.id, 9 from rx, herbs h where h.name_zh = '甘草'`,
+    [ws, wang],
+  );
+
+  // 开方时才选张三（网址里没有病人）。还没选病人时，「当前病人的」提示先选病人
+  // 还没选病人、也还没按需加载过：「全部」里没有张三那张；「当前病人的」提示先选病人
+  await page.goto("/clinic/prescribe");
+  await openPicker();
+  await page.getByRole("button", { name: "全部处方" }).click();
+  await expect(page.getByTestId("reuse-picker")).toContainText("只列最近 200 张");
+  await expect(page.getByTestId("reuse-item")).toHaveCount(200);
+  await expect(page.getByTestId("reuse-list")).not.toContainText("2026-10-15");
+  await page.getByRole("button", { name: "当前病人的" }).click();
+  await expect(page.getByTestId("reuse-list")).toContainText("先选一个病人");
+  await page.keyboard.press("Escape");
+  // 选了张三，第一次加载失败 → 提示重试，开方页不会变成错误页
+  await page.getByLabel("搜病人").fill("0101");
+  await page.getByTestId("patient-result").filter({ hasText: "张三" }).click();
+
+  const failActions = (route: import("@playwright/test").Route) =>
+    route.request().method() === "POST" && route.request().headers()["next-action"] ? route.abort() : route.continue();
+  await page.route("**/clinic/prescribe**", failActions);
+  await openPicker(); // 上次停在「当前病人的」：一打开就去加载张三的处方（这次会失败）
+  await expect(page.getByRole("button", { name: "当前病人的" })).toHaveAttribute("aria-pressed", "true");
+  const failed = page.getByTestId("reuse-list").getByRole("alert");
+  await expect(failed).toContainText("没加载出来");
+  await expect(page.getByTestId("selected-patient")).toContainText("张三"); // 表单还在
+
+  await page.unroute("**/clinic/prescribe**", failActions);
+  await failed.getByRole("button", { name: "重试" }).click();
+  await expect(page.getByTestId("reuse-item")).toHaveCount(1);
+  await expect(page.getByTestId("reuse-item")).toContainText("2026-10-15 的处方");
+  await page.keyboard.press("Escape");
+
+  // 网址里带着张三：页面一起加载他的全部处方
+  await page.goto(`/clinic/prescribe?patient=${zhang}`);
+  await openPicker();
+  await page.getByRole("button", { name: "当前病人的" }).click();
+  await expect(page.getByTestId("reuse-item")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+
+  // 照着 200 张以外的那张再开：药材照样带过来
+  await page.goto(`/prescriptions/${oldRx}`);
+  await page.getByRole("link", { name: "照这张再开一张" }).click();
+  await expect(page.getByTestId("reuse-source")).toContainText("照着：2026-10-15 的处方");
+  expect(await lineNames()).toEqual(["黄芪", "白术", "茯苓"]);
+});
+
+test("网址里的 id 格式不对：当作没有这个参数，页面照常打开", { tag: ["@RX-9"] }, async () => {
+  for (const q of ["patient=abc", "from=123", "template=not-a-uuid"]) {
+    const res = await page.goto(`/clinic/prescribe?${q}`);
+    expect(res?.status(), q).toBe(200);
+    await expect(page.getByTestId("reuse-open"), q).toBeEnabled();
+    await expect(page.getByTestId("reuse-source")).toHaveCount(0);
+  }
 });
 
 test("手机上：复用面板、预设管理页不横向溢出", { tag: ["@RX-9", "@PLAT-2"] }, async ({ browser }) => {

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { z } from "zod";
 import { pinyin } from "pinyin-pro";
 import { getContext } from "@/lib/auth";
 import { listHerbs } from "@/lib/herbs";
@@ -23,19 +24,23 @@ async function Loader({ searchParams }: { searchParams: Promise<Record<string, s
   const { supabase, workspaceId, workspaceName } = await getContext();
 
   const sp = await searchParams;
-  const patientId = typeof sp.patient === "string" ? sp.patient : null;
+  // 网址里的 id 不是合法 UUID（手改、链接被截断）：当作没有这个参数，不要让整页报错
+  const uuidParam = (v: unknown) => (typeof v === "string" && z.string().uuid().safeParse(v).success ? v : null);
+  const patientId = uuidParam(sp.patient);
+  const fromId = uuidParam(sp.from);
+  const templateId = uuidParam(sp.template);
   const [herbs, { data: prices }, { data: pre }, sources] = await Promise.all([
     listHerbs(supabase),
     supabase.from("v_herb_price_summary").select("herb_id, min_ppg, avg_cost_per_gram").eq("workspace_id", workspaceId),
     patientId
       ? supabase.from("patients").select("id, name, phone, notes").eq("workspace_id", workspaceId).eq("id", patientId).maybeSingle()
       : Promise.resolve({ data: null }),
-    loadReuseSources(supabase, workspaceId, { patientId, fromId: typeof sp.from === "string" ? sp.from : null }),
+    loadReuseSources(supabase, workspaceId, { patientId, fromId }),
   ]);
   // ?template=… 用预设开方；?from=… 照着某张处方再开一张（docs/design/0013）
   const initialSource =
-    (typeof sp.template === "string" && sources.find((s) => s.kind === "template" && s.id === sp.template)) ||
-    (typeof sp.from === "string" && sources.find((s) => s.kind === "prescription" && s.id === sp.from)) ||
+    (templateId && sources.find((s) => s.kind === "template" && s.id === templateId)) ||
+    (fromId && sources.find((s) => s.kind === "prescription" && s.id === fromId)) ||
     null;
 
   // 没有拼音的药材（用户新加的）在服务器端补上，不把拼音库打包到浏览器
