@@ -50,6 +50,7 @@ export default defineConfig({
     { name: "prescribers", testMatch: /prescribers\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "paste-text", testMatch: /paste-text\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "herb-picker", testMatch: /herb-picker\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "clinic-templates", testMatch: /clinic-templates\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {

@@ -6,6 +6,8 @@ import { canAddHerb, searchHerbs, type HerbChoice, type HerbEntry, type HerbInde
 import { COMMON_GRAMS, lineCosts, moveLine, removeLine, upsertLine, validateLines, type RxLine } from "@/lib/rx-lines";
 import { summarizeCost } from "@/lib/pricing";
 import { patientLabel } from "@/lib/rx-message";
+import { presetPrompt, sourceLabel, type ReuseSource } from "@/lib/rx-reuse";
+import { ReusePicker } from "./reuse-picker";
 import { addHerb, createClinicPrescription, createPatient, searchPatients, type Patient, type PrescribeState } from "../actions";
 
 type Picked = { entry: HerbEntry; choice: HerbChoice | null };
@@ -16,28 +18,52 @@ export function PrescribeForm({
   clinicName,
   initialPatient,
   today,
+  sources,
+  recentLimit,
+  initialSource,
 }: {
   index: HerbIndex;
   pricePerGram: Record<string, number>;
   clinicName: string;
   initialPatient: Patient | null;
   today: string;
+  sources: ReuseSource[];
+  recentLimit: number;
+  initialSource: ReuseSource | null;
 }) {
   const [state, action, pending] = useActionState<PrescribeState, FormData>(createClinicPrescription, {});
   const [patient, setPatient] = useState<Patient | null>(initialPatient);
-  const [lines, setLines] = useState<RxLine[]>([]);
+  const [lines, setLines] = useState<RxLine[]>(initialSource?.lines ?? []);
   const [picked, setPicked] = useState<Picked | null>(null);
-  const [doses, setDoses] = useState("7");
+  const [doses, setDoses] = useState(String(initialSource?.doses ?? 7));
   const [issuedOn, setIssuedOn] = useState(today);
-  const [instructions, setInstructions] = useState("水煎服，日一剂，早晚分服");
-  const [advice, setAdvice] = useState("");
+  const [instructions, setInstructions] = useState(initialSource?.instructions ?? "水煎服，日一剂，早晚分服");
+  const [advice, setAdvice] = useState(initialSource?.kind === "template" ? (initialSource.notes ?? "") : "");
+  // 照着哪个预设 / 哪张处方开的（docs/design/0013），以及保存时要不要存成 / 更新预设
+  const [source, setSource] = useState<ReuseSource | null>(initialSource);
+  const [saveTemplate, setSaveTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [updateTemplate, setUpdateTemplate] = useState(false);
+  const prompt = presetPrompt(source);
+
+  const applySource = (s: ReuseSource) => {
+    if (lines.length && !window.confirm(`替换现在的 ${lines.length} 味药？`)) return;
+    setLines(s.lines);
+    if (s.doses) setDoses(String(s.doses));
+    if (s.instructions) setInstructions(s.instructions);
+    if (s.kind === "template" && s.notes) setAdvice(s.notes);
+    setSource(s);
+    setSaveTemplate(false);
+    setUpdateTemplate(false);
+  };
 
   const ppg = useMemo(() => new Map(Object.entries(pricePerGram)), [pricePerGram]);
   const costs = lineCosts(lines, ppg);
   const n = Math.max(0, Math.floor(Number(doses) || 0));
   const summary = summarizeCost(costs, n, null);
   const lineErr = lines.length ? validateLines(lines) : null;
-  const canSave = !!patient && lines.length > 0 && !lineErr && n >= 1 && !pending;
+  const templateNameMissing = saveTemplate && !templateName.trim();
+  const canSave = !!patient && lines.length > 0 && !lineErr && n >= 1 && !pending && !templateNameMissing;
 
   const payload = JSON.stringify({
     patientId: patient?.id,
@@ -46,6 +72,10 @@ export function PrescribeForm({
     instructions,
     advice,
     lines: lines.map((l) => ({ ...l, note: l.note || null })),
+    sourceTemplateId: source?.kind === "template" ? source.id : null,
+    sourcePrescriptionId: source?.kind === "prescription" ? source.id : null,
+    saveTemplateName: saveTemplate ? templateName.trim() : null,
+    updateTemplate: source?.kind === "template" && updateTemplate,
   });
 
   return (
@@ -56,6 +86,15 @@ export function PrescribeForm({
 
       <section className="card space-y-3">
         <h2 className="font-serif text-lg font-bold">2. 选药</h2>
+        <ReusePicker sources={sources} recentLimit={recentLimit} patientId={patient?.id ?? null} onPick={applySource} />
+        {source && (
+          <p className="flex items-center justify-between gap-2 rounded-md bg-paper px-3 py-2 text-sm" data-testid="reuse-source">
+            <span>照着：{source.kind === "template" ? `预设「${source.name}」` : sourceLabel(source)}</span>
+            <button type="button" onClick={() => setSource(null)} className="min-h-11 shrink-0 px-2 text-sm text-muted underline">
+              不算照着开的
+            </button>
+          </p>
+        )}
         <HerbPicker index={index} onPick={(p) => setPicked(p)} chosenIds={new Set(lines.map((l) => l.herbId))} />
         {picked && (
           <LineEditor
@@ -202,9 +241,57 @@ export function PrescribeForm({
         </div>
       </section>
 
+      {/* 保存时：存成预设药方 / 同时更新预设（docs/design/0013 §3.2） */}
+      <section className={`card space-y-2 text-sm ${prompt === "offer-save" ? "border-amber" : ""}`} data-testid="preset-prompt">
+        {prompt === "offer-update" && source?.kind === "template" ? (
+          <label className="flex min-h-11 items-center gap-2">
+            <input
+              type="checkbox"
+              checked={updateTemplate}
+              onChange={(e) => setUpdateTemplate(e.target.checked)}
+              className="size-4 accent-cinnabar"
+            />
+            同时更新预设「{source.name}」（用这次的药材、克数、剂数、煎服法、医嘱；以前开出的处方不变）
+          </label>
+        ) : (
+          <>
+            {prompt === "offer-save" && (
+              <p className="text-amber">这张是照着以前的处方开的。常用的话，存成预设药方，下次直接从预设里选。</p>
+            )}
+            <label className="flex min-h-11 items-center gap-2">
+              <input
+                type="checkbox"
+                checked={saveTemplate}
+                onChange={(e) => setSaveTemplate(e.target.checked)}
+                className="size-4 accent-cinnabar"
+              />
+              同时存成预设药方
+            </label>
+            {saveTemplate && (
+              <input
+                value={templateName}
+                maxLength={40}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="预设的名字，如：四君子汤加减"
+                aria-label="预设药方的名字"
+                className="input"
+              />
+            )}
+          </>
+        )}
+      </section>
+
       {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
       <button disabled={!canSave} className="btn-primary w-full py-3">
-        {pending ? "保存中…" : !patient ? "先选一个病人" : !lines.length ? "先加药" : "保存并生成消息"}
+        {pending
+          ? "保存中…"
+          : !patient
+            ? "先选一个病人"
+            : !lines.length
+              ? "先加药"
+              : templateNameMissing
+                ? "给预设起个名字"
+                : "保存并生成消息"}
       </button>
       <p className="text-center text-xs text-muted">
         保存后，处方存在 {patient ? patientLabel(patient) : "病人"} 名下，并生成可以直接粘贴到微信的消息（{clinicName}）。

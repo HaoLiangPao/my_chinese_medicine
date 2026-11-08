@@ -5,6 +5,7 @@ import { getContext } from "@/lib/auth";
 import { grams, money } from "@/lib/format";
 import { Loading } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
+import { SaveTemplateForm } from "./save-template-form";
 import { deleteDecoction, deletePrescription } from "../actions";
 import { listHerbs } from "@/lib/herbs";
 import { maxDosesFromStock, perDoseTotal } from "@/lib/rx";
@@ -148,7 +149,27 @@ async function Detail({
         {rx.instructions && <p className="mt-2 text-sm">煎服法：{rx.instructions}</p>}
       </div>
 
+      {(sp.tplerr === "create" || sp.tplerr === "update") && (
+        <p className="rounded-md border border-cinnabar/40 bg-cinnabar/5 p-3 text-sm" role="alert" data-testid="tplerr">
+          {sp.tplerr === "create"
+            ? "处方已经保存，但预设药方没有存成功。可以在下面点「存成预设药方」再试一次。"
+            : "处方已经保存，但预设药方没有更新成功。可以点「照这张再开一张」→ 从预设开 → 再勾「同时更新预设」；或者在「预设药方」里删掉旧的，再把这张存成预设。"}
+        </p>
+      )}
+
       {message && <MessageBox text={message} highlight={sp.new === "1"} />}
+
+      {isClinic && items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2" data-testid="reuse-actions">
+          <Link
+            href={`/clinic/prescribe?from=${rx.id}${rx.patient_id ? `&patient=${rx.patient_id}` : ""}`}
+            className="btn-ghost min-h-11 text-sm"
+          >
+            照这张再开一张
+          </Link>
+          <SaveTemplateForm prescriptionId={rx.id} />
+        </div>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="data-table">

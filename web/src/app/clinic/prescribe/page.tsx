@@ -6,6 +6,7 @@ import { buildHerbIndex } from "@/lib/herb-index";
 import { Loading, PageHeader } from "@/components/ui";
 import { PrescribeForm } from "./prescribe-form";
 import type { Patient } from "../actions";
+import { loadReuseSources, RECENT_LIMIT } from "../reuse";
 
 export default function PrescribePage({ searchParams }: PageProps<"/clinic/prescribe">) {
   return (
@@ -23,13 +24,19 @@ async function Loader({ searchParams }: { searchParams: Promise<Record<string, s
 
   const sp = await searchParams;
   const patientId = typeof sp.patient === "string" ? sp.patient : null;
-  const [herbs, { data: prices }, { data: pre }] = await Promise.all([
+  const [herbs, { data: prices }, { data: pre }, sources] = await Promise.all([
     listHerbs(supabase),
     supabase.from("v_herb_price_summary").select("herb_id, min_ppg, avg_cost_per_gram").eq("workspace_id", workspaceId),
     patientId
       ? supabase.from("patients").select("id, name, phone, notes").eq("workspace_id", workspaceId).eq("id", patientId).maybeSingle()
       : Promise.resolve({ data: null }),
+    loadReuseSources(supabase, workspaceId, { patientId, fromId: typeof sp.from === "string" ? sp.from : null }),
   ]);
+  // ?template=… 用预设开方；?from=… 照着某张处方再开一张（docs/design/0013）
+  const initialSource =
+    (typeof sp.template === "string" && sources.find((s) => s.kind === "template" && s.id === sp.template)) ||
+    (typeof sp.from === "string" && sources.find((s) => s.kind === "prescription" && s.id === sp.from)) ||
+    null;
 
   // 没有拼音的药材（用户新加的）在服务器端补上，不把拼音库打包到浏览器
   const index = buildHerbIndex(herbs, (name) => pinyin(name, { toneType: "none", type: "string" }));
@@ -47,6 +54,9 @@ async function Loader({ searchParams }: { searchParams: Promise<Record<string, s
       clinicName={workspaceName}
       initialPatient={(pre as Patient | null) ?? null}
       today={new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" })}
+      sources={sources}
+      recentLimit={RECENT_LIMIT}
+      initialSource={initialSource}
     />
   );
 }
