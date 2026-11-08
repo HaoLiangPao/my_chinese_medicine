@@ -37,11 +37,13 @@ create unique index prescribers_name_unique on public.prescribers (workspace_id,
 
 ### 回填（迁移已有数据）
 
-已有的家庭药方（`source <> 'clinic'`）：按药柜把 `prescriber` 文字去掉首尾空格、去重，建医生记录，再回填 `prescriber_id`。
+已有的家庭药方（`source <> 'clinic'`）：按药柜把 `prescriber` 文字整理、去重，建医生记录，再回填 `prescriber_id`。
 
+- 整理规则和 App 新增医生时一样（`cleanPrescriberName`）：连续空白（含全角空格）合成一个，去掉首尾空白。「李医生 」「李医生　」都并进「李医生」，「王  大夫」「王 大夫」合成一个
 - 空的、全是空格的不建
 - 诊所处方不建（文字是诊所名称）
-- 重复执行结果一样（`on conflict do nothing`，只回填 `prescriber_id` 为空的）
+- 重复执行结果一样（`on conflict do nothing`，只回填 `prescriber_id` 为空的）；migration 上线后、新代码上线前旧代码存的药方，再执行一次也会补挂上
+- 新增医生和写药方不在一个事务里：写药方失败时，新增的医生记录会留下（下次下拉里能看到），可以接受
 - 升级测试：`supabase/tests/upgrade/20261108000014_prescribers.sql`
 
 ## 3. 上线顺序（先扩展、后收缩，见 0009 §3）

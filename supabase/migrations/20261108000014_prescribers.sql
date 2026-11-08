@@ -30,11 +30,16 @@ end $$;
 create index if not exists prescriptions_prescriber_idx on public.prescriptions (prescriber_id);
 
 -- 回填：已有的家庭药方，按药柜把医生文字去重建记录，再挂上。诊所处方的文字是诊所名称，不建。
--- 可以重复执行：已有的医生不重复建，只回填还没挂上的药方。
+-- 名字整理和 App 一样（web/src/lib/prescribers.ts cleanPrescriberName）：连续空白（含全角空格）合成一个，去掉首尾空白。
+-- 可以重复执行：已有的医生不重复建，只回填还没挂上的药方（migration 上线后、新代码上线前旧代码存的也会补上）。
+create or replace function pg_temp.clean_name(s text) returns text language sql immutable as $$
+  select btrim(regexp_replace(coalesce(s, ''), '[[:space:]　]+', ' ', 'g'))
+$$;
+
 insert into public.prescribers (workspace_id, name, created_by)
-select distinct p.workspace_id, btrim(p.prescriber), null::uuid
+select distinct p.workspace_id, pg_temp.clean_name(p.prescriber), null::uuid
 from public.prescriptions p
-where p.source <> 'clinic' and char_length(btrim(coalesce(p.prescriber, ''))) between 1 and 100
+where p.source <> 'clinic' and char_length(pg_temp.clean_name(p.prescriber)) between 1 and 100
 on conflict (workspace_id, name) do nothing;
 
 update public.prescriptions p
@@ -43,4 +48,4 @@ from public.prescribers d
 where p.prescriber_id is null
   and p.source <> 'clinic'
   and d.workspace_id = p.workspace_id
-  and d.name = btrim(p.prescriber);
+  and d.name = pg_temp.clean_name(p.prescriber);
