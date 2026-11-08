@@ -47,7 +47,9 @@ test("进货时填批次信息；批号自动生成", { tag: ["@LBL-2", "@BUY-1"
   await page.getByRole("button", { name: "保存" }).click();
   await page.waitForURL(/\/purchases(\?.*)?$/);
 
-  await buy("孔大吉", "2026-11-05", [{ herb: "麦冬", grams: 227, price: 23.99, origin: "中国 · 浙江", supplierLot: "ZJ20261001", packedOn: "2026-11-06" }]);
+  await buy("孔大吉", "2026-11-05", [
+    { herb: "麦冬", grams: 227, price: 23.99, origin: "中国 · 浙江", supplierLot: "ZJ20261001", packedOn: "2026-11-06" },
+  ]);
   await page.screenshot({ path: `${SHOTS}/进货-批次信息.png`, fullPage: true });
   await page.getByRole("button", { name: "保存" }).click();
   await page.waitForURL(/\/purchases(\?.*)?$/);
@@ -124,7 +126,10 @@ test("批次标签：4×2 英寸；默认不印店名，勾选后印；打印时
   const box = await label.boundingBox();
   expect([Math.round(box!.width), Math.round(box!.height)]).toEqual([384, 192]);
   const pageSize = await page.evaluate(() =>
-    [...document.styleSheets].flatMap((s) => [...s.cssRules]).find((r) => r instanceof CSSPageRule)?.style.getPropertyValue("size"),
+    [...document.styleSheets]
+      .flatMap((s) => [...s.cssRules])
+      .find((r) => r instanceof CSSPageRule)
+      ?.style.getPropertyValue("size"),
   );
   expect(pageSize).toBe("4in 2in");
   await label.screenshot({ path: `${SHOTS}/批次标签.png` });
@@ -137,7 +142,11 @@ test("批次标签：4×2 英寸；默认不印店名，勾选后印；打印时
 
   // 打印时：导航、按钮都隐藏，只有标签
   await page.emulateMedia({ media: "print" });
-  const visibility = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).visibility);
+  const visibility = (sel: string) =>
+    page
+      .locator(sel)
+      .first()
+      .evaluate((el) => getComputedStyle(el).visibility);
   expect(await visibility("header")).toBe("hidden");
   expect(await visibility('button:has-text("打印")')).toBe("hidden");
   expect(await visibility('[data-testid="batch-label"]')).toBe("visible");

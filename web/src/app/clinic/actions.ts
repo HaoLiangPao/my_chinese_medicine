@@ -28,9 +28,10 @@ export async function searchPatients(query: string): Promise<Patient[]> {
   if (q) {
     const digits = q.replace(/\D/g, "");
     const safe = q.replace(/[%_,()*\\]/g, "");
-    req = digits.length >= 3 && digits.length === q.replace(/[\s()+-]/g, "").length
-      ? req.like("phone_digits", `%${digits}%`)
-      : req.ilike("name", `%${safe}%`);
+    req =
+      digits.length >= 3 && digits.length === q.replace(/[\s()+-]/g, "").length
+        ? req.like("phone_digits", `%${digits}%`)
+        : req.ilike("name", `%${safe}%`);
   }
   const { data, error } = await req.order("created_at", { ascending: false }).limit(10);
   if (error) throw new Error(error.message);
@@ -48,7 +49,8 @@ export async function createPatient(input: { name?: string; phone?: string; note
   const { supabase, workspaceId } = await clinicContext();
   const p = PatientInput.safeParse(input);
   if (!p.success) return { error: "名字最多 50 字，电话最多 30 位" };
-  const name = p.data.name || null, phone = p.data.phone || null;
+  const name = p.data.name || null,
+    phone = p.data.phone || null;
   if (!name && !phone) return { error: "名字和电话至少填一个" };
   const { data, error } = await supabase
     .from("patients")
@@ -58,7 +60,12 @@ export async function createPatient(input: { name?: string; phone?: string; note
   if (error) {
     if (error.message.includes("patients_phone_unique")) {
       const digits = (phone ?? "").replace(/\D/g, "");
-      const { data: ex } = await supabase.from("patients").select("id, name, phone, notes").eq("workspace_id", workspaceId).eq("phone_digits", digits).maybeSingle();
+      const { data: ex } = await supabase
+        .from("patients")
+        .select("id, name, phone, notes")
+        .eq("workspace_id", workspaceId)
+        .eq("phone_digits", digits)
+        .maybeSingle();
       return { error: `这个电话已经有病人了：${patientLabel(ex ?? {})}`, existing: (ex ?? undefined) as Patient | undefined };
     }
     return { error: error.message };
@@ -114,7 +121,12 @@ export async function createClinicPrescription(_prev: PrescribeState, form: Form
   if (lineErr) return { error: lineErr };
   if (new Set(p.lines.map((l) => l.herbId)).size !== p.lines.length) return { error: "同一味药出现了两次" };
 
-  const { data: patient } = await supabase.from("patients").select("id, name, phone").eq("id", p.patientId).eq("workspace_id", workspaceId).maybeSingle();
+  const { data: patient } = await supabase
+    .from("patients")
+    .select("id, name, phone")
+    .eq("id", p.patientId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
   if (!patient) return { error: "病人不存在" };
 
   const { data: rx, error } = await supabase

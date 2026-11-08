@@ -32,7 +32,11 @@ export async function createPrescription(_prev: SaveState, form: FormData): Prom
   const parsed = Items.safeParse(parseJsonField(form.get("items"), []));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "药材列表有误" };
 
-  const prescriber = await resolvePrescriber(supabase, workspaceId, parsePrescriberChoice(form.get("prescriber_id"), form.get("prescriber_new")));
+  const prescriber = await resolvePrescriber(
+    supabase,
+    workspaceId,
+    parsePrescriberChoice(form.get("prescriber_id"), form.get("prescriber_new")),
+  );
   if ("error" in prescriber) return { error: prescriber.error };
 
   // 同一味药出现两次就合并克数
@@ -94,7 +98,12 @@ async function resolvePrescriber(
   if (choice.kind === "none") return { id: null, name: null };
   if (choice.kind === "error") return { error: choice.message };
   if (choice.kind === "existing") {
-    const { data } = await supabase.from("prescribers").select("id, name").eq("id", choice.id).eq("workspace_id", workspaceId).maybeSingle();
+    const { data } = await supabase
+      .from("prescribers")
+      .select("id, name")
+      .eq("id", choice.id)
+      .eq("workspace_id", workspaceId)
+      .maybeSingle();
     return data ?? { error: "找不到这位医生，请刷新页面重试" };
   }
   const find = () => supabase.from("prescribers").select("id, name").eq("workspace_id", workspaceId).eq("name", choice.name).maybeSingle();
@@ -191,7 +200,10 @@ export async function setPricePaid(form: FormData) {
   const price = num(raw);
   if (typeof raw === "string" && raw.trim() !== "" && price === null) return; // 非数字：不改（不要静默清空）
   if (price !== null && price < 0) return;
-  const { error } = await supabase.from("prescriptions").update({ price_paid: price }).eq("id", String(form.get("id")));
+  const { error } = await supabase
+    .from("prescriptions")
+    .update({ price_paid: price })
+    .eq("id", String(form.get("id")));
   if (error) throw new Error(error.message);
   invalidateAll();
 }

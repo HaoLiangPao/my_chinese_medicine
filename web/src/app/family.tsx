@@ -66,7 +66,9 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
               {isOwner && x.user_id !== user.id && (
                 <form action={removeMember}>
                   <input type="hidden" name="user_id" value={x.user_id} />
-                  <ConfirmButton message={`把 ${x.email} 移出这个药柜？`} className="text-xs text-muted underline">移除</ConfirmButton>
+                  <ConfirmButton message={`把 ${x.email} 移出这个药柜？`} className="text-xs text-muted underline">
+                    移除
+                  </ConfirmButton>
                 </form>
               )}
             </li>
@@ -93,7 +95,12 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
         ) : (
           <form action={leaveWorkspace}>
             <input type="hidden" name="workspace_id" value={workspaceId} />
-            <ConfirmButton message="退出这个共享药柜？之后就看不到这里的数据了，会回到你自己原来的药柜。" className="text-sm text-muted underline">退出这个药柜</ConfirmButton>
+            <ConfirmButton
+              message="退出这个共享药柜？之后就看不到这里的数据了，会回到你自己原来的药柜。"
+              className="text-sm text-muted underline"
+            >
+              退出这个药柜
+            </ConfirmButton>
           </form>
         )}
       </section>

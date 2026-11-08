@@ -28,10 +28,14 @@ export function BatchesSection({ batches, onHand }: { batches: BatchRow[]; onHan
         <div key={b.id} className="space-y-2 rounded-lg border border-line p-3" data-testid="batch-in-use">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="flex items-center gap-2">
-              <span className="font-bold" data-testid="batch-lot">{b.lot_no}</span>
+              <span className="font-bold" data-testid="batch-lot">
+                {b.lot_no}
+              </span>
               <span className="rounded-full bg-jade px-2 py-0.5 text-xs text-white">在用</span>
             </span>
-            <Link href={`/print/batch/${b.id}`} className="btn-ghost min-h-10 text-sm">打印批次标签</Link>
+            <Link href={`/print/batch/${b.id}`} className="btn-ghost min-h-10 text-sm">
+              打印批次标签
+            </Link>
           </div>
           <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-3">
             {(
@@ -68,7 +72,9 @@ export function BatchesSection({ batches, onHand }: { batches: BatchRow[]; onHan
                 <br />
                 {[b.origin, b.store, b.purchased_on, grams(b.grams), per100(b)].filter(Boolean).join(" · ")}
               </span>
-              <Link href={`/print/batch/${b.id}`} className="btn-ghost min-h-10 text-sm">打印批次标签</Link>
+              <Link href={`/print/batch/${b.id}`} className="btn-ghost min-h-10 text-sm">
+                打印批次标签
+              </Link>
             </li>
           ))}
         </ul>

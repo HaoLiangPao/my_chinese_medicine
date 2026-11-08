@@ -36,7 +36,10 @@ async function FormLoader() {
       .maybeSingle(),
   ]);
   // A–Z 选药要每味药的拼音；用户自己加的药没有拼音，在服务器上算好（浏览器端不需要拼音库）
-  const azRows = herbs.map((h) => ({ name_zh: h.name_zh, pinyin: h.pinyin?.trim() || pinyin(h.name_zh, { toneType: "none", type: "string" }) }));
+  const azRows = herbs.map((h) => ({
+    name_zh: h.name_zh,
+    pinyin: h.pinyin?.trim() || pinyin(h.name_zh, { toneType: "none", type: "string" }),
+  }));
   return (
     <PrescriptionForm
       catalog={{ names: herbs.map((h) => h.name_zh), aliases }}

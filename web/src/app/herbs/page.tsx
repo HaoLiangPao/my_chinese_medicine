@@ -26,9 +26,10 @@ async function Herbs() {
     listHerbs(supabase),
     supabase.rpc("is_monograph_reviewer"),
   ]);
-  const { count: pending } = isReviewer === true
-    ? await supabase.from("herb_monographs").select("herb_id", { count: "exact", head: true }).eq("status", "draft")
-    : { count: null };
+  const { count: pending } =
+    isReviewer === true
+      ? await supabase.from("herb_monographs").select("herb_id", { count: "exact", head: true }).eq("status", "draft")
+      : { count: null };
   const onHand = new Map((inv ?? []).map((r) => [r.herb_id, Number(r.on_hand_grams)]));
   const used = new Set((usage ?? []).map((u) => u.herb_id));
 
@@ -59,7 +60,11 @@ async function Herbs() {
             <tbody>
               {usage.map((u) => (
                 <tr key={u.herb_id}>
-                  <td><Link href={`/herbs/${u.herb_id}`} className="font-medium hover:text-cinnabar">{u.name_zh}</Link></td>
+                  <td>
+                    <Link href={`/herbs/${u.herb_id}`} className="font-medium hover:text-cinnabar">
+                      {u.name_zh}
+                    </Link>
+                  </td>
                   <td className="text-right">{u.prescription_count}</td>
                   <td className="text-right">
                     {Number(u.min_grams_per_dose) === Number(u.max_grams_per_dose)

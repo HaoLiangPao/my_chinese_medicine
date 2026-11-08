@@ -8,7 +8,9 @@ export default function WuxingPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/learn" className="text-sm text-muted">← 学习路径</Link>
+        <Link href="/learn" className="text-sm text-muted">
+          ← 学习路径
+        </Link>
         <h1 className="mt-1 font-serif text-2xl font-bold">五行：木 火 土 金 水</h1>
         <p className="mt-1 text-sm text-muted">中医用五行来归类五脏的功能，并解释它们之间相互促进（相生）、相互制约（相克）的关系。</p>
       </div>

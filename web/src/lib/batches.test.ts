@@ -29,7 +29,12 @@ describe("bestBefore（分装后 12 个月）", () => {
 });
 
 describe("splitBatches（先进先出）", () => {
-  const b = (id: string, purchased_on: string, grams: number, created_at = "2026-01-01T00:00:00Z") => ({ id, purchased_on, grams, created_at });
+  const b = (id: string, purchased_on: string, grams: number, created_at = "2026-01-01T00:00:00Z") => ({
+    id,
+    purchased_on,
+    grams,
+    created_at,
+  });
   const oct = b("oct", "2026-10-20", 300);
   const nov = b("nov", "2026-11-05", 227);
 
@@ -67,7 +72,11 @@ describe("splitBatches（先进先出）", () => {
 describe("mergeBatchInfo", () => {
   const none = { origin: null, supplier_lot: null, packed_on: null };
   it("取填了的那行", () => {
-    expect(mergeBatchInfo(none, { origin: "浙江", supplier_lot: null, packed_on: "2026-11-01" })).toEqual({ origin: "浙江", supplier_lot: null, packed_on: "2026-11-01" });
+    expect(mergeBatchInfo(none, { origin: "浙江", supplier_lot: null, packed_on: "2026-11-01" })).toEqual({
+      origin: "浙江",
+      supplier_lot: null,
+      packed_on: "2026-11-01",
+    });
   });
   it("一样的可以合并", () => {
     const x = { origin: "浙江", supplier_lot: "A1", packed_on: null };

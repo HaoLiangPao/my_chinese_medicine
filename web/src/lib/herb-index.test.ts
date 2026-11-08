@@ -87,7 +87,16 @@ describe("searchHerbs", () => {
 });
 
 describe("canAddHerb", () => {
-  const banxia: HerbEntry = { id: "1", name: "半夏", pinyin: "ban xia", initials: "bx", variants: [{ id: "2", name: "法半夏" }, { id: "3", name: "姜半夏" }] };
+  const banxia: HerbEntry = {
+    id: "1",
+    name: "半夏",
+    pinyin: "ban xia",
+    initials: "bx",
+    variants: [
+      { id: "2", name: "法半夏" },
+      { id: "3", name: "姜半夏" },
+    ],
+  };
   it("拼音 / 首字母 / 夹字母的搜索不提示新增（线上：搜 bx 提示「新增『bx』」）", () => {
     expect(canAddHerb("bx", [banxia])).toBe(false);
     expect(canAddHerb("banxia", [])).toBe(false);

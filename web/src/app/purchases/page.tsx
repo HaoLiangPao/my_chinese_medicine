@@ -47,8 +47,12 @@ async function List({ purchase }: { purchase: string }) {
         return (
           <div key={p.id} className="card" data-testid="purchase">
             <div className="flex items-baseline justify-between">
-              <span className="font-medium" data-testid="purchase-store">{p.stores?.name ?? "未填店铺"}</span>
-              <span className="text-sm text-muted" data-testid="purchase-summary">{p.purchased_on} · {money(total)}</span>
+              <span className="font-medium" data-testid="purchase-store">
+                {p.stores?.name ?? "未填店铺"}
+              </span>
+              <span className="text-sm text-muted" data-testid="purchase-summary">
+                {p.purchased_on} · {money(total)}
+              </span>
             </div>
             <table className="data-table mt-2">
               <tbody>

@@ -10,8 +10,18 @@ import { RUN, signUp, sql } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
-type Draft = { name: string; flavors: string[]; nature: string; meridians: string[]; use: string; regions?: string; check?: string; status: string };
-const drafts = (JSON.parse(readFileSync(path.resolve(__dirname, "../../supabase/data/herb-monographs.json"), "utf8")) as { herbs: Draft[] }).herbs;
+type Draft = {
+  name: string;
+  flavors: string[];
+  nature: string;
+  meridians: string[];
+  use: string;
+  regions?: string;
+  check?: string;
+  status: string;
+};
+const drafts = (JSON.parse(readFileSync(path.resolve(__dirname, "../../supabase/data/herb-monographs.json"), "utf8")) as { herbs: Draft[] })
+  .herbs;
 const draft = (name: string) => drafts.find((d) => d.name === name)!;
 const SHOTS = path.resolve(__dirname, "../../.local/screenshots");
 
@@ -80,10 +90,9 @@ test("核对页：不是审核人打不开；审核人从药材页进入", { tag
   const res = await rp.goto("/review/herbs");
   expect(res?.status()).toBe(404); // 还没加成审核人
 
-  await sql(
-    `insert into monograph_reviewers (user_id, display_name) select id, '测试医生' from auth.users where email = $1`,
-    [reviewer.email],
-  );
+  await sql(`insert into monograph_reviewers (user_id, display_name) select id, '测试医生' from auth.users where email = $1`, [
+    reviewer.email,
+  ]);
   await rp.goto("/herbs");
   await expect(rp.getByTestId("review-entry")).toContainText(`${drafts.length} 味待审核`);
   await rp.getByTestId("review-entry").click();
@@ -124,7 +133,12 @@ test("审核一味药：格式不对保存不了 → 改好通过 → 跳到下�
     "select status, reviewed_by, meridians, regions from herb_monographs where herb_id = $1",
     [mdId],
   );
-  expect(row).toEqual({ status: "reviewed", reviewed_by: "测试医生", meridians: ["心", "肺", "胃"], regions: "浙江慈溪（浙麦冬）、四川绵阳（川麦冬）" });
+  expect(row).toEqual({
+    status: "reviewed",
+    reviewed_by: "测试医生",
+    meridians: ["心", "肺", "胃"],
+    regions: "浙江慈溪（浙麦冬）、四川绵阳（川麦冬）",
+  });
 
   // 病人账号的详情页：不再是草稿，写审核人和月份
   await pp.goto(`/herbs/${mdId}`);

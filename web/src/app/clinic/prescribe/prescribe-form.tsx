@@ -74,7 +74,9 @@ export function PrescribeForm({
       <section className="card space-y-2">
         <div className="flex items-baseline justify-between">
           <h2 className="font-serif text-lg font-bold">3. 处方</h2>
-          <span className="text-sm text-muted">{lines.length} 味 · 每剂 {lines.reduce((s, l) => s + l.grams, 0)} g</span>
+          <span className="text-sm text-muted">
+            {lines.length} 味 · 每剂 {lines.reduce((s, l) => s + l.grams, 0)} g
+          </span>
         </div>
         {!lines.length ? (
           <p className="text-sm text-muted">还没有药。用上面的首字母按钮或搜索添加。</p>
@@ -82,7 +84,13 @@ export function PrescribeForm({
           <div className="overflow-x-auto">
             <table className="data-table" data-testid="rx-lines">
               <thead>
-                <tr><th>药材</th><th className="text-right">克数</th><th>脚注 / 备注</th><th className="text-right">每剂成本</th><th /></tr>
+                <tr>
+                  <th>药材</th>
+                  <th className="text-right">克数</th>
+                  <th>脚注 / 备注</th>
+                  <th className="text-right">每剂成本</th>
+                  <th />
+                </tr>
               </thead>
               <tbody>
                 {lines.map((l, i) => (
@@ -90,10 +98,26 @@ export function PrescribeForm({
                     <td className="font-medium">{l.name}</td>
                     <td className="text-right">{l.grams} g</td>
                     <td className="text-muted whitespace-normal">{[l.prep, l.note].filter(Boolean).join("；") || "—"}</td>
-                    <td className="text-right" data-testid={`line-cost-${l.name}`}>{costs[i].cost_per_dose === null ? <span className="text-cinnabar">无进货价</span> : money(costs[i].cost_per_dose)}</td>
+                    <td className="text-right" data-testid={`line-cost-${l.name}`}>
+                      {costs[i].cost_per_dose === null ? <span className="text-cinnabar">无进货价</span> : money(costs[i].cost_per_dose)}
+                    </td>
                     <td className="text-right">
-                      <button type="button" className="px-1 text-muted" aria-label={`${l.name} 上移`} onClick={() => setLines((ls) => moveLine(ls, l.herbId, -1))}>↑</button>
-                      <button type="button" className="px-1 text-muted" aria-label={`${l.name} 下移`} onClick={() => setLines((ls) => moveLine(ls, l.herbId, 1))}>↓</button>
+                      <button
+                        type="button"
+                        className="px-1 text-muted"
+                        aria-label={`${l.name} 上移`}
+                        onClick={() => setLines((ls) => moveLine(ls, l.herbId, -1))}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="px-1 text-muted"
+                        aria-label={`${l.name} 下移`}
+                        onClick={() => setLines((ls) => moveLine(ls, l.herbId, 1))}
+                      >
+                        ↓
+                      </button>
                       <button
                         type="button"
                         className="px-1 text-sm underline"
@@ -104,7 +128,13 @@ export function PrescribeForm({
                       >
                         改
                       </button>
-                      <button type="button" className="px-1 text-sm text-cinnabar underline" onClick={() => setLines((ls) => removeLine(ls, l.herbId))}>删</button>
+                      <button
+                        type="button"
+                        className="px-1 text-sm text-cinnabar underline"
+                        onClick={() => setLines((ls) => removeLine(ls, l.herbId))}
+                      >
+                        删
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -124,20 +154,51 @@ export function PrescribeForm({
 
       <section className="card grid grid-cols-2 gap-3">
         <div>
-          <label className="label" htmlFor="doses">剂数</label>
-          <input id="doses" type="number" min={1} max={60} step={1} value={doses} onChange={(e) => setDoses(e.target.value)} className="input" />
+          <label className="label" htmlFor="doses">
+            剂数
+          </label>
+          <input
+            id="doses"
+            type="number"
+            min={1}
+            max={60}
+            step={1}
+            value={doses}
+            onChange={(e) => setDoses(e.target.value)}
+            className="input"
+          />
         </div>
         <div>
-          <label className="label" htmlFor="issued_on">日期</label>
+          <label className="label" htmlFor="issued_on">
+            日期
+          </label>
           <input id="issued_on" type="date" value={issuedOn} onChange={(e) => setIssuedOn(e.target.value)} className="input" />
         </div>
         <div className="col-span-2">
-          <label className="label" htmlFor="instructions">煎服法</label>
-          <input id="instructions" maxLength={200} value={instructions} onChange={(e) => setInstructions(e.target.value)} className="input" />
+          <label className="label" htmlFor="instructions">
+            煎服法
+          </label>
+          <input
+            id="instructions"
+            maxLength={200}
+            value={instructions}
+            onChange={(e) => setInstructions(e.target.value)}
+            className="input"
+          />
         </div>
         <div className="col-span-2">
-          <label className="label" htmlFor="advice">医嘱（可选）</label>
-          <textarea id="advice" rows={2} maxLength={500} value={advice} onChange={(e) => setAdvice(e.target.value)} placeholder="如：忌生冷辛辣" className="input" />
+          <label className="label" htmlFor="advice">
+            医嘱（可选）
+          </label>
+          <textarea
+            id="advice"
+            rows={2}
+            maxLength={500}
+            value={advice}
+            onChange={(e) => setAdvice(e.target.value)}
+            placeholder="如：忌生冷辛辣"
+            className="input"
+          />
         </div>
       </section>
 
@@ -145,7 +206,9 @@ export function PrescribeForm({
       <button disabled={!canSave} className="btn-primary w-full py-3">
         {pending ? "保存中…" : !patient ? "先选一个病人" : !lines.length ? "先加药" : "保存并生成消息"}
       </button>
-      <p className="text-center text-xs text-muted">保存后，处方存在 {patient ? patientLabel(patient) : "病人"} 名下，并生成可以直接粘贴到微信的消息（{clinicName}）。</p>
+      <p className="text-center text-xs text-muted">
+        保存后，处方存在 {patient ? patientLabel(patient) : "病人"} 名下，并生成可以直接粘贴到微信的消息（{clinicName}）。
+      </p>
     </form>
   );
 }
@@ -183,7 +246,9 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
           <div className="font-serif text-lg font-bold">{patient.name || "（没填名字）"}</div>
           <div className="text-sm text-muted">{patient.phone ?? "没填电话"}</div>
         </div>
-        <button type="button" onClick={() => onChange(null)} className="btn-ghost">换一个</button>
+        <button type="button" onClick={() => onChange(null)} className="btn-ghost">
+          换一个
+        </button>
       </section>
     );
 
@@ -192,27 +257,66 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
       <h2 className="font-serif text-lg font-bold">1. 选病人</h2>
       {!creating ? (
         <>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="输入名字或电话（可以只输后几位）" aria-label="搜病人" className="input" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="输入名字或电话（可以只输后几位）"
+            aria-label="搜病人"
+            className="input"
+          />
           <ul className="divide-y divide-line rounded-lg border border-line" data-testid="patient-results">
             {results.length === 0 && <li className="p-3 text-sm text-muted">{busy ? "搜索中…" : q ? "没找到" : "还没有病人"}</li>}
             {results.map((p) => (
               <li key={p.id}>
-                <button type="button" onClick={() => select(p)} className="flex w-full justify-between p-3 text-left text-sm hover:bg-paper" data-testid="patient-result">
+                <button
+                  type="button"
+                  onClick={() => select(p)}
+                  className="flex w-full justify-between p-3 text-left text-sm hover:bg-paper"
+                  data-testid="patient-result"
+                >
                   <span className="font-medium">{p.name || "（没填名字）"}</span>
                   <span className="text-muted">{p.phone ?? ""}</span>
                 </button>
               </li>
             ))}
           </ul>
-          <button type="button" onClick={() => { setCreating(true); setForm({ name: /\d/.test(q) ? "" : q, phone: /\d/.test(q) ? q : "", notes: "" }); }} className="btn-ghost w-full">
+          <button
+            type="button"
+            onClick={() => {
+              setCreating(true);
+              setForm({ name: /\d/.test(q) ? "" : q, phone: /\d/.test(q) ? q : "", notes: "" });
+            }}
+            className="btn-ghost w-full"
+          >
             ＋ 新病人
           </button>
         </>
       ) : (
         <div className="grid grid-cols-2 gap-2" data-testid="new-patient">
-          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="名字" aria-label="病人姓名" maxLength={50} className="input" />
-          <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="电话" aria-label="病人电话" maxLength={30} inputMode="tel" className="input" />
-          <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="备注（可选）" aria-label="病人备注" className="input col-span-2" />
+          <input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="名字"
+            aria-label="病人姓名"
+            maxLength={50}
+            className="input"
+          />
+          <input
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            placeholder="电话"
+            aria-label="病人电话"
+            maxLength={30}
+            inputMode="tel"
+            className="input"
+          />
+          <input
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            placeholder="备注（可选）"
+            aria-label="病人备注"
+            className="input col-span-2"
+          />
           {error && (
             <p className="col-span-2 text-sm text-cinnabar">
               {error}
@@ -238,7 +342,16 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
           >
             保存病人
           </button>
-          <button type="button" onClick={() => { setCreating(false); setError(null); }} className="btn-ghost">取消</button>
+          <button
+            type="button"
+            onClick={() => {
+              setCreating(false);
+              setError(null);
+            }}
+            className="btn-ghost"
+          >
+            取消
+          </button>
         </div>
       )}
     </section>
@@ -255,7 +368,11 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
   const [addErr, setAddErr] = useState<string | null>(null);
 
   const allEntries = [...index.entries, ...extra];
-  const list = q.trim() ? searchHerbs({ ...index, entries: allEntries }, q, 30) : letter ? [...(index.groups[letter] ?? []), ...extra.filter((e) => letterOfEntry(e) === letter)] : [];
+  const list = q.trim()
+    ? searchHerbs({ ...index, entries: allEntries }, q, 30)
+    : letter
+      ? [...(index.groups[letter] ?? []), ...extra.filter((e) => letterOfEntry(e) === letter)]
+      : [];
 
   const pick = (p: Picked) => {
     setVariantsOf(null);
@@ -289,11 +406,22 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
           </button>
         ))}
       </div>
-      <input value={q} onChange={(e) => { setQ(e.target.value); setVariantsOf(null); }} placeholder="或者直接搜：汉字、拼音、首字母（如 hq = 黄芪）" aria-label="搜药材" className="input" />
+      <input
+        value={q}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setVariantsOf(null);
+        }}
+        placeholder="或者直接搜：汉字、拼音、首字母（如 hq = 黄芪）"
+        aria-label="搜药材"
+        className="input"
+      />
 
       {(letter || q.trim()) && (
         <div className="rounded-lg border border-line p-2" data-testid="letter-panel">
-          <div className="mb-1 text-xs text-muted">{q.trim() ? `搜「${q.trim()}」` : `${letter} 开头`}：{list.length} 味</div>
+          <div className="mb-1 text-xs text-muted">
+            {q.trim() ? `搜「${q.trim()}」` : `${letter} 开头`}：{list.length} 味
+          </div>
           <div className="flex flex-wrap gap-2">
             {list.map((e) => (
               <button
@@ -337,11 +465,22 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
         <div className="rounded-lg bg-paper p-2" data-testid="variant-chooser">
           <div className="mb-1 text-xs text-muted">{variantsOf.name} 有炮制品，选一个：</div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => pick({ entry: variantsOf, choice: null })} data-testid={`variant-${variantsOf.name}`} className="rounded-full border border-cinnabar bg-card px-3 py-1 text-sm">
+            <button
+              type="button"
+              onClick={() => pick({ entry: variantsOf, choice: null })}
+              data-testid={`variant-${variantsOf.name}`}
+              className="rounded-full border border-cinnabar bg-card px-3 py-1 text-sm"
+            >
               {variantsOf.name}（生 / 原药材）
             </button>
             {variantsOf.variants.map((v) => (
-              <button key={v.id} type="button" onClick={() => pick({ entry: variantsOf, choice: v })} data-testid={`variant-${v.name}`} className="rounded-full border border-cinnabar bg-card px-3 py-1 text-sm">
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => pick({ entry: variantsOf, choice: v })}
+                data-testid={`variant-${v.name}`}
+                className="rounded-full border border-cinnabar bg-card px-3 py-1 text-sm"
+              >
                 {v.name}
               </button>
             ))}
@@ -355,7 +494,17 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
 const letterOfEntry = (e: HerbEntry) => (e.pinyin[0] ?? "#").toUpperCase();
 
 // ---------------------------------------------------------------------------
-function LineEditor({ picked, existing, onDone, onCancel }: { picked: Picked; existing: RxLine | null; onDone: (l: RxLine) => void; onCancel: () => void }) {
+function LineEditor({
+  picked,
+  existing,
+  onDone,
+  onCancel,
+}: {
+  picked: Picked;
+  existing: RxLine | null;
+  onDone: (l: RxLine) => void;
+  onCancel: () => void;
+}) {
   const herb = picked.choice ?? { id: picked.entry.id, name: picked.entry.name };
   const [grams, setGrams] = useState(existing ? String(existing.grams) : "");
   const [prep, setPrep] = useState(existing?.prep ?? "");
@@ -374,7 +523,12 @@ function LineEditor({ picked, existing, onDone, onCancel }: { picked: Picked; ex
       </div>
       <div className="flex flex-wrap gap-1">
         {COMMON_GRAMS.map((c) => (
-          <button key={c} type="button" onClick={() => setGrams(String(c))} className={`rounded-md border px-2 py-1 text-sm ${Number(grams) === c ? "border-cinnabar text-cinnabar" : "border-line"}`}>
+          <button
+            key={c}
+            type="button"
+            onClick={() => setGrams(String(c))}
+            className={`rounded-md border px-2 py-1 text-sm ${Number(grams) === c ? "border-cinnabar text-cinnabar" : "border-line"}`}
+          >
             {c}g
           </button>
         ))}
@@ -387,20 +541,38 @@ function LineEditor({ picked, existing, onDone, onCancel }: { picked: Picked; ex
           step="0.5"
           value={grams}
           onChange={(e) => setGrams(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); done(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              done();
+            }
+          }}
           placeholder="克"
           aria-label="克数"
           className="input"
         />
         <select value={prep} onChange={(e) => setPrep(e.target.value)} aria-label="脚注" className="input px-1">
           <option value="">脚注 —</option>
-          {SPECIAL_PREPS.map((p) => <option key={p}>{p}</option>)}
+          {SPECIAL_PREPS.map((p) => (
+            <option key={p}>{p}</option>
+          ))}
         </select>
-        <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="备注（可选，如：打碎、另包）" aria-label="备注" className="input" />
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={200}
+          placeholder="备注（可选，如：打碎、另包）"
+          aria-label="备注"
+          className="input"
+        />
       </div>
       <div className="flex gap-2">
-        <button type="button" disabled={!ok} onClick={done} className="btn-primary">{existing ? "更新" : "加入处方"}</button>
-        <button type="button" onClick={onCancel} className="btn-ghost">取消</button>
+        <button type="button" disabled={!ok} onClick={done} className="btn-primary">
+          {existing ? "更新" : "加入处方"}
+        </button>
+        <button type="button" onClick={onCancel} className="btn-ghost">
+          取消
+        </button>
       </div>
     </div>
   );

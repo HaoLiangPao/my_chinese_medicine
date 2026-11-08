@@ -90,7 +90,8 @@ test.describe("登录与权限", () => {
   });
 
   test("没接受邀请之前，邀请方看不到对方的任何数据（不能偷偷拉人）", { tag: ["@ACC-3", "@ACC-5"] }, async ({ browser }) => {
-    const mallory = fresh(), victim = fresh();
+    const mallory = fresh(),
+      victim = fresh();
     const mp = await browser.newPage();
     await signUp(mp, mallory);
     await mp.getByLabel("邀请邮箱").fill(victim.email);
@@ -117,86 +118,99 @@ test.describe("登录与权限", () => {
     await vp.close();
   });
 
-  test("一个账号只有一个药柜：接受邀请 = 搬进对方的，自己原来的隐藏；没有切换；退出后回到自己的", { tag: ["@ACC-4", "@INV-1"] }, async ({ browser }) => {
-    const owner = fresh(), tina = fresh();
-    const tp = await browser.newPage();
-    const dialogs: string[] = [];
-    tp.on("dialog", (d) => {
-      dialogs.push(d.message());
-      void d.accept();
-    });
-    await signUp(tp, tina);
-    // Tina 自己的药柜里有数据
-    await tp.goto("/inventory");
-    await tp.locator('input[name="herb_name"]').fill("黄芪");
-    await tp.locator('input[name="actual"]').last().fill("100");
-    await tp.getByRole("button", { name: "录入" }).click();
-    await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
+  test(
+    "一个账号只有一个药柜：接受邀请 = 搬进对方的，自己原来的隐藏；没有切换；退出后回到自己的",
+    { tag: ["@ACC-4", "@INV-1"] },
+    async ({ browser }) => {
+      const owner = fresh(),
+        tina = fresh();
+      const tp = await browser.newPage();
+      const dialogs: string[] = [];
+      tp.on("dialog", (d) => {
+        dialogs.push(d.message());
+        void d.accept();
+      });
+      await signUp(tp, tina);
+      // Tina 自己的药柜里有数据
+      await tp.goto("/inventory");
+      await tp.locator('input[name="herb_name"]').fill("黄芪");
+      await tp.locator('input[name="actual"]').last().fill("100");
+      await tp.getByRole("button", { name: "录入" }).click();
+      await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
 
-    const op = await browser.newPage();
-    await signUp(op, owner);
-    await op.goto("/inventory");
-    await op.locator('input[name="herb_name"]').fill("黄芪");
-    await op.locator('input[name="actual"]').last().fill("500");
-    await op.getByRole("button", { name: "录入" }).click();
-    await op.goto("/");
-    await op.getByLabel("邀请邮箱").fill(tina.email);
-    await op.getByRole("button", { name: "邀请", exact: true }).click();
+      const op = await browser.newPage();
+      await signUp(op, owner);
+      await op.goto("/inventory");
+      await op.locator('input[name="herb_name"]').fill("黄芪");
+      await op.locator('input[name="actual"]').last().fill("500");
+      await op.getByRole("button", { name: "录入" }).click();
+      await op.goto("/");
+      await op.getByLabel("邀请邮箱").fill(tina.email);
+      await op.getByRole("button", { name: "邀请", exact: true }).click();
 
-    await tp.goto("/");
-    await tp.getByTestId("incoming-invites").getByRole("button", { name: "接受" }).click();
-    await expect(tp.getByTestId("incoming-invites")).toHaveCount(0);
-    expect(dialogs[0]).toContain("你自己现在的药柜会隐藏起来");
-    await expect(tp.getByTestId("member-list").locator("li")).toHaveCount(2);
-    await expect(tp.getByText(/切换/)).toHaveCount(0); // 没有切换
+      await tp.goto("/");
+      await tp.getByTestId("incoming-invites").getByRole("button", { name: "接受" }).click();
+      await expect(tp.getByTestId("incoming-invites")).toHaveCount(0);
+      expect(dialogs[0]).toContain("你自己现在的药柜会隐藏起来");
+      await expect(tp.getByTestId("member-list").locator("li")).toHaveCount(2);
+      await expect(tp.getByText(/切换/)).toHaveCount(0); // 没有切换
 
-    // 现在只有对方的药柜：只看到 500，不是两边混在一起
-    await tp.goto("/inventory");
-    await expect(tp.locator('[data-testid^="stock-card-"]')).toHaveCount(1);
-    await expect(tp.getByTestId("stock-黄芪")).toHaveText("500 g");
-    // 校准：称重 480 → 只在当前药柜写 -20
-    const card = tp.getByTestId("stock-card-黄芪");
-    await card.locator("summary").click();
-    await card.getByLabel("黄芪 称重克数").fill("480");
-    await card.getByRole("button", { name: "校准" }).click();
-    await expect(tp.getByTestId("stock-黄芪")).toHaveText("480 g");
-    const own = await sql<{ g: string }>(
-      `select i.on_hand_grams::text g from v_inventory i where i.workspace_id = (select workspace_id from workspace_members m
+      // 现在只有对方的药柜：只看到 500，不是两边混在一起
+      await tp.goto("/inventory");
+      await expect(tp.locator('[data-testid^="stock-card-"]')).toHaveCount(1);
+      await expect(tp.getByTestId("stock-黄芪")).toHaveText("500 g");
+      // 校准：称重 480 → 只在当前药柜写 -20
+      const card = tp.getByTestId("stock-card-黄芪");
+      await card.locator("summary").click();
+      await card.getByLabel("黄芪 称重克数").fill("480");
+      await card.getByRole("button", { name: "校准" }).click();
+      await expect(tp.getByTestId("stock-黄芪")).toHaveText("480 g");
+      const own = await sql<{ g: string }>(
+        `select i.on_hand_grams::text g from v_inventory i where i.workspace_id = (select workspace_id from workspace_members m
         join auth.users u on u.id = m.user_id where u.email = $1 and m.role = 'owner') and i.name_zh = '黄芪'`,
-      [tina.email],
-    );
-    expect(Number(own[0].g)).toBe(100); // Tina 自己的药柜没被动，也没被删
+        [tina.email],
+      );
+      expect(Number(own[0].g)).toBe(100); // Tina 自己的药柜没被动，也没被删
 
-    // 退出对方的药柜 → 回到自己原来的，数据都在
-    await tp.goto("/");
-    await tp.getByRole("button", { name: "退出这个药柜" }).click();
-    await expect(tp.getByRole("button", { name: "退出这个药柜" })).toHaveCount(0);
-    await expect(tp.getByTestId("member-list").locator("li")).toHaveCount(1);
-    await tp.goto("/inventory");
-    await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
+      // 退出对方的药柜 → 回到自己原来的，数据都在
+      await tp.goto("/");
+      await tp.getByRole("button", { name: "退出这个药柜" }).click();
+      await expect(tp.getByRole("button", { name: "退出这个药柜" })).toHaveCount(0);
+      await expect(tp.getByTestId("member-list").locator("li")).toHaveCount(1);
+      await tp.goto("/inventory");
+      await expect(tp.getByTestId("stock-黄芪")).toHaveText("100 g");
 
-    // owner 那边成员只剩自己
-    await op.goto("/");
-    await expect(op.getByTestId("member-list").locator("li")).toHaveCount(1);
-    await op.close();
-    await tp.close();
-  });
+      // owner 那边成员只剩自己
+      await op.goto("/");
+      await expect(op.getByTestId("member-list").locator("li")).toHaveCount(1);
+      await op.close();
+      await tp.close();
+    },
+  );
 });
 
-test("药柜按拼音排序：白术 → 川芎 → 丁香 → 甘草 → 黄芪（不按汉字编码；目录外的药也按拼音）", { tag: ["@FIX-6", "@INV-1"] }, async ({ page }) => {
-  await signUp(page, fresh());
-  await page.goto("/inventory");
-  // 故意不按拼音顺序录入；按 Unicode 编码排是 丁香 → 川芎 → 甘草 → 白术 → 黄芪。丁香不在目录里（录入时新建，没有拼音）
-  for (const herb of ["黄芪", "丁香", "甘草", "白术", "川芎"]) {
-    await page.locator('input[name="herb_name"]').fill(herb);
-    await page.locator('input[name="actual"]').last().fill("100");
-    await page.getByRole("button", { name: "录入" }).click();
-    await expect(page.getByTestId(`stock-${herb}`)).toHaveText("100 g");
-  }
-  await page.locator("main").screenshot({ path: path.resolve(__dirname, `../../.local/screenshots/药柜-排序${process.env.SHOT_SUFFIX ?? ""}.png`) });
-  const names = await page.locator('[data-testid^="stock-card-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("stock-card-", "")));
-  expect(names).toEqual(["白术", "川芎", "丁香", "甘草", "黄芪"]);
-});
+test(
+  "药柜按拼音排序：白术 → 川芎 → 丁香 → 甘草 → 黄芪（不按汉字编码；目录外的药也按拼音）",
+  { tag: ["@FIX-6", "@INV-1"] },
+  async ({ page }) => {
+    await signUp(page, fresh());
+    await page.goto("/inventory");
+    // 故意不按拼音顺序录入；按 Unicode 编码排是 丁香 → 川芎 → 甘草 → 白术 → 黄芪。丁香不在目录里（录入时新建，没有拼音）
+    for (const herb of ["黄芪", "丁香", "甘草", "白术", "川芎"]) {
+      await page.locator('input[name="herb_name"]').fill(herb);
+      await page.locator('input[name="actual"]').last().fill("100");
+      await page.getByRole("button", { name: "录入" }).click();
+      await expect(page.getByTestId(`stock-${herb}`)).toHaveText("100 g");
+    }
+    await page
+      .locator("main")
+      .screenshot({ path: path.resolve(__dirname, `../../.local/screenshots/药柜-排序${process.env.SHOT_SUFFIX ?? ""}.png`) });
+    const names = await page
+      .locator('[data-testid^="stock-card-"]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("stock-card-", "")));
+    expect(names).toEqual(["白术", "川芎", "丁香", "甘草", "黄芪"]);
+  },
+);
 
 test.describe("拍照识别", () => {
   test.beforeEach(async ({ request }) => {
@@ -211,7 +225,9 @@ test.describe("拍照识别", () => {
 
     // 等页面水合完成（按钮从「加载中」变成可以点）再选文件，否则文件框的 onChange 还没挂上
     await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
-    await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
+    await page
+      .locator('input[type="file"]')
+      .setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别出 5 味药，其中 1 味不在药材目录里/)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText("AI 备注：第 5 味字迹潦草，请核对")).toBeVisible();
 
@@ -283,7 +299,10 @@ test.describe("拍照识别", () => {
       const raw = await ctx.newPage();
       await raw.goto("/prescriptions/new");
       await expect(raw.getByRole("button", { name: "加载中…" })).toBeDisabled();
-      await raw.screenshot({ path: path.resolve(__dirname, "../../.local/screenshots/拍照按钮-加载中.png"), clip: { x: 0, y: 0, width: 1280, height: 260 } });
+      await raw.screenshot({
+        path: path.resolve(__dirname, "../../.local/screenshots/拍照按钮-加载中.png"),
+        clip: { x: 0, y: 0, width: 1280, height: 260 },
+      });
     } finally {
       await ctx.close();
     }
@@ -297,7 +316,9 @@ test.describe("拍照识别", () => {
 
     // 等页面水合完成（按钮从「加载中」变成可以点）再选文件，否则文件框的 onChange 还没挂上
     await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
-    await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
+    await page
+      .locator('input[type="file"]')
+      .setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别出 5 味药/)).toBeVisible({ timeout: 30_000 });
     const reqs = await (await request.get(`${MOCK}/__requests`)).json();
     expect(reqs.slice(before).map((r: { model: string }) => r.model)).toEqual(["test/free-vl:free", "test/deepseek-vl"]);
@@ -309,7 +330,9 @@ test.describe("拍照识别", () => {
     await request.post(`${MOCK}/__next`, { data: { fail: true } });
     // 等页面水合完成（按钮从「加载中」变成可以点）再选文件，否则文件框的 onChange 还没挂上
     await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
-    await page.locator('input[type="file"]').setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
+    await page
+      .locator('input[type="file"]')
+      .setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
     await expect(page.getByText(/识别失败：.*可以手动填写/)).toBeVisible({ timeout: 60_000 });
     await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
 

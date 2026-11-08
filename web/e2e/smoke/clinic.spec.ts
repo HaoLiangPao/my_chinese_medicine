@@ -35,7 +35,13 @@ test("开方：选病人 → 搜药（拼音首字母、炮制品）→ 保存 �
   await page.goto("/clinic/prescribe");
   await page.getByLabel("搜病人").fill(PATIENT);
   const hit = page.getByTestId("patient-results").getByTestId("patient-result").filter({ hasText: PATIENT });
-  const found = await hit.first().waitFor({ timeout: 5_000 }).then(() => true, () => false); // 搜索有防抖 + 服务器往返
+  const found = await hit
+    .first()
+    .waitFor({ timeout: 5_000 })
+    .then(
+      () => true,
+      () => false,
+    ); // 搜索有防抖 + 服务器往返
   if (found) {
     await hit.first().click();
   } else {

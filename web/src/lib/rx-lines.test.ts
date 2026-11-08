@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { lineCosts, moveLine, removeLine, upsertLine, validateLines, type RxLine } from "./rx-lines";
 
-const L = (herbId: string, grams: number, extra: Partial<RxLine> = {}): RxLine => ({ herbId, name: herbId, grams, prep: null, note: null, ...extra });
+const L = (herbId: string, grams: number, extra: Partial<RxLine> = {}): RxLine => ({
+  herbId,
+  name: herbId,
+  grams,
+  prep: null,
+  note: null,
+  ...extra,
+});
 
 describe("upsertLine", () => {
   it("新药加在最后", () => {

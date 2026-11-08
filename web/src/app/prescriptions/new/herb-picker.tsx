@@ -21,7 +21,11 @@ export function HerbPicker({ rows, aliases, onPick }: { rows: AzRow[]; aliases: 
   const [active, setActive] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   // 水合完成前按钮点了没反应：先置灰（和拍照按钮一样）
-  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const hydrated = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -71,95 +75,109 @@ export function HerbPicker({ rows, aliases, onPick }: { rows: AzRow[]; aliases: 
       </button>
       {hydrated &&
         createPortal(
-      <dialog
-        ref={dialogRef}
-        aria-label="选药"
-        data-testid="az-picker"
-        onClose={onClosed}
-        // 点到面板外面（遮罩）就关上
-        onClick={(e) => e.target === e.currentTarget && close()}
-        className="fixed inset-x-0 top-auto bottom-0 mx-auto mb-0 max-h-[85vh] w-full max-w-lg flex-col rounded-t-2xl bg-card p-0 text-ink shadow-xl backdrop:bg-black/40 open:flex"
-      >
-        {open && (
-          <>
-            <div className="flex items-center gap-2 border-b border-line p-3">
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                // Enter 选第一条结果（不提交任何表单）；输入法组字时的 Enter 是确认候选词，不算
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
-                  e.preventDefault();
-                  if (hits[0]) pick(hits[0].entry.name);
-                }}
-                placeholder="搜药名、拼音、首字母或别名"
-                aria-label="搜药材"
-                className="input flex-1"
-              />
-              <button type="button" onClick={close} className="btn-ghost min-h-11 shrink-0">关闭</button>
-            </div>
+          <dialog
+            ref={dialogRef}
+            aria-label="选药"
+            data-testid="az-picker"
+            onClose={onClosed}
+            // 点到面板外面（遮罩）就关上
+            onClick={(e) => e.target === e.currentTarget && close()}
+            className="fixed inset-x-0 top-auto bottom-0 mx-auto mb-0 max-h-[85vh] w-full max-w-lg flex-col rounded-t-2xl bg-card p-0 text-ink shadow-xl backdrop:bg-black/40 open:flex"
+          >
+            {open && (
+              <>
+                <div className="flex items-center gap-2 border-b border-line p-3">
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    // Enter 选第一条结果（不提交任何表单）；输入法组字时的 Enter 是确认候选词，不算
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                      e.preventDefault();
+                      if (hits[0]) pick(hits[0].entry.name);
+                    }}
+                    placeholder="搜药名、拼音、首字母或别名"
+                    aria-label="搜药材"
+                    className="input flex-1"
+                  />
+                  <button type="button" onClick={close} className="btn-ghost min-h-11 shrink-0">
+                    关闭
+                  </button>
+                </div>
 
-            {q.trim() ? (
-              <ul className="min-h-0 flex-1 overflow-y-auto" data-testid="az-results">
-                {hits.length === 0 && <li className="p-4 text-sm text-muted">目录里没有「{q.trim()}」。可以直接在表单里输入，保存时会新建。</li>}
-                {hits.map(({ entry, via }) => (
-                  <li key={entry.name}>
-                    <button type="button" onClick={() => pick(entry.name)} className="flex min-h-12 w-full items-center justify-between px-4 text-left hover:bg-paper" data-testid={`az-herb-${entry.name}`}>
-                      <span>
-                        {via && <span className="text-muted">{via} → </span>}
-                        <span className="font-medium">{entry.name}</span>
-                      </span>
-                      <span className="text-xs text-muted">{entry.pinyin}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="relative flex min-h-0 flex-1">
-                <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto pr-10" data-testid="az-list">
-                  {index.letters.map((l) => (
-                    <section key={l} data-az-section={l} data-testid={`az-group-${l}`}>
-                      <h3 className="sticky top-0 bg-paper px-4 py-1 text-xs font-bold text-muted">{l}</h3>
-                      <ul>
-                        {index.groups[l].map((e) => (
-                          <li key={e.name}>
-                            <button type="button" onClick={() => pick(e.name)} className="flex min-h-11 w-full items-center justify-between px-4 text-left hover:bg-paper" data-testid={`az-herb-${e.name}`}>
-                              <span className="font-medium">{e.name}</span>
-                              <span className="text-xs text-muted">{e.pinyin}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  ))}
-                </div>
-                {/* 字母条：可以点，也可以按住上下滑 */}
-                <div
-                  role="group"
-                  aria-label="按字母跳转"
-                  className="absolute inset-y-0 right-0 flex w-10 touch-none select-none flex-col items-center justify-center py-1"
-                  onPointerDown={onBarPointer}
-                  onPointerMove={onBarPointer}
-                  data-testid="az-letter-bar"
-                >
-                  {index.letters.map((l) => (
-                    <button
-                      key={l}
-                      type="button"
-                      data-az-letter={l}
-                      onClick={() => jump(l)}
-                      aria-label={`跳到 ${l}`}
-                      className={`w-full flex-1 text-xs leading-none font-bold ${active === l ? "text-cinnabar" : "text-muted"}`}
+                {q.trim() ? (
+                  <ul className="min-h-0 flex-1 overflow-y-auto" data-testid="az-results">
+                    {hits.length === 0 && (
+                      <li className="p-4 text-sm text-muted">目录里没有「{q.trim()}」。可以直接在表单里输入，保存时会新建。</li>
+                    )}
+                    {hits.map(({ entry, via }) => (
+                      <li key={entry.name}>
+                        <button
+                          type="button"
+                          onClick={() => pick(entry.name)}
+                          className="flex min-h-12 w-full items-center justify-between px-4 text-left hover:bg-paper"
+                          data-testid={`az-herb-${entry.name}`}
+                        >
+                          <span>
+                            {via && <span className="text-muted">{via} → </span>}
+                            <span className="font-medium">{entry.name}</span>
+                          </span>
+                          <span className="text-xs text-muted">{entry.pinyin}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="relative flex min-h-0 flex-1">
+                    <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto pr-10" data-testid="az-list">
+                      {index.letters.map((l) => (
+                        <section key={l} data-az-section={l} data-testid={`az-group-${l}`}>
+                          <h3 className="sticky top-0 bg-paper px-4 py-1 text-xs font-bold text-muted">{l}</h3>
+                          <ul>
+                            {index.groups[l].map((e) => (
+                              <li key={e.name}>
+                                <button
+                                  type="button"
+                                  onClick={() => pick(e.name)}
+                                  className="flex min-h-11 w-full items-center justify-between px-4 text-left hover:bg-paper"
+                                  data-testid={`az-herb-${e.name}`}
+                                >
+                                  <span className="font-medium">{e.name}</span>
+                                  <span className="text-xs text-muted">{e.pinyin}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      ))}
+                    </div>
+                    {/* 字母条：可以点，也可以按住上下滑 */}
+                    <div
+                      role="group"
+                      aria-label="按字母跳转"
+                      className="absolute inset-y-0 right-0 flex w-10 touch-none select-none flex-col items-center justify-center py-1"
+                      onPointerDown={onBarPointer}
+                      onPointerMove={onBarPointer}
+                      data-testid="az-letter-bar"
                     >
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                      {index.letters.map((l) => (
+                        <button
+                          key={l}
+                          type="button"
+                          data-az-letter={l}
+                          onClick={() => jump(l)}
+                          aria-label={`跳到 ${l}`}
+                          className={`w-full flex-1 text-xs leading-none font-bold ${active === l ? "text-cinnabar" : "text-muted"}`}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
-      </dialog>,
+          </dialog>,
           document.body,
         )}
     </>

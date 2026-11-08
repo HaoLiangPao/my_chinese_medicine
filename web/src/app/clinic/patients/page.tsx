@@ -39,7 +39,10 @@ async function List({ searchParams }: { searchParams: Promise<Record<string, str
       ) : (
         <div className="card divide-y divide-line p-0" data-testid="patient-list">
           {data.map((p) => {
-            const last = p.prescriptions.map((r) => r.issued_on).sort().at(-1);
+            const last = p.prescriptions
+              .map((r) => r.issued_on)
+              .sort()
+              .at(-1);
             return (
               <Link key={p.id} href={`/clinic/patients/${p.id}`} className="flex items-center justify-between gap-2 p-4 hover:bg-paper">
                 <div>

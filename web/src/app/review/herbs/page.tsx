@@ -55,7 +55,10 @@ async function List({ searchParams }: { searchParams: Promise<Record<string, str
         <ul className="card divide-y divide-line p-0" data-testid="review-list">
           {rows.map((m) => (
             <li key={m.herb_id}>
-              <Link href={`/review/herbs/${m.herb_id}`} className="flex min-h-12 items-center justify-between gap-3 px-4 py-2 hover:bg-paper">
+              <Link
+                href={`/review/herbs/${m.herb_id}`}
+                className="flex min-h-12 items-center justify-between gap-3 px-4 py-2 hover:bg-paper"
+              >
                 <span>
                   <span className="font-serif text-lg font-bold">{m.name_zh}</span>
                   {m.check_note && <span className="ml-2 text-xs text-amber">要核对</span>}

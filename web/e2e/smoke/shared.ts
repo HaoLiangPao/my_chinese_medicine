@@ -34,5 +34,7 @@ export async function login(page: Page, a: Account, kind: "household" | "clinic"
     await page.goto("/");
   }
   await expect(signOut).toBeVisible();
-  await expect(page.getByTestId("clinic-badge"), `这个账号应该是${kind === "clinic" ? "诊所" : "家庭"}账号`).toHaveCount(kind === "clinic" ? 1 : 0);
+  await expect(page.getByTestId("clinic-badge"), `这个账号应该是${kind === "clinic" ? "诊所" : "家庭"}账号`).toHaveCount(
+    kind === "clinic" ? 1 : 0,
+  );
 }

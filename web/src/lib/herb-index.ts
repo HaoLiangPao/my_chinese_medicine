@@ -16,7 +16,12 @@ export const normPinyin = (s: string) =>
     .replace(/\s+/g, " ")
     .trim();
 const norm = normPinyin;
-export const initialsOf = (pinyin: string) => norm(pinyin).split(" ").filter(Boolean).map((w) => w[0]).join("");
+export const initialsOf = (pinyin: string) =>
+  norm(pinyin)
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("");
 export function letterOf(pinyin: string): string {
   const c = norm(pinyin)[0];
   return c ? c.toUpperCase() : "#";
@@ -66,7 +71,10 @@ export function searchHerbs(index: HerbIndex, query: string, limit = 20): HerbEn
     else if (isLatin && e.initials.startsWith(ql)) score = 3;
     if (score >= 0) scored.push([score, e]);
   }
-  return scored.sort((a, b) => a[0] - b[0] || a[1].pinyin.localeCompare(b[1].pinyin)).slice(0, limit).map((x) => x[1]);
+  return scored
+    .sort((a, b) => a[0] - b[0] || a[1].pinyin.localeCompare(b[1].pinyin))
+    .slice(0, limit)
+    .map((x) => x[1]);
 }
 
 /**

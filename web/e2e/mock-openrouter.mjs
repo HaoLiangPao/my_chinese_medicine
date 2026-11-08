@@ -64,7 +64,9 @@ http
         id: "gen-mock",
         object: "chat.completion",
         model: body.model,
-        choices: [{ index: 0, finish_reason: "stop", message: { role: "assistant", content: "```json\n" + JSON.stringify(next) + "\n```" } }],
+        choices: [
+          { index: 0, finish_reason: "stop", message: { role: "assistant", content: "```json\n" + JSON.stringify(next) + "\n```" } },
+        ],
         usage: { prompt_tokens: 1000, completion_tokens: 200 },
       });
     }

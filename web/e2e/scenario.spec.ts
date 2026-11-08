@@ -136,9 +136,7 @@ test("3. 第一次盘点：家里原本就有的药材", { tag: ["@INV-1"] }, as
     await page.getByRole("button", { name: "录入" }).click();
     await expect(page.getByTestId(`stock-${s.herb}`)).toHaveText(`${s.grams} g`);
   }
-  const rows = await sql<{ kind: string }>("select kind from inventory_txns where workspace_id = $1", [
-    await workspaceOf(users.hao.email),
-  ]);
+  const rows = await sql<{ kind: string }>("select kind from inventory_txns where workspace_id = $1", [await workspaceOf(users.hao.email)]);
   expect(rows.map((r) => r.kind)).toEqual(["adjust", "adjust"]); // 不算采购
 });
 
@@ -199,9 +197,9 @@ test("4.1 购买记录列表：按日期倒序；每笔的店名、日期、合�
     const card = cards.nth(i);
     await expect(card.getByTestId("purchase-store")).toHaveText(e.store);
     await expect(card.getByTestId("purchase-summary")).toHaveText(e.summary);
-    const rows = await card.getByTestId("purchase-row").evaluateAll((trs) =>
-      trs.map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent?.trim() ?? "")),
-    );
+    const rows = await card
+      .getByTestId("purchase-row")
+      .evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent?.trim() ?? "")));
     // 明细行的顺序不固定，按药名比
     const byHerb = (a: string[], b: string[]) => a[0].localeCompare(b[0]);
     expect(rows.sort(byHerb), e.store).toEqual([...e.rows].sort(byHerb));
@@ -254,9 +252,7 @@ test("5. 煎药（含各种边界情况）", { tag: ["@DEC-1", "@DEC-2"] }, asyn
     { formula: "酸枣仁汤", name_zh: "川芎", status: "under", diff: "-4.00" },
   ]);
   // 撤销的那次不留痕迹
-  expect(
-    await sql("select 1 from decoctions where prescription_id = $1", [rxIds.get("八珍汤")]),
-  ).toHaveLength(0);
+  expect(await sql("select 1 from decoctions where prescription_id = $1", [rxIds.get("八珍汤")])).toHaveLength(0);
 
   // 回归测试：通过导航链接（客户端跳转，不刷新页面）看到的库存也必须是最新的
   await page.goto("/inventory");
@@ -331,18 +327,15 @@ test("7. 称重校准、删除药方", { tag: ["@INV-1", "@RX-4"] }, async () =>
   );
   expect(stockAfter).toEqual(stockBefore);
   expect(
-    await sql("select 1 from decoctions where workspace_id = $1 and prescription_id is null", [
-      await workspaceOf(users.hao.email),
-    ]),
+    await sql("select 1 from decoctions where workspace_id = $1 and prescription_id is null", [await workspaceOf(users.hao.email)]),
   ).toHaveLength(1);
 });
 
 test("8. 对账：数据库库存 = 独立账本", { tag: ["@INV-3"] }, async () => {
   const expected = expectedStock({ includeCalibration: true });
-  const rows = await sql<{ name_zh: string; g: string }>(
-    "select name_zh, on_hand_grams::text g from v_inventory where workspace_id = $1",
-    [await workspaceOf(users.hao.email)],
-  );
+  const rows = await sql<{ name_zh: string; g: string }>("select name_zh, on_hand_grams::text g from v_inventory where workspace_id = $1", [
+    await workspaceOf(users.hao.email),
+  ]);
   const actual = new Map(rows.map((r) => [r.name_zh, Number(r.g)]));
   expect(Object.fromEntries([...actual].sort())).toEqual(Object.fromEntries([...expected].sort()));
 

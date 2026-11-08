@@ -16,7 +16,9 @@ export function ReviewForm({ m, inherited }: { m: Monograph; inherited: Partial<
     const placeholder = from ? `空着 = 同原药材：${from}` : undefined;
     return (
       <div>
-        <label className="label" htmlFor={name}>{label}</label>
+        <label className="label" htmlFor={name}>
+          {label}
+        </label>
         {opts.long ? (
           <textarea id={name} name={name} defaultValue={v(name, value)} placeholder={placeholder} rows={2} className="input min-h-16" />
         ) : (
@@ -33,19 +35,29 @@ export function ReviewForm({ m, inherited }: { m: Monograph; inherited: Partial<
       <div className="grid gap-3 sm:grid-cols-3">
         {field("flavors", "味", m.flavors.join("、"), { hint: "用顿号分开，如：甘、微苦" })}
         <div>
-          <label className="label" htmlFor="nature">性</label>
+          <label className="label" htmlFor="nature">
+            性
+          </label>
           <select id="nature" name="nature" defaultValue={v("nature", m.nature)} className="input">
-            {NATURES.map((n) => <option key={n}>{n}</option>)}
+            {NATURES.map((n) => (
+              <option key={n}>{n}</option>
+            ))}
           </select>
         </div>
         {field("meridians", "归经", m.meridians.join("、"), { hint: "如：心、肺、胃" })}
       </div>
       {field("traditional_use", "传统用途", m.traditional_use, { long: true, hint: "不写用量" })}
       <div>
-        <label className="label" htmlFor="toxicity">毒性</label>
+        <label className="label" htmlFor="toxicity">
+          毒性
+        </label>
         <select id="toxicity" name="toxicity" defaultValue={v("toxicity", m.toxicity)} className="input">
           {isProcessed && <option value="">同原药材{inherited?.toxicity ? `（${inherited.toxicity}）` : ""}</option>}
-          {Object.entries(TOXICITY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          {Object.entries(TOXICITY).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
         </select>
       </div>
       {field("cautions", "使用注意", m.cautions, { long: true })}
@@ -56,18 +68,39 @@ export function ReviewForm({ m, inherited }: { m: Monograph; inherited: Partial<
       {field("quality", "选品", m.quality, { long: true })}
       {field("storage", "保存", m.storage)}
 
-      {state.error && <p className="text-sm text-cinnabar" role="alert">{state.error}</p>}
-      {state.ok && <p className="text-sm text-jade" role="status">{state.ok}</p>}
+      {state.error && (
+        <p className="text-sm text-cinnabar" role="alert">
+          {state.error}
+        </p>
+      )}
+      {state.ok && (
+        <p className="text-sm text-jade" role="status">
+          {state.ok}
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-2 border-t border-line pt-3">
-        <button name="action" value="approve" disabled={pending} className="btn-primary min-h-11 flex-1">通过，下一味</button>
-        <button name="action" value="save" disabled={pending} className="btn-ghost min-h-11">先存着</button>
+        <button name="action" value="approve" disabled={pending} className="btn-primary min-h-11 flex-1">
+          通过，下一味
+        </button>
+        <button name="action" value="save" disabled={pending} className="btn-ghost min-h-11">
+          先存着
+        </button>
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-muted">有问题？</summary>
         <div className="mt-2 space-y-2">
-          <textarea name="note" aria-label="问题备注" defaultValue={v("note", null)} placeholder="写一句是什么问题，我们来处理" rows={2} className="input" />
-          <button name="action" value="flag" disabled={pending} className="btn-ghost">记下问题</button>
+          <textarea
+            name="note"
+            aria-label="问题备注"
+            defaultValue={v("note", null)}
+            placeholder="写一句是什么问题，我们来处理"
+            rows={2}
+            className="input"
+          />
+          <button name="action" value="flag" disabled={pending} className="btn-ghost">
+            记下问题
+          </button>
         </div>
       </details>
     </form>

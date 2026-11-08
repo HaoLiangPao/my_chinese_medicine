@@ -17,12 +17,20 @@ export async function reviewHerb(_prev: ReviewState, form: FormData): Promise<Re
   const herbId = String(form.get("herb_id") ?? "");
   const action = String(form.get("action") ?? "");
   const note = str(form.get("note"));
-  const values = Object.fromEntries([...form.entries()].filter(([k, v]) => !k.startsWith("$") && typeof v === "string")) as Record<string, string>;
+  const values = Object.fromEntries([...form.entries()].filter(([k, v]) => !k.startsWith("$") && typeof v === "string")) as Record<
+    string,
+    string
+  >;
 
   const content = action === "flag" ? null : parseMonographForm(form);
   const problem = content && checkMonograph(content);
   if (problem) return { error: problem, values };
-  const { error } = await supabase.rpc("review_herb_monograph", { p_herb_id: herbId, p_content: content ?? {}, p_action: action, p_note: note });
+  const { error } = await supabase.rpc("review_herb_monograph", {
+    p_herb_id: herbId,
+    p_content: content ?? {},
+    p_action: action,
+    p_note: note,
+  });
   if (error) return { error: error.message, values };
   invalidateAll();
 

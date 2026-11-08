@@ -47,7 +47,11 @@ export function PrescriptionForm({
   const [parsing, setParsing] = useState(false);
   const [prescriberId, setPrescriberId] = useState(defaultPrescriber);
   // 服务器渲染的 HTML 先显示出来，React 水合完成前按钮点了没反应（onClick 还没挂上）→ 先显示「加载中」、点不了
-  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const hydrated = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
   const [parseMsg, setParseMsg] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   // 粘贴文字（RX-7）：认出来的填进表单，认不出的行留在框里
@@ -57,8 +61,7 @@ export function PrescriptionForm({
   const fileRef = useRef<HTMLInputElement>(null);
   const [match] = useState(() => buildMatcher(catalog));
 
-  const update = (key: number, patch: Partial<Item>) =>
-    setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+  const update = (key: number, patch: Partial<Item>) => setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
   // A–Z 选的药：填进第一行空着的，没有空行就加一行；然后焦点放到这一行的克数上，接着填
   const focusGrams = useRef<number | null>(null);
   const addHerb = (name: string) => {
@@ -148,7 +151,10 @@ export function PrescriptionForm({
     const extra = [...r.items.filter((i) => i.note).map((i) => `${i.name}：${i.note}`), ...(r.advice ? [`医嘱：${r.advice}`] : [])];
     if (extra.length) {
       setNotes((n) => {
-        const lines = n.split("\n").map((l) => l.trim()).filter(Boolean);
+        const lines = n
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
         return [...lines, ...extra.filter((e) => !lines.includes(e))].join("\n");
       });
     }
@@ -219,23 +225,55 @@ export function PrescriptionForm({
       <div className="card grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="col-span-2 sm:col-span-3">
           <label className="label">名称（可选）</label>
-          <input name="title" value={meta.title} onChange={(e) => setMeta({ ...meta, title: e.target.value })} placeholder="如：十月调理方" className="input" />
+          <input
+            name="title"
+            value={meta.title}
+            onChange={(e) => setMeta({ ...meta, title: e.target.value })}
+            placeholder="如：十月调理方"
+            className="input"
+          />
         </div>
         <div>
           <label className="label">开方日期</label>
-          <input name="issued_on" type="date" value={meta.issued_on} onChange={(e) => setMeta({ ...meta, issued_on: e.target.value })} className="input" />
+          <input
+            name="issued_on"
+            type="date"
+            value={meta.issued_on}
+            onChange={(e) => setMeta({ ...meta, issued_on: e.target.value })}
+            className="input"
+          />
         </div>
         <div>
           <label className="label">剂数（几副）</label>
-          <input name="dose_count" type="number" min={1} value={meta.dose_count} onChange={(e) => setMeta({ ...meta, dose_count: e.target.value })} className="input" />
+          <input
+            name="dose_count"
+            type="number"
+            min={1}
+            value={meta.dose_count}
+            onChange={(e) => setMeta({ ...meta, dose_count: e.target.value })}
+            className="input"
+          />
         </div>
         <div>
           <label className="label">谁吃的</label>
-          <input name="patient_label" value={meta.patient_label} onChange={(e) => setMeta({ ...meta, patient_label: e.target.value })} className="input" />
+          <input
+            name="patient_label"
+            value={meta.patient_label}
+            onChange={(e) => setMeta({ ...meta, patient_label: e.target.value })}
+            className="input"
+          />
         </div>
         <div>
-          <label className="label" htmlFor="prescriber_id">医生</label>
-          <select id="prescriber_id" name="prescriber_id" value={prescriberId} onChange={(e) => setPrescriberId(e.target.value)} className="input">
+          <label className="label" htmlFor="prescriber_id">
+            医生
+          </label>
+          <select
+            id="prescriber_id"
+            name="prescriber_id"
+            value={prescriberId}
+            onChange={(e) => setPrescriberId(e.target.value)}
+            className="input"
+          >
             <option value="">不填</option>
             {prescribers.map((p) => (
               <option key={p.id} value={p.id}>
@@ -245,7 +283,14 @@ export function PrescriptionForm({
             <option value={NEW_PRESCRIBER}>＋ 新增医生…</option>
           </select>
           {prescriberId === NEW_PRESCRIBER && (
-            <input name="prescriber_new" aria-label="新医生的名字" placeholder="如：李医生" maxLength={100} autoFocus className="input mt-1" />
+            <input
+              name="prescriber_new"
+              aria-label="新医生的名字"
+              placeholder="如：李医生"
+              maxLength={100}
+              autoFocus
+              className="input mt-1"
+            />
           )}
         </div>
         <div>
@@ -254,7 +299,13 @@ export function PrescriptionForm({
         </div>
         <div className="col-span-2 sm:col-span-3">
           <label className="label">煎服法</label>
-          <input name="instructions" value={meta.instructions} onChange={(e) => setMeta({ ...meta, instructions: e.target.value })} placeholder="如：水煎服，日一剂，早晚分服" className="input" />
+          <input
+            name="instructions"
+            value={meta.instructions}
+            onChange={(e) => setMeta({ ...meta, instructions: e.target.value })}
+            placeholder="如：水煎服，日一剂，早晚分服"
+            className="input"
+          />
         </div>
       </div>
 
@@ -304,7 +355,12 @@ export function PrescriptionForm({
                   <option key={p}>{p}</option>
                 ))}
               </select>
-              <button type="button" onClick={() => setItems((xs) => xs.filter((x) => x.key !== it.key))} className="text-muted hover:text-cinnabar" aria-label="删除">
+              <button
+                type="button"
+                onClick={() => setItems((xs) => xs.filter((x) => x.key !== it.key))}
+                className="text-muted hover:text-cinnabar"
+                aria-label="删除"
+              >
                 ✕
               </button>
               {m.kind === "alias" && (
@@ -329,7 +385,9 @@ export function PrescriptionForm({
         value={JSON.stringify(filled.map((i) => ({ name: i.name, grams: Number(i.grams), prep: i.prep || null, raw: i.raw })))}
       />
       <div>
-        <label className="label" htmlFor="rx-notes">备注</label>
+        <label className="label" htmlFor="rx-notes">
+          备注
+        </label>
         <textarea id="rx-notes" name="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="input" />
       </div>
       {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}

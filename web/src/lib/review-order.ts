@@ -5,7 +5,10 @@
 import { byPinyin } from "./pinyin-order";
 
 /** 审核完一味以后跳到哪：按顺序排在它后面的第一味待审核的药；后面没有了就从头找；一味都没有了返回 null */
-export function nextPending<T extends { herb_id: string; name_zh: string; pinyin: string | null; status: string }>(all: T[], currentId: string) {
+export function nextPending<T extends { herb_id: string; name_zh: string; pinyin: string | null; status: string }>(
+  all: T[],
+  currentId: string,
+) {
   const sorted = [...all].sort(byPinyin);
   const at = sorted.findIndex((m) => m.herb_id === currentId);
   const rotated = at < 0 ? sorted : [...sorted.slice(at + 1), ...sorted.slice(0, at)];

@@ -54,11 +54,17 @@ async function Dashboard() {
 
       <div className="flex flex-wrap gap-2">
         {clinic ? (
-          <Link href="/clinic/prescribe" className="btn-primary">＋ 开方</Link>
+          <Link href="/clinic/prescribe" className="btn-primary">
+            ＋ 开方
+          </Link>
         ) : (
-          <Link href="/prescriptions/new" className="btn-primary">＋ 录药方 / 拍照识别</Link>
+          <Link href="/prescriptions/new" className="btn-primary">
+            ＋ 录药方 / 拍照识别
+          </Link>
         )}
-        <Link href="/purchases/new" className="btn-ghost">＋ 记一笔{t.purchase}</Link>
+        <Link href="/purchases/new" className="btn-ghost">
+          ＋ 记一笔{t.purchase}
+        </Link>
       </div>
 
       <section>
@@ -83,7 +89,11 @@ async function Dashboard() {
           <h2 className="mb-2 font-serif text-lg font-bold">{clinic ? "该进货了" : "该补货了"}</h2>
           <div className="flex flex-wrap gap-2">
             {low.map((r) => (
-              <Link key={r.herb_id} href={`/herbs/${r.herb_id}`} className="rounded-full border border-cinnabar px-3 py-1 text-sm text-cinnabar">
+              <Link
+                key={r.herb_id}
+                href={`/herbs/${r.herb_id}`}
+                className="rounded-full border border-cinnabar px-3 py-1 text-sm text-cinnabar"
+              >
                 {r.name_zh} {grams(r.on_hand_grams)}
               </Link>
             ))}
@@ -91,11 +101,7 @@ async function Dashboard() {
         </section>
       )}
 
-      {clinic ? (
-        <ClinicAccount user={user} />
-      ) : (
-        <Family supabase={supabase} user={user} workspaceId={workspaceId} />
-      )}
+      {clinic ? <ClinicAccount user={user} /> : <Family supabase={supabase} user={user} workspaceId={workspaceId} />}
     </div>
   );
 }
