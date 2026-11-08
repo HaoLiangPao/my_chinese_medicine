@@ -5,7 +5,17 @@ export type HerbChoice = { id: string; name: string };
 export type HerbEntry = { id: string; name: string; pinyin: string; initials: string; variants: HerbChoice[] };
 export type HerbIndex = { letters: string[]; groups: Record<string, HerbEntry[]>; entries: HerbEntry[] };
 
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim();
+/** 拼音标准化：小写、ü（带不带声调）写成 v（pinyin-pro 现算的拼音带 ü，目录里存的是 v，如 nv zhen zi）、去掉声调、只留字母和空格 */
+export const normPinyin = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[üǖǘǚǜ]/g, "v")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // 去掉声调（ā → a）
+    .replace(/[^a-z ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+const norm = normPinyin;
 export const initialsOf = (pinyin: string) => norm(pinyin).split(" ").filter(Boolean).map((w) => w[0]).join("");
 export function letterOf(pinyin: string): string {
   const c = norm(pinyin)[0];

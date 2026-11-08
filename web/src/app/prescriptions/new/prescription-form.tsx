@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useRef, useState, useSyncExternalStore } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPrescription, type SaveState } from "../actions";
 import { SPECIAL_PREPS } from "@/lib/format";
 import type { ParseResponse } from "@/app/api/parse-prescription/route";
 import { buildMatcher, type HerbCatalog } from "@/lib/herb-match";
+import type { AzRow } from "@/lib/herb-az";
+import { HerbPicker } from "./herb-picker";
 
 type Item = { key: number; name: string; grams: string; prep: string; raw: string | null };
 
@@ -22,7 +24,7 @@ async function shrink(file: File): Promise<Blob> {
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85));
 }
 
-export function PrescriptionForm({ catalog, today }: { catalog: HerbCatalog; today: string }) {
+export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCatalog; azRows: AzRow[]; today: string }) {
   const [state, action, pending] = useActionState<SaveState, FormData>(createPrescription, {});
   const [items, setItems] = useState<Item[]>([blank(), blank(), blank()]);
   const [meta, setMeta] = useState({ title: "", issued_on: today, dose_count: "7", instructions: "", patient_label: "" });
@@ -37,6 +39,27 @@ export function PrescriptionForm({ catalog, today }: { catalog: HerbCatalog; tod
 
   const update = (key: number, patch: Partial<Item>) =>
     setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+  // A–Z 选的药：填进第一行空着的，没有空行就加一行；然后焦点放到这一行的克数上，接着填
+  const focusGrams = useRef<number | null>(null);
+  const addHerb = (name: string) => {
+    const empty = items.find((x) => !x.name.trim());
+    if (empty) {
+      update(empty.key, { name });
+      focusGrams.current = empty.key;
+    } else {
+      const row = { ...blank(), name };
+      setItems((xs) => [...xs, row]);
+      focusGrams.current = row.key;
+    }
+  };
+  // 每一行的克数输入框（按行的 key 记）。不能用 data 属性去页面里找：key 是模块里的计数器，
+  // 服务器渲染出来的值和浏览器里的不一样（水合不会改属性），E2E 一起跑时就找不到了
+  const gramsInputs = useRef(new Map<number, HTMLInputElement>());
+  useEffect(() => {
+    if (focusGrams.current === null) return;
+    gramsInputs.current.get(focusGrams.current)?.focus();
+    focusGrams.current = null;
+  });
 
   async function onPhoto(file: File) {
     setParsing(true);
@@ -177,6 +200,10 @@ export function PrescriptionForm({ catalog, today }: { catalog: HerbCatalog; tod
                 onChange={(e) => update(it.key, { grams: e.target.value })}
                 placeholder="克"
                 aria-label="每副克数"
+                ref={(el) => {
+                  if (el) gramsInputs.current.set(it.key, el);
+                  else gramsInputs.current.delete(it.key);
+                }}
                 className="input"
               />
               <select aria-label="脚注" value={it.prep} onChange={(e) => update(it.key, { prep: e.target.value })} className="input px-1">
@@ -196,9 +223,12 @@ export function PrescriptionForm({ catalog, today }: { catalog: HerbCatalog; tod
             </div>
           );
         })}
-        <button type="button" onClick={() => setItems((xs) => [...xs, blank()])} className="btn-ghost w-full">
-          ＋ 加一味
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <HerbPicker rows={azRows} aliases={catalog.aliases} onPick={addHerb} />
+          <button type="button" onClick={() => setItems((xs) => [...xs, blank()])} className="btn-ghost w-full">
+            ＋ 加一味
+          </button>
+        </div>
       </div>
 
       <input
