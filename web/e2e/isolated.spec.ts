@@ -308,6 +308,70 @@ test.describe("拍照识别", () => {
     }
   });
 
+  test("没用上的照片：识别后登记；超过 7 天没挂到药方上的被清掉，挂到药方上的留着", { tag: ["@FIX-8", "@RX-3"] }, async ({ page }) => {
+    const u = fresh();
+    await signUp(page, u);
+    const ws = await workspaceOf(u.email);
+    const store = (p: string) => path.resolve(__dirname, "../../.local/storage/prescription-photos", p);
+    const recognize = async () => {
+      await page.goto("/prescriptions/new");
+      await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
+      await page
+        .locator('input[type="file"]')
+        .setInputFiles({ name: "rx.png", mimeType: "image/png", buffer: await prescriptionImage(page) });
+      await expect(page.getByText(/识别出 5 味药/)).toBeVisible({ timeout: 30_000 });
+    };
+    const uploads = async () =>
+      (await sql<{ path: string }>("select path from photo_uploads where workspace_id = $1 order by created_at", [ws])).map((r) => r.path);
+
+    // 1. 识别了但没保存：登记了，文件在
+    await recognize();
+    const [unused] = await uploads();
+    expect(unused.startsWith(`${ws}/`)).toBe(true);
+    expect(fs.existsSync(store(unused))).toBe(true);
+
+    // 2. 识别后保存到药方上
+    await recognize();
+    await page.getByRole("button", { name: "保存药方" }).click();
+    await page.waitForURL(/\/prescriptions\/[0-9a-f-]{36}$/);
+    const [{ photo_path: used }] = await sql<{ photo_path: string }>(
+      "select photo_path from prescriptions where workspace_id = $1 and photo_path is not null",
+      [ws],
+    );
+    expect(await uploads()).toEqual([unused, used]);
+
+    // 3. 两张都过了 8 天；再识别一次 → 响应发出后顺手清理：没用上的那张文件和登记都没了，保存了的留着
+    await sql("update photo_uploads set created_at = now() - interval '8 days' where workspace_id = $1", [ws]);
+    await recognize();
+    await expect.poll(() => fs.existsSync(store(unused)), { timeout: 10_000 }).toBe(false);
+    await expect.poll(async () => (await uploads()).includes(unused)).toBe(false);
+    expect(fs.existsSync(store(used))).toBe(true);
+    const left = await uploads();
+    expect(left).toContain(used);
+    expect(left).toHaveLength(2); // 保存了的 + 刚识别的这张（还没到 7 天）
+    const recent = left.find((p) => p !== used)!;
+
+    // 4. 刚识别的这张也过了 8 天；这次不识别，只手动保存一张药方 → 保存后也会顺手清理
+    await sql("update photo_uploads set created_at = now() - interval '8 days' where path = $1", [recent]);
+    await page.goto("/prescriptions/new");
+    await expect(page.getByRole("button", { name: /拍照/ })).toBeEnabled();
+    await page.getByLabel("药名", { exact: true }).first().fill("黄芪");
+    await page.getByLabel("每副克数").first().fill("10");
+    await page.getByRole("button", { name: "保存药方" }).click();
+    await page.waitForURL(/\/prescriptions\/[0-9a-f-]{36}$/);
+    await expect.poll(() => fs.existsSync(store(recent)), { timeout: 10_000 }).toBe(false);
+    await expect.poll(async () => await uploads()).toEqual([used]);
+
+    // 5. 删掉带照片的药方 → 照片和登记立刻一起删
+    const [{ id: usedRx }] = await sql<{ id: string }>("select id from prescriptions where photo_path = $1", [used]);
+    page.once("dialog", (d) => d.accept());
+    await page.goto(`/prescriptions/${usedRx}`);
+    await page.getByRole("button", { name: "删除这张药方" }).click();
+    await page.waitForURL(/\/prescriptions\?deleted=/);
+    expect(fs.existsSync(store(used))).toBe(false);
+    expect(await uploads()).toEqual([]);
+  });
+
   test("免费模型限流 → 自动换 DeepSeek，照样识别出来", { tag: ["@RX-3"] }, async ({ page, request }) => {
     await signUp(page, fresh());
     await page.goto("/prescriptions/new");
