@@ -102,7 +102,8 @@ test("保存后的药方和粘贴的一致；整个过程没有调用模型", { 
   await page.getByRole("button", { name: "保存药方" }).click();
 
   await expect(page.getByRole("heading", { name: `RX7-${RUN}` })).toBeVisible();
-  await expect(page.getByText(/^2026-10-30 · .* · 7 副 · 5 味 · 每副 45\.5 g · 张三/)).toBeVisible();
+  // 新账号的「医生」默认不填（RX-6），副标题里没有医生那一段
+  await expect(page.getByText(/^2026-10-30 · 7 副 · 5 味 · 每副 45\.5 g · 张三/)).toBeVisible();
   const rows = page.locator("table.data-table").first().locator("tbody tr");
   await expect(rows).toHaveCount(5);
   for (const [i, it] of EXPECTED_ITEMS.entries()) await expect(rows.nth(i)).toContainText(it.name);
