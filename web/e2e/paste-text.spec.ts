@@ -70,18 +70,23 @@ test("粘贴诊所的微信消息：药名、克数、脚注、剂数、日期�
   await expect(page.getByText("5 味 · 每副 45.5 g")).toBeVisible();
 });
 
-test("认不出的行原样留在框里", { tag: ["@RX-7"] }, async () => {
+test("认不出的行原样留在框里；改好再识别一次，接在后面", { tag: ["@RX-7"] }, async () => {
   await expect(page.getByLabel("药方文字")).toHaveValue("上次的方子去掉茯苓\n6. 当归 一点点");
   await expect(page.getByTestId("paste-msg")).toContainText("认出 5 味药");
   await expect(page.getByTestId("paste-msg")).toContainText("还有 2 行没认出来");
   await page.getByTestId("paste-box").screenshot({ path: `${SHOTS}/粘贴文字-识别后.png` });
 
-  // 用户把认不出的行改好，再识别一次：只改那一行 → 只有它被填进来（替换药材列表）
-  await page.getByLabel("药方文字").fill("当归 6g");
+  // 用户把认不出的行改好，再识别一次：认出的药接在后面（前面 5 味不丢），备注不重复
+  await page.getByLabel("药方文字").fill("当归 6g\n医嘱：忌生冷");
   await page.getByRole("button", { name: "识别文字" }).click();
-  await expect(page.getByLabel("药名", { exact: true })).toHaveCount(1);
-  await expect(page.getByLabel("药名", { exact: true })).toHaveValue("当归");
+  const names = page.getByLabel("药名", { exact: true });
+  await expect(names).toHaveCount(EXPECTED_ITEMS.length + 1);
+  for (const [i, it] of EXPECTED_ITEMS.entries()) await expect(names.nth(i)).toHaveValue(it.name);
+  await expect(names.nth(EXPECTED_ITEMS.length)).toHaveValue("当归");
+  await expect(page.getByLabel("每副克数").nth(EXPECTED_ITEMS.length)).toHaveValue("6");
   await expect(page.getByLabel("药方文字")).toHaveValue("");
+  await expect(page.getByLabel("备注", { exact: true })).toHaveValue("薄荷：最后 5 分钟放\n医嘱：忌生冷");
+  await expect(page.getByText("6 味 · 每副 51.5 g")).toBeVisible();
 });
 
 test("保存后的药方和粘贴的一致；整个过程没有调用模型", { tag: ["@RX-7"] }, async () => {

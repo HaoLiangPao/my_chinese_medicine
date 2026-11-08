@@ -114,9 +114,14 @@ export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCata
   }
 
   function onPasteParse() {
-    const r = parseRxText(pasteText);
+    const r = parseRxText(pasteText, (name) => match(name).kind !== "unknown");
     if (r.items.length) {
-      setItems(r.items.map((it) => ({ key: nextKey++, name: it.name, grams: String(it.grams), prep: it.prep ?? "", raw: it.name })));
+      const parsed = r.items.map((it) => ({ key: nextKey++, name: it.name, grams: String(it.grams), prep: it.prep ?? "", raw: it.name }));
+      // 表单里还没有药：整列换成认出来的（和拍照识别一样）。已经有药了（比如改好剩下的行再识别一次）：接在后面，不覆盖
+      setItems((xs) => {
+        const kept = xs.filter((x) => x.name.trim());
+        return kept.length ? [...kept, ...parsed] : parsed;
+      });
     }
     setMeta((m) => ({
       ...m,
@@ -125,15 +130,22 @@ export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCata
       instructions: r.instructions ?? m.instructions,
       patient_label: r.patient ?? m.patient_label,
     }));
-    // 每味药的备注（家庭药方没有这一栏）和医嘱放进备注，不丢
+    // 每味药的备注（家庭药方没有这一栏）和医嘱放进备注，不丢；已经有的同一行不重复加
     const extra = [...r.items.filter((i) => i.note).map((i) => `${i.name}：${i.note}`), ...(r.advice ? [`医嘱：${r.advice}`] : [])];
-    if (extra.length) setNotes((n) => [n.trim(), ...extra].filter(Boolean).join("\n"));
+    if (extra.length) {
+      setNotes((n) => {
+        const lines = n.split("\n").map((l) => l.trim()).filter(Boolean);
+        return [...lines, ...extra.filter((e) => !lines.includes(e))].join("\n");
+      });
+    }
     setPasteText(r.unrecognized.join("\n"));
     const unknown = r.items.filter((i) => match(i.name).kind === "unknown").length;
     setPasteMsg(
       (r.items.length ? `认出 ${r.items.length} 味药` : "没有认出药材") +
         (unknown ? `，其中 ${unknown} 味不在药材目录里（标红），保存时会新建——请核对名字` : "") +
-        (r.unrecognized.length ? `；还有 ${r.unrecognized.length} 行没认出来，留在框里，可以改了再点「识别文字」或者手动填。` : "。"),
+        (r.unrecognized.length
+          ? `；还有 ${r.unrecognized.length} 行没认出来，留在框里。可以改好再点「识别文字」（认出的药接在后面），或者手动填。`
+          : "。"),
     );
   }
 
