@@ -7,6 +7,8 @@ import { getContext } from "@/lib/auth";
 import { resolveHerbId } from "@/lib/herbs";
 import { num, parseJsonField, str, SPECIAL_PREPS } from "@/lib/format";
 import { buildOverrides, cleanExtras, plannedGrams, type PlanItem } from "@/lib/decoction";
+import { parsePrescriberChoice, type PrescriberChoice } from "@/lib/prescribers";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const Items = z
   .array(
@@ -30,6 +32,9 @@ export async function createPrescription(_prev: SaveState, form: FormData): Prom
   const parsed = Items.safeParse(parseJsonField(form.get("items"), []));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "药材列表有误" };
 
+  const prescriber = await resolvePrescriber(supabase, workspaceId, parsePrescriberChoice(form.get("prescriber_id"), form.get("prescriber_new")));
+  if ("error" in prescriber) return { error: prescriber.error };
+
   // 同一味药出现两次就合并克数
   const merged = new Map<string, { grams: number; prep: string | null; raw: string | null; order: number }>();
   let order = 0;
@@ -45,7 +50,9 @@ export async function createPrescription(_prev: SaveState, form: FormData): Prom
     .insert({
       workspace_id: workspaceId,
       title: str(form.get("title")),
-      prescriber: str(form.get("prescriber")) ?? "李医生",
+      // 第 1 次上线同时写文字字段，正在线上跑的旧代码只读它（0011 §3）
+      prescriber: prescriber.name,
+      prescriber_id: prescriber.id,
       patient_label: str(form.get("patient_label")),
       issued_on: str(form.get("issued_on")) ?? undefined,
       dose_count: num(form.get("dose_count")) ?? 1,
@@ -76,6 +83,34 @@ export async function createPrescription(_prev: SaveState, form: FormData): Prom
 
   invalidateAll();
   redirect(`/prescriptions/${rx.id}`);
+}
+
+/** 下拉选的医生 → { id, name }；选「新增」时建一个（同名的直接用已有的） */
+async function resolvePrescriber(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  choice: PrescriberChoice,
+): Promise<{ id: string | null; name: string | null } | { error: string }> {
+  if (choice.kind === "none") return { id: null, name: null };
+  if (choice.kind === "error") return { error: choice.message };
+  if (choice.kind === "existing") {
+    const { data } = await supabase.from("prescribers").select("id, name").eq("id", choice.id).eq("workspace_id", workspaceId).maybeSingle();
+    return data ?? { error: "找不到这位医生，请刷新页面重试" };
+  }
+  const find = () => supabase.from("prescribers").select("id, name").eq("workspace_id", workspaceId).eq("name", choice.name).maybeSingle();
+  const { data: found } = await find();
+  if (found) return found;
+  const { data: created, error } = await supabase
+    .from("prescribers")
+    .insert({ workspace_id: workspaceId, name: choice.name })
+    .select("id, name")
+    .single();
+  if (created) return created;
+  if (error?.code === "23505") {
+    const { data: raced } = await find(); // 家人同时建了同名的
+    if (raced) return raced;
+  }
+  return { error: `新增医生失败：${error?.message ?? "未知错误"}` };
 }
 
 export async function deletePrescription(form: FormData) {

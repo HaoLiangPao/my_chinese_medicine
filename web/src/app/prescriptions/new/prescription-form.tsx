@@ -6,6 +6,7 @@ import { SPECIAL_PREPS } from "@/lib/format";
 import type { ParseResponse } from "@/app/api/parse-prescription/route";
 import { buildMatcher, type HerbCatalog } from "@/lib/herb-match";
 import type { AzRow } from "@/lib/herb-az";
+import { NEW_PRESCRIBER } from "@/lib/prescribers";
 import { parseRxText } from "@/lib/rx-text";
 import { HerbPicker } from "./herb-picker";
 
@@ -25,13 +26,26 @@ async function shrink(file: File): Promise<Blob> {
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85));
 }
 
-export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCatalog; azRows: AzRow[]; today: string }) {
+export function PrescriptionForm({
+  catalog,
+  azRows,
+  today,
+  prescribers,
+  defaultPrescriber,
+}: {
+  catalog: HerbCatalog;
+  azRows: AzRow[];
+  today: string;
+  prescribers: { id: string; name: string }[];
+  defaultPrescriber: string;
+}) {
   const [state, action, pending] = useActionState<SaveState, FormData>(createPrescription, {});
   const [items, setItems] = useState<Item[]>([blank(), blank(), blank()]);
   const [meta, setMeta] = useState({ title: "", issued_on: today, dose_count: "7", instructions: "", patient_label: "" });
   const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
+  const [prescriberId, setPrescriberId] = useState(defaultPrescriber);
   // 服务器渲染的 HTML 先显示出来，React 水合完成前按钮点了没反应（onClick 还没挂上）→ 先显示「加载中」、点不了
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [parseMsg, setParseMsg] = useState<string | null>(null);
@@ -220,8 +234,19 @@ export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCata
           <input name="patient_label" value={meta.patient_label} onChange={(e) => setMeta({ ...meta, patient_label: e.target.value })} className="input" />
         </div>
         <div>
-          <label className="label">医生</label>
-          <input name="prescriber" defaultValue="李医生" className="input" />
+          <label className="label" htmlFor="prescriber_id">医生</label>
+          <select id="prescriber_id" name="prescriber_id" value={prescriberId} onChange={(e) => setPrescriberId(e.target.value)} className="input">
+            <option value="">不填</option>
+            {prescribers.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+            <option value={NEW_PRESCRIBER}>＋ 新增医生…</option>
+          </select>
+          {prescriberId === NEW_PRESCRIBER && (
+            <input name="prescriber_new" aria-label="新医生的名字" placeholder="如：李医生" maxLength={100} autoFocus className="input mt-1" />
+          )}
         </div>
         <div>
           <label className="label">实付金额 (CAD)</label>
