@@ -6,6 +6,7 @@ import { SPECIAL_PREPS } from "@/lib/format";
 import type { ParseResponse } from "@/app/api/parse-prescription/route";
 import { buildMatcher, type HerbCatalog } from "@/lib/herb-match";
 import type { AzRow } from "@/lib/herb-az";
+import { parseRxText } from "@/lib/rx-text";
 import { HerbPicker } from "./herb-picker";
 
 type Item = { key: number; name: string; grams: string; prep: string; raw: string | null };
@@ -34,6 +35,11 @@ export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCata
   // 服务器渲染的 HTML 先显示出来，React 水合完成前按钮点了没反应（onClick 还没挂上）→ 先显示「加载中」、点不了
   const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [parseMsg, setParseMsg] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  // 粘贴文字（RX-7）：认出来的填进表单，认不出的行留在框里
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [pasteMsg, setPasteMsg] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [match] = useState(() => buildMatcher(catalog));
 
@@ -107,6 +113,30 @@ export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCata
     }
   }
 
+  function onPasteParse() {
+    const r = parseRxText(pasteText);
+    if (r.items.length) {
+      setItems(r.items.map((it) => ({ key: nextKey++, name: it.name, grams: String(it.grams), prep: it.prep ?? "", raw: it.name })));
+    }
+    setMeta((m) => ({
+      ...m,
+      issued_on: r.issued_on ?? m.issued_on,
+      dose_count: r.dose_count ? String(r.dose_count) : m.dose_count,
+      instructions: r.instructions ?? m.instructions,
+      patient_label: r.patient ?? m.patient_label,
+    }));
+    // 每味药的备注（家庭药方没有这一栏）和医嘱放进备注，不丢
+    const extra = [...r.items.filter((i) => i.note).map((i) => `${i.name}：${i.note}`), ...(r.advice ? [`医嘱：${r.advice}`] : [])];
+    if (extra.length) setNotes((n) => [n.trim(), ...extra].filter(Boolean).join("\n"));
+    setPasteText(r.unrecognized.join("\n"));
+    const unknown = r.items.filter((i) => match(i.name).kind === "unknown").length;
+    setPasteMsg(
+      (r.items.length ? `认出 ${r.items.length} 味药` : "没有认出药材") +
+        (unknown ? `，其中 ${unknown} 味不在药材目录里（标红），保存时会新建——请核对名字` : "") +
+        (r.unrecognized.length ? `；还有 ${r.unrecognized.length} 行没认出来，留在框里，可以改了再点「识别文字」或者手动填。` : "。"),
+    );
+  }
+
   const filled = items.filter((i) => i.name.trim() && Number(i.grams) > 0);
   const totalPerDose = filled.reduce((s, i) => s + Number(i.grams), 0);
 
@@ -130,8 +160,33 @@ export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCata
           // eslint-disable-next-line @next/next/no-img-element
           <img src={preview} alt="药方照片" className="h-24 w-auto rounded-md border border-line object-cover" />
         )}
+        <button type="button" onClick={() => setPasteOpen((o) => !o)} disabled={!hydrated} className="btn-ghost" aria-expanded={pasteOpen}>
+          📋 粘贴文字
+        </button>
         {parseMsg && <p className="whitespace-pre-line text-sm text-muted">{parseMsg}</p>}
       </div>
+      {pasteOpen && (
+        <div className="card space-y-2" data-testid="paste-box">
+          <textarea
+            aria-label="药方文字"
+            rows={6}
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder={"把医生发的药方文字粘贴到这里，比如：\n黄芪 30g\n白术 12g（先煎）\n共 7 剂"}
+            className="input font-mono text-sm"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={onPasteParse} disabled={!pasteText.trim()} className="btn-primary">
+              识别文字
+            </button>
+            {pasteMsg && (
+              <p className="text-sm text-muted" data-testid="paste-msg">
+                {pasteMsg}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
       <input type="hidden" name="photo_path" value={photoPath ?? ""} />
 
       {/* 基本信息 */}
@@ -237,8 +292,8 @@ export function PrescriptionForm({ catalog, azRows, today }: { catalog: HerbCata
         value={JSON.stringify(filled.map((i) => ({ name: i.name, grams: Number(i.grams), prep: i.prep || null, raw: i.raw })))}
       />
       <div>
-        <label className="label">备注</label>
-        <textarea name="notes" rows={2} className="input" />
+        <label className="label" htmlFor="rx-notes">备注</label>
+        <textarea id="rx-notes" name="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="input" />
       </div>
       {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
       <button disabled={pending || parsing || filled.length === 0} className="btn-primary w-full py-3">
