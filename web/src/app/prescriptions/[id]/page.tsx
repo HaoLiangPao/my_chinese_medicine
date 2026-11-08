@@ -14,6 +14,7 @@ import { MessageBox } from "./message-box";
 import { formatWeChatMessage } from "@/lib/rx-message";
 import { CostSection } from "./cost-section";
 import { parseStrategy } from "@/lib/pricing";
+import { prescriberLabel } from "@/lib/prescribers";
 
 export default function PrescriptionPage({ params, searchParams }: PageProps<"/prescriptions/[id]">) {
   return (
@@ -28,6 +29,7 @@ type Rx = {
   workspace_id: string;
   title: string | null;
   prescriber: string | null;
+  prescribers: { name: string } | null;
   patient_label: string | null;
   issued_on: string;
   dose_count: number;
@@ -62,7 +64,7 @@ async function Detail({
 
   const { data } = await supabase
     .from("prescriptions")
-    .select("*, prescription_items(herb_id, grams_per_dose, special_prep, note, raw_name, sort_order, herbs(name_zh, category))")
+    .select("*, prescribers(name), prescription_items(herb_id, grams_per_dose, special_prep, note, raw_name, sort_order, herbs(name_zh, category))")
     .eq("id", id)
     .maybeSingle();
   const rx = data as Rx | null;
@@ -132,7 +134,7 @@ async function Detail({
         )}
         <h1 className="mt-1 font-serif text-2xl font-bold">{rx.title || `未命名${rxWord}`}</h1>
         <p className="mt-1 text-sm text-muted">
-          {rx.issued_on} · {rx.prescriber} · {rx.dose_count} {unit} · {items.length} 味 · 每{unit} {grams(perDose)}
+          {[rx.issued_on, prescriberLabel(rx)].filter(Boolean).join(" · ")} · {rx.dose_count} {unit} · {items.length} 味 · 每{unit} {grams(perDose)}
           {rx.patient_label && ` · ${rx.patient_label}`}
           {rx.price_paid != null && ` · 实付 ${money(rx.price_paid)}（约 ${money(Number(rx.price_paid) / rx.dose_count)}/${unit}）`}
         </p>
