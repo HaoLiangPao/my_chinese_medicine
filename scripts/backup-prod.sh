@@ -10,16 +10,18 @@
 # 1) 有连接串（环境变量 PROD_DB_URL，或 ~/.config/my-chinese-medicine/backup.env，权限 600）→ pg_dump，得到 prod-<时间>.dump
 #      PROD_DB_URL='postgresql://postgres.<project-ref>:<密码>@aws-0-us-east-1.pooler.supabase.com:5432/postgres'
 #    密码在 Supabase → Project Settings → Database。用 5432（session 模式），不要用 6543。
-# 2) 没有连接串 → 用已经登录、已经 link 的 Supabase CLI（`supabase login` + `supabase link`，不用数据库密码），
+# 2) 没有连接串 → 用已经登录、已经 link 到线上项目的 Supabase CLI（`supabase login` + `supabase link`，不用数据库密码），
 #    得到 prod-<时间>-schema.sql 和 prod-<时间>-data.sql。需要 Docker（CLI 在容器里跑 pg_dump）。
+#    在 crontab 里跑时，cron 的 PATH 很短，可能找不到 npx / docker，CLI 的登录也可能读不到：先手动在 cron 环境试一次，或者用方式 1。
 #
 # 恢复（先在本地试，不要直接恢复到线上）：
 #   .dump：导出用的是 pg_dump 18，恢复也要用 pg_restore 18+
 #     pg_restore --list backups/<文件>.dump          看里面有什么
 #     pg_restore -d <本地库> --schema=public --schema=auth backups/<文件>.dump   （public 的外键指向 auth.users）
-#   .sql：先在空库里跑 -schema.sql，再跑 -data.sql（用超级用户：data 文件开头有 SET session_replication_role = replica，
-#     关掉外键检查，herbs 表指向自己的外键（炮制品 → 原药材）才导得进去）
-#     psql -d <本地库> -f backups/<文件>-schema.sql && psql -d <本地库> -f backups/<文件>-data.sql
+#   .sql：恢复到一个新建的空库（普通 Postgres 就行），用超级用户按顺序跑：
+#     psql -d <本地空库> -f scripts/backup-restore-prep.sql    补上 Supabase 自带的角色、schema、扩展
+#     psql -d <本地空库> -f backups/<文件>-schema.sql           public、auth、storage 三个 schema 的结构
+#     psql -d <本地空库> -f backups/<文件>-data.sql             数据（开头关掉了外键检查：herbs 表有指向自己的外键）
 #
 # 注意：拍照识别的原始照片在 Supabase Storage 里，不在数据库里，这个脚本不导出照片。
 set -euo pipefail
@@ -60,21 +62,28 @@ if [[ -n ${PROD_DB_URL:-} ]]; then
     || { echo "导出的文件里没有 prescriptions 表的数据，检查一下：$file" >&2; exit 1; }
   outputs=("$file")
 else
-  [[ -s $ROOT/supabase/.temp/project-ref ]] \
-    || { echo "没有连接串（$CONF），Supabase CLI 也没有 link 到项目。二选一：写 $CONF，或者跑 supabase login && supabase link" >&2; exit 1; }
+  # 线上项目的 ref 以 CI 配置为准；CLI link 到别的项目时不能当成线上备份
+  prod_ref=$(sed -n 's/^ *SUPABASE_PROJECT_REF: *//p' "$ROOT/.github/workflows/ci-cd.yml")
+  linked_ref=$(cat "$ROOT/supabase/.temp/project-ref" 2>/dev/null || true)
+  [[ -n $linked_ref ]] \
+    || { echo "没有连接串（$CONF），Supabase CLI 也没有 link 到项目。二选一：写 $CONF，或者跑 supabase login && supabase link --project-ref $prod_ref" >&2; exit 1; }
+  [[ -n $prod_ref && $linked_ref == "$prod_ref" ]] \
+    || { echo "Supabase CLI link 的是 $linked_ref，不是线上项目（${prod_ref:-ci-cd.yml 里没找到}）" >&2; exit 1; }
   command -v docker >/dev/null || { echo "用 Supabase CLI 导出需要 Docker" >&2; exit 1; }
-  echo "没有 $CONF，改用 Supabase CLI 导出（项目 $(cat "$ROOT/supabase/.temp/project-ref")）" >&2
+  echo "没有 $CONF，改用 Supabase CLI 导出（项目 $linked_ref）" >&2
   schema="$OUT_DIR/prod-$stamp-schema.sql"
   data="$OUT_DIR/prod-$stamp-data.sql"
   partials=("$schema.partial" "$data.partial")
   supabase=(npx -y supabase@2.122.0 --workdir "$ROOT")
-  "${supabase[@]}" db dump --linked -f "$schema.partial"
+  # 三个 schema 的结构放在一个文件里：storage 的 RLS 用到 public.is_member，pg_dump 会排好先后顺序
+  "${supabase[@]}" db dump --linked --schema public,auth,storage -f "$schema.partial"
   "${supabase[@]}" db dump --linked --data-only --schema public,auth,storage -f "$data.partial"
   mv "$schema.partial" "$schema"
   mv "$data.partial" "$data"
 
   grep -q 'CREATE TABLE IF NOT EXISTS "public"."prescriptions"' "$schema" \
-    || { echo "导出的结构里没有 prescriptions 表，检查一下：$schema" >&2; exit 1; }
+    && grep -q 'CREATE TABLE IF NOT EXISTS "auth"."users"' "$schema" \
+    || { echo "导出的结构里没有 prescriptions 或 auth.users 表，检查一下：$schema" >&2; exit 1; }
   grep -q 'INSERT INTO "public"."prescriptions"' "$data" \
     || { echo "导出的数据里没有 prescriptions 表的数据，检查一下：$data" >&2; exit 1; }
   outputs=("$schema" "$data")

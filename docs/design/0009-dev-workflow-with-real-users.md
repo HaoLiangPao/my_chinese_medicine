@@ -110,18 +110,19 @@ scripts/backup-prod.sh
 - `backups/` 在 `.gitignore` 里：**里面有病人信息，不能提交、不能上传**
 - 两种连法，脚本自动选（2026-11-08 加了第二种）：
   - **有连接串**：`~/.config/my-chinese-medicine/backup.env`（放在仓库外面，权限 600，写法见脚本开头）→ `pg_dump`，得到 `backups/prod-<时间>.dump`
-  - **没有连接串**：用已经 `supabase login` + `supabase link` 的 CLI 导出，不用数据库密码，要开着 Docker → 得到 `backups/prod-<时间>-schema.sql` 和 `-data.sql`
+  - **没有连接串**：用已经 `supabase login` + `supabase link` 到线上项目的 CLI 导出，不用数据库密码，要开着 Docker → 得到 `backups/prod-<时间>-schema.sql`（三个 schema 的结构）和 `-data.sql`。link 的不是线上项目（以 `ci-cd.yml` 里的 `SUPABASE_PROJECT_REF` 为准）就报错
 - 两种都会检查导出结果里有 `prescriptions` 表的数据；中途失败会删掉半截文件
 - 照片本身在 Supabase Storage 里，这个脚本不导出
 - 想每天自动跑：先手动跑一次确认能连上，再加到自己电脑的 crontab（电脑要开着）：
   ```
   0 23 * * * cd <仓库路径> && mkdir -p backups && scripts/backup-prod.sh >> backups/backup.log 2>&1
   ```
+  cron 里建议用连接串方式。CLI 方式在 cron 下可能找不到 npx、docker，或者读不到 CLI 的登录，要先确认能跑通
 - **改 schema 的 PR 合并之前**，不管当天有没有导出过，都再手动导出一份
 
 恢复：先恢复到本地库里检查，确认没问题再决定怎么修线上。注意：
 - `.dump`：用 `pg_restore --list` 看内容。导出用的是 pg_dump 18，恢复要用 pg_restore 18 或更新的版本
-- `.sql`：在空库里先跑 `-schema.sql` 再跑 `-data.sql`，要用超级用户（`-data.sql` 开头会关掉外键检查，herbs 表有指向自己的外键）
+- `.sql`：新建一个空库（普通 Postgres 就行，不用 Supabase），用超级用户依次跑 `scripts/backup-restore-prep.sql`（补上 Supabase 自带的角色、schema、扩展）、`-schema.sql`、`-data.sql`，命令见脚本开头。2026-11-08 用线上备份在本机的临时库里试过：没有报错，行数和线上一致，RLS 策略和触发器都在
 - 只恢复 `public` 时，业务表指向 `auth.users` 的外键会因为本地没有这些用户而报错，要连 `auth` 一起恢复
 
 ### 上线审批（还没决定）
