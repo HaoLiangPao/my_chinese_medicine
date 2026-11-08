@@ -100,6 +100,8 @@ describe("parseRxText：手写的格式", () => {
   it("脚注的备注保留原来的标点", () => {
     expect(parseRxText("薄荷 3g（后下，最后五分钟，不要久煎）").items[0]).toEqual({ name: "薄荷", grams: 3, prep: "后下", note: "最后五分钟，不要久煎" });
     expect(parseRxText("薄荷 3g（不要久煎）").items[0]).toMatchObject({ prep: null, note: "不要久煎" });
+    // 备注里也有「先煎」两个字：删的是单独的那个
+    expect(parseRxText("生石膏 30g（不要先煎太久，先煎）").items[0]).toMatchObject({ prep: "先煎", note: "不要先煎太久" });
   });
   it("同一栏出现几行（医嘱、备注、煎服法）：接起来，不覆盖", () => {
     expect(parseRxText("医嘱：忌生冷\n备注：复诊\n煎服法：水煎服\n用法：早晚分服")).toMatchObject({

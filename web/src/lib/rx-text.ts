@@ -59,7 +59,9 @@ const PREPS = new Set<string>(SPECIAL_PREPS);
 function splitFootnote(raw: string | undefined): { prep: string | null; note: string | null } {
   const text = (raw ?? "").trim();
   const prep = text.split(/[；;，,、\s]+/).find((p) => PREPS.has(p)) ?? null;
-  const rest = prep ? text.replace(prep, "").replace(/^[\s；;，,、]+|[\s；;，,、]+$/g, "").replace(/([；;，,、])[\s；;，,、]+/g, "$1") : text;
+  // 只删作为一个整词出现的那个煎法（备注里也可能有同一个词，比如「不要先煎太久，先煎」）
+  const token = prep ? new RegExp(String.raw`(^|[；;，,、\s])${prep}(?=[；;，,、\s]|$)`) : null;
+  const rest = token ? text.replace(token, "$1").replace(/^[\s；;，,、]+|[\s；;，,、]+$/g, "").replace(/([；;，,、])[\s；;，,、]+/g, "$1") : text;
   return { prep, note: rest || null };
 }
 
