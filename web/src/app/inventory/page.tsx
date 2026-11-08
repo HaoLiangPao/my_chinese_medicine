@@ -43,11 +43,14 @@ async function Inventory({ kind }: { kind: AccountKind }) {
     <div className="space-y-5">
       {!!rows?.length && (
         <p className="text-sm text-muted" data-testid="inventory-value">
-          共 {rows.filter((r) => Number(r.on_hand_grams) > 0).length} 味有存货，按{kind === "clinic" ? "进货" : "买入"}平均成本约值 <b className="text-ink">{money(totalValue)}</b>
+          共 {rows.filter((r) => Number(r.on_hand_grams) > 0).length} 味有存货，按{kind === "clinic" ? "进货" : "买入"}平均成本约值{" "}
+          <b className="text-ink">{money(totalValue)}</b>
         </p>
       )}
       {!rows?.length ? (
-        <Empty>{t.stock}还是空的。记一笔{t.purchase}，药材就会自动进到这里。</Empty>
+        <Empty>
+          {t.stock}还是空的。记一笔{t.purchase}，药材就会自动进到这里。
+        </Empty>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {rows.map((r) => {
@@ -60,24 +63,46 @@ async function Inventory({ kind }: { kind: AccountKind }) {
                     <span className="font-serif text-lg font-bold">{r.name_zh}</span>
                     {r.jar_label && <span className="text-xs text-muted">罐 {r.jar_label}</span>}
                   </div>
-                  <div data-testid={`stock-${r.name_zh}`} className={`mt-1 text-2xl ${g <= 0 ? "text-cinnabar" : r.is_low ? "text-amber" : "text-jade"}`}>{grams(g)}</div>
+                  <div
+                    data-testid={`stock-${r.name_zh}`}
+                    className={`mt-1 text-2xl ${g <= 0 ? "text-cinnabar" : r.is_low ? "text-amber" : "text-jade"}`}
+                  >
+                    {grams(g)}
+                  </div>
                   <div className="text-xs text-muted">
-                    {r.last_purchased_at ? `上次${kind === "clinic" ? "进货" : "买"} ${String(r.last_purchased_at).slice(0, 10)}` : `无${t.purchase}记录`}
+                    {r.last_purchased_at
+                      ? `上次${kind === "clinic" ? "进货" : "买"} ${String(r.last_purchased_at).slice(0, 10)}`
+                      : `无${t.purchase}记录`}
                   </div>
                 </summary>
                 <div className="mt-3 space-y-2 border-t border-line pt-3">
                   <form action={adjustInventory} className="flex gap-1">
                     <input type="hidden" name="herb_id" value={r.herb_id} />
-                    <input name="actual" type="number" step="0.5" placeholder="称重后实际克数" aria-label={`${r.name_zh} 称重克数`} className="input" />
+                    <input
+                      name="actual"
+                      type="number"
+                      step="0.5"
+                      placeholder="称重后实际克数"
+                      aria-label={`${r.name_zh} 称重克数`}
+                      className="input"
+                    />
                     <button className="btn-ghost shrink-0 px-2">校准</button>
                   </form>
                   <form action={savePantrySettings} className="flex gap-1">
                     <input type="hidden" name="herb_id" value={r.herb_id} />
                     <input name="jar_label" defaultValue={r.jar_label ?? ""} placeholder="罐号" className="input w-16" />
-                    <input name="low_stock_grams" type="number" defaultValue={r.low_stock_grams ?? ""} placeholder="低于多少克提醒" className="input" />
+                    <input
+                      name="low_stock_grams"
+                      type="number"
+                      defaultValue={r.low_stock_grams ?? ""}
+                      placeholder="低于多少克提醒"
+                      className="input"
+                    />
                     <button className="btn-ghost shrink-0 px-2">存</button>
                   </form>
-                  <Link href={`/herbs/${r.herb_id}`} className="block text-xs text-muted underline">查看用量和{kind === "clinic" ? "进货" : "购买"}记录 →</Link>
+                  <Link href={`/herbs/${r.herb_id}`} className="block text-xs text-muted underline">
+                    查看用量和{kind === "clinic" ? "进货" : "购买"}记录 →
+                  </Link>
                 </div>
               </details>
             );
@@ -87,7 +112,9 @@ async function Inventory({ kind }: { kind: AccountKind }) {
 
       <div className="card">
         <h2 className="mb-2 font-serif text-lg font-bold">盘点：{place}原本就有的</h2>
-        <p className="mb-3 text-sm text-muted">第一次用时，把{place}已有的药材称一下录进来（不算{t.purchase}，不影响单价统计）。</p>
+        <p className="mb-3 text-sm text-muted">
+          第一次用时，把{place}已有的药材称一下录进来（不算{t.purchase}，不影响单价统计）。
+        </p>
         <form action={adjustInventory} className="grid grid-cols-[1fr_6rem_auto] gap-2">
           <datalist id="herb-names">
             {herbs.map((h) => (

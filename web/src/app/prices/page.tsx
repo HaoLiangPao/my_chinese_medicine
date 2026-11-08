@@ -18,8 +18,25 @@ export default function PricesPage({ searchParams }: PageProps<"/prices">) {
   );
 }
 
-type Latest = { herb_id: string; name_zh: string; store_id: string; store_name: string; store_kind: string; price_per_gram: string; last_purchased_on: string };
-type Summary = { herb_id: string; name_zh: string; store_count: number; cheapest_store_id: string | null; min_ppg: string | null; max_ppg: string | null; spread_pct: string | null; avg_cost_per_gram: string | null };
+type Latest = {
+  herb_id: string;
+  name_zh: string;
+  store_id: string;
+  store_name: string;
+  store_kind: string;
+  price_per_gram: string;
+  last_purchased_on: string;
+};
+type Summary = {
+  herb_id: string;
+  name_zh: string;
+  store_count: number;
+  cheapest_store_id: string | null;
+  min_ppg: string | null;
+  max_ppg: string | null;
+  spread_pct: string | null;
+  avg_cost_per_gram: string | null;
+};
 
 async function Prices({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
@@ -27,7 +44,11 @@ async function Prices({ searchParams }: { searchParams: Promise<Record<string, s
   const { supabase, workspaceId } = await getContext();
 
   const [{ data: latest }, { data: summary }, { data: stores }, { data: usage }, { data: value }] = await Promise.all([
-    supabase.from("v_store_latest_prices").select("herb_id, name_zh, store_id, store_name, store_kind, price_per_gram, last_purchased_on").eq("workspace_id", workspaceId).returns<Latest[]>(),
+    supabase
+      .from("v_store_latest_prices")
+      .select("herb_id, name_zh, store_id, store_name, store_kind, price_per_gram, last_purchased_on")
+      .eq("workspace_id", workspaceId)
+      .returns<Latest[]>(),
     supabase.from("v_herb_price_summary").select("*").eq("workspace_id", workspaceId).returns<Summary[]>(),
     supabase.from("stores").select("id, name, kind").eq("workspace_id", workspaceId).order("name"),
     supabase.from("v_herb_usage").select("herb_id, prescription_count").eq("workspace_id", workspaceId),
@@ -56,8 +77,15 @@ async function Prices({ searchParams }: { searchParams: Promise<Record<string, s
       </div>
 
       <div className="flex gap-2 text-sm">
-        <Link href="/prices" className={`rounded-full border px-3 py-1 ${!onlyUsed ? "border-cinnabar text-cinnabar" : "border-line"}`}>全部</Link>
-        <Link href="/prices?used=1" className={`rounded-full border px-3 py-1 ${onlyUsed ? "border-cinnabar text-cinnabar" : "border-line"}`}>只看药方里用过的</Link>
+        <Link href="/prices" className={`rounded-full border px-3 py-1 ${!onlyUsed ? "border-cinnabar text-cinnabar" : "border-line"}`}>
+          全部
+        </Link>
+        <Link
+          href="/prices?used=1"
+          className={`rounded-full border px-3 py-1 ${onlyUsed ? "border-cinnabar text-cinnabar" : "border-line"}`}
+        >
+          只看药方里用过的
+        </Link>
       </div>
 
       {!rows.length ? (
@@ -81,7 +109,9 @@ async function Prices({ searchParams }: { searchParams: Promise<Record<string, s
               {rows.map((r) => (
                 <tr key={r.herb_id} data-testid={`price-row-${r.name_zh}`}>
                   <td className="sticky left-0 bg-card">
-                    <Link href={`/herbs/${r.herb_id}`} className="font-medium hover:text-cinnabar">{r.name_zh}</Link>
+                    <Link href={`/herbs/${r.herb_id}`} className="font-medium hover:text-cinnabar">
+                      {r.name_zh}
+                    </Link>
                   </td>
                   {activeStores.map((s) => {
                     const l = priced.get(`${r.herb_id}|${s.id}`);
@@ -116,7 +146,9 @@ async function Prices({ searchParams }: { searchParams: Promise<Record<string, s
               .sort((a, b) => b.n - a.n)
               .map((s) => (
                 <li key={s.id} className="flex justify-between" data-testid={`wins-${s.name}`}>
-                  <span>{s.name} <span className="text-xs text-muted">{KIND_LABEL[s.kind]}</span></span>
+                  <span>
+                    {s.name} <span className="text-xs text-muted">{KIND_LABEL[s.kind]}</span>
+                  </span>
                   <span>{s.n} 味</span>
                 </li>
               ))}

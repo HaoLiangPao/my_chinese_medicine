@@ -1,0 +1,8 @@
+# 生成的、第三方的
+.next/
+node_modules/
+next-env.d.ts
+package-lock.json
+coverage/
+# Markdown 不格式化（表格里的中文对齐会被改乱，文档按原样写）
+*.md

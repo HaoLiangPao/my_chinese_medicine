@@ -55,7 +55,13 @@ test("手机上展开药柜卡片：输入框够宽，提示文字不被截断",
       const ctx = document.createElement("canvas").getContext("2d")!;
       ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
       const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      return { name: el.name, width: el.getBoundingClientRect().width, placeholder: el.placeholder, need: ctx.measureText(el.placeholder).width, room };
+      return {
+        name: el.name,
+        width: el.getBoundingClientRect().width,
+        placeholder: el.placeholder,
+        need: ctx.measureText(el.placeholder).width,
+        room,
+      };
     }),
   );
   expect(sizes.length).toBeGreaterThanOrEqual(3);

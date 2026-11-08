@@ -10,7 +10,9 @@ export function MonographTags({ m }: { m: Monograph }) {
       <span className="rounded-full bg-paper px-2.5 py-0.5 ring-1 ring-line">{m.nature}</span>
       <span className="rounded-full bg-amber/10 px-2.5 py-0.5 text-ink">{m.meridians.join(" · ")}经</span>
       {tox && (
-        <span className={`rounded-full px-2.5 py-0.5 ring-1 ${tox === "none" ? "ring-line" : "bg-cinnabar/10 text-cinnabar ring-cinnabar/40"}`}>
+        <span
+          className={`rounded-full px-2.5 py-0.5 ring-1 ${tox === "none" ? "ring-line" : "bg-cinnabar/10 text-cinnabar ring-cinnabar/40"}`}
+        >
           {TOXICITY[tox]}
         </span>
       )}
@@ -79,8 +81,8 @@ export function MonographSection({
         {inheritsDraft
           ? `部分内容来自原药材${baseName ? `「${baseName}」` : ""}，原药材的资料还没有经过医生审核。`
           : draft
-          ? "这份资料由 AI 按《中国药典》和《中药学》教材整理，还没有经过医生审核。"
-          : `内容审核：${m.reviewed_by} · ${reviewedMonth(m.reviewed_at)}`}
+            ? "这份资料由 AI 按《中国药典》和《中药学》教材整理，还没有经过医生审核。"
+            : `内容审核：${m.reviewed_by} · ${reviewedMonth(m.reviewed_at)}`}
         {" · "}仅为中药知识介绍，不作用药建议
       </p>
     </section>

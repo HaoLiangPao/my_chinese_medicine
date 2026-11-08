@@ -1,15 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export function PageHeader({
-  title,
-  subtitle,
-  action,
-}: {
-  title: string;
-  subtitle?: string;
-  action?: { href: string; label: string };
-}) {
+export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: { href: string; label: string } }) {
   return (
     <div className="mb-5 flex items-end justify-between gap-3">
       <div>

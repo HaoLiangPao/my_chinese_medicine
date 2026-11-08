@@ -24,7 +24,12 @@ type Rx = {
 async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase, workspaceId } = await getContext();
-  const { data: p } = await supabase.from("patients").select("id, name, phone, notes, created_at").eq("id", id).eq("workspace_id", workspaceId).maybeSingle();
+  const { data: p } = await supabase
+    .from("patients")
+    .select("id, name, phone, notes, created_at")
+    .eq("id", id)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
   if (!p) notFound();
   const { data: rxs } = await supabase
     .from("prescriptions")
@@ -37,14 +42,20 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/clinic/patients" className="text-sm text-muted">← 病人</Link>
-        <h1 className="mt-1 font-serif text-2xl font-bold" data-testid="patient-name">{p.name || "（没填名字）"}</h1>
+        <Link href="/clinic/patients" className="text-sm text-muted">
+          ← 病人
+        </Link>
+        <h1 className="mt-1 font-serif text-2xl font-bold" data-testid="patient-name">
+          {p.name || "（没填名字）"}
+        </h1>
         <p className="mt-1 text-sm text-muted">
           {p.phone ?? "没填电话"} · 建档 {String(p.created_at).slice(0, 10)}
           {p.notes && ` · ${p.notes}`}
         </p>
       </div>
-      <Link href={`/clinic/prescribe?patient=${p.id}`} className="btn-primary">＋ 给 Ta 开新方</Link>
+      <Link href={`/clinic/prescribe?patient=${p.id}`} className="btn-primary">
+        ＋ 给 Ta 开新方
+      </Link>
 
       <section>
         <h2 className="mb-2 font-serif text-lg font-bold">历次处方（{rxs?.length ?? 0}）</h2>
@@ -56,7 +67,9 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
               <Link key={r.id} href={`/prescriptions/${r.id}`} className="card block hover:border-cinnabar" data-testid="patient-rx">
                 <div className="flex justify-between">
                   <span className="font-medium">{r.issued_on}</span>
-                  <span className="text-sm text-muted">{r.dose_count} 剂 · {r.prescription_items.length} 味</span>
+                  <span className="text-sm text-muted">
+                    {r.dose_count} 剂 · {r.prescription_items.length} 味
+                  </span>
                 </div>
                 <p className="mt-1 text-sm">
                   {[...r.prescription_items]

@@ -8,7 +8,14 @@ export const BEST_BEFORE_MONTHS = 12;
 
 /** 批号前缀：拼音每个字的首字母，大写。「mai dong」→ MD；没有拼音（用户自己加的药）→ X。和数据库的 lot_prefix() 一致 */
 export function lotPrefix(pinyin: string | null): string {
-  const p = (pinyin ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean).map((s) => s[0]).join("").toUpperCase();
+  const p = (pinyin ?? "")
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((s) => s[0])
+    .join("")
+    .toUpperCase();
   return /^[A-Z]+$/.test(p) ? p : "X";
 }
 

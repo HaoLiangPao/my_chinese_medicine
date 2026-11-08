@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 全部测试：类型检查 → lint → 单元测试 → SQL 测试 → 升级测试 → E2E。任何一步失败就停。
+# 全部测试：类型检查 → 格式 → lint → 单元测试 → SQL 测试 → 升级测试 → E2E。任何一步失败就停。
 # 不能用 root 跑（Postgres 的限制）。第一次在自己电脑上跑之前：cd web && npm install && npx playwright install chromium
 set -euo pipefail
 
@@ -11,6 +11,7 @@ step() { printf '\n\033[1m▶ %s\033[0m\n' "$1"; }
 step "功能清单 ↔ E2E";  node "$ROOT/scripts/check-features.mjs"   # docs/features.md
 cd "$ROOT/web"
 step "类型检查";  npm run typecheck --silent   # 先 next typegen 生成 PageProps 等路由类型（新 clone 的仓库里没有）
+step "格式（Prettier）"; npm run format:check --silent   # 不通过就在 web/ 下跑 npm run format
 step "Lint";       npm run lint --silent
 step "单元测试";   npx vitest run
 step "SQL 测试";   "$ROOT/scripts/test-db.sh"

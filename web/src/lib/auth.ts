@@ -5,7 +5,12 @@ import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { AccountKind } from "@/lib/terms";
 
-type CurrentContext = { account_kind: AccountKind | null; workspace_id: string | null; workspace_name: string | null; workspace_kind: AccountKind | null };
+type CurrentContext = {
+  account_kind: AccountKind | null;
+  workspace_id: string | null;
+  workspace_name: string | null;
+  workspace_kind: AccountKind | null;
+};
 
 /** 登录用户 + 账号类型 + 当前药柜。没登录返回 null。 */
 const loadContext = cache(async () => {

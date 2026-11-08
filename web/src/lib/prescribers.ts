@@ -5,10 +5,7 @@
 export const NEW_PRESCRIBER = "new";
 
 export type PrescriberChoice =
-  | { kind: "none" }
-  | { kind: "existing"; id: string }
-  | { kind: "new"; name: string }
-  | { kind: "error"; message: string };
+  { kind: "none" } | { kind: "existing"; id: string } | { kind: "new"; name: string } | { kind: "error"; message: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

@@ -45,14 +45,16 @@ export async function POST(req: Request) {
 
   // 1) 存照片（私有 bucket，路径以 workspace_id 开头，RLS 依此判断）
   const photoPath = `${ws}/${crypto.randomUUID()}.${ext}`;
-  const { error: upErr } = await supabase.storage
-    .from("prescription-photos")
-    .upload(photoPath, bytes, { contentType: mediaType });
+  const { error: upErr } = await supabase.storage.from("prescription-photos").upload(photoPath, bytes, { contentType: mediaType });
   if (upErr) return NextResponse.json({ error: `照片上传失败：${upErr.message}` }, { status: 500 });
 
   // 2) 让模型读方子：按 OPENROUTER_MODELS 的顺序试，前一个失败（限流、超时、格式不对）就换下一个
   try {
-    const { value: parsed, model, failed } = await withFallback(modelList(process.env.OPENROUTER_MODELS), (model) =>
+    const {
+      value: parsed,
+      model,
+      failed,
+    } = await withFallback(modelList(process.env.OPENROUTER_MODELS), (model) =>
       callOpenRouter({
         baseUrl: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
         apiKey,
@@ -64,11 +66,17 @@ export async function POST(req: Request) {
     if (failed.length) console.warn("parse-prescription fallback", { used: model, failed });
 
     // 3) 和药材目录对一下（含别名）
-    const ids = await matchNames(supabase, parsed.items.map((i) => i.name));
+    const ids = await matchNames(
+      supabase,
+      parsed.items.map((i) => i.name),
+    );
     const { data: herbRows } = await supabase
       .from("herbs")
       .select("id, name_zh")
-      .in("id", Object.values(ids).filter((v): v is string => !!v));
+      .in(
+        "id",
+        Object.values(ids).filter((v): v is string => !!v),
+      );
     const nameById = new Map((herbRows ?? []).map((h) => [h.id, h.name_zh]));
 
     const body: ParseResponse = {

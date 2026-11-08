@@ -240,7 +240,12 @@ export function purchaseListView() {
         const m = merged.get(l.herb) ?? { grams: 0, price: 0 };
         merged.set(l.herb, { grams: m.grams + l.grams, price: m.price + (l.price ?? 0) });
       }
-      const rows = [...merged].map(([herb, m]) => [herb, `${m.grams} g`, `$${m.price.toFixed(2)}`, `$${((m.price / m.grams) * 100).toFixed(2)}/100g`]);
+      const rows = [...merged].map(([herb, m]) => [
+        herb,
+        `${m.grams} g`,
+        `$${m.price.toFixed(2)}`,
+        `$${((m.price / m.grams) * 100).toFixed(2)}/100g`,
+      ]);
       const total = [...merged.values()].reduce((s, m) => s + m.price, 0);
       return { store: p.shop.name, summary: `${p.date} · $${total.toFixed(2)}`, rows };
     });
@@ -269,7 +274,15 @@ export const DECOCTIONS: Decoction[] = [
   { formula: "四君子汤", doses: 7, label: "按处方，人参不够 → 变负" },
   { formula: "补中益气汤", doses: 3, actual: { 黄芪: 59 }, label: "黄芪多抓了 5g；升麻没买过 → 负" },
   { formula: "六味地黄汤", doses: 7, actual: { 牡丹皮: 0 }, label: "丹皮这次没放" },
-  { formula: "小柴胡汤", doses: 5, extras: [{ herb: "生姜", grams: 6 }, { herb: "陈皮", grams: 6 }], label: "多加姜（处方内，叠加）+ 加陈皮（处方外）" },
+  {
+    formula: "小柴胡汤",
+    doses: 5,
+    extras: [
+      { herb: "生姜", grams: 6 },
+      { herb: "陈皮", grams: 6 },
+    ],
+    label: "多加姜（处方内，叠加）+ 加陈皮（处方外）",
+  },
   { formula: "玉屏风散", doses: 7, label: "防风从没买过" },
   { formula: "酸枣仁汤", doses: 3, label: "第一次 3 副" },
   { formula: "酸枣仁汤", doses: 4, actual: { 川芎: 20 }, label: "第二次 4 副，川芎少放" },

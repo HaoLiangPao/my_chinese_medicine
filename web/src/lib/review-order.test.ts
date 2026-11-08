@@ -3,7 +3,12 @@ import { nextPending } from "./review-order";
 
 describe("nextPending", () => {
   const m = (herb_id: string, name_zh: string, pinyin: string | null, status = "draft") => ({ herb_id, name_zh, pinyin, status });
-  const all = [m("hq", "黄芪", "huang qi"), m("bz", "白术", "bai zhu", "reviewed"), m("md", "麦冬", "mai dong"), m("gc", "甘草", "gan cao")];
+  const all = [
+    m("hq", "黄芪", "huang qi"),
+    m("bz", "白术", "bai zhu", "reviewed"),
+    m("md", "麦冬", "mai dong"),
+    m("gc", "甘草", "gan cao"),
+  ];
   it("按拼音排在后面的第一味草稿", () => {
     expect(nextPending(all, "gc")).toBe("hq"); // gan → huang → mai
     expect(nextPending(all, "hq")).toBe("md");

@@ -50,7 +50,13 @@ describe("parseRxText：CLN-5 的微信消息原样粘进来", () => {
     ]);
   });
   it("日期、患者、剂数、煎服法、医嘱", () => {
-    expect(r).toMatchObject({ issued_on: "2026-11-07", patient: "张三", dose_count: 7, instructions: "水煎服，日一剂，早晚分服", advice: "忌生冷" });
+    expect(r).toMatchObject({
+      issued_on: "2026-11-07",
+      patient: "张三",
+      dose_count: 7,
+      instructions: "水煎服，日一剂，早晚分服",
+      advice: "忌生冷",
+    });
   });
   it("抬头和分隔线不算认不出", () => expect(r.unrecognized).toEqual([]));
   it("患者没填写的不当成名字", () => {
@@ -98,7 +104,12 @@ describe("parseRxText：手写的格式", () => {
     ]);
   });
   it("脚注的备注保留原来的标点", () => {
-    expect(parseRxText("薄荷 3g（后下，最后五分钟，不要久煎）").items[0]).toEqual({ name: "薄荷", grams: 3, prep: "后下", note: "最后五分钟，不要久煎" });
+    expect(parseRxText("薄荷 3g（后下，最后五分钟，不要久煎）").items[0]).toEqual({
+      name: "薄荷",
+      grams: 3,
+      prep: "后下",
+      note: "最后五分钟，不要久煎",
+    });
     expect(parseRxText("薄荷 3g（不要久煎）").items[0]).toMatchObject({ prep: null, note: "不要久煎" });
     // 备注里也有「先煎」两个字：删的是单独的那个
     expect(parseRxText("生石膏 30g（不要先煎太久，先煎）").items[0]).toMatchObject({ prep: "先煎", note: "不要先煎太久" });
@@ -127,7 +138,13 @@ describe("parseRxText：认不出的行原样留着", () => {
     const text = "上次的方子去掉白术\n黄芪 30g 还有一点点甘草\n甘草 0g\n日期：2026-02-30\n日期：2026-11-07 星期六\n  当归 10g  ";
     const r = parseRxText(text, isKnown);
     expect(r.items).toEqual([{ name: "当归", grams: 10, prep: null, note: null }]);
-    expect(r.unrecognized).toEqual(["上次的方子去掉白术", "黄芪 30g 还有一点点甘草", "甘草 0g", "日期：2026-02-30", "日期：2026-11-07 星期六"]);
+    expect(r.unrecognized).toEqual([
+      "上次的方子去掉白术",
+      "黄芪 30g 还有一点点甘草",
+      "甘草 0g",
+      "日期：2026-02-30",
+      "日期：2026-11-07 星期六",
+    ]);
     expect(r.issued_on).toBeNull();
   });
   it("空文字", () => expect(parseRxText("  \n\n")).toMatchObject({ items: [], unrecognized: [] }));

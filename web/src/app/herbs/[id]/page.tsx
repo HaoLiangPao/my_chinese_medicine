@@ -33,11 +33,27 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
     .select("id, name_zh, pinyin, category, notes, base:base_herb_id(id, name_zh), herb_aliases(alias)")
     .eq("id", id)
     .maybeSingle();
-  const herb = herbRow as unknown as { id: string; name_zh: string; pinyin: string | null; category: string | null; notes: string | null; base: { id: string; name_zh: string } | null; herb_aliases: { alias: string }[] } | null;
+  const herb = herbRow as unknown as {
+    id: string;
+    name_zh: string;
+    pinyin: string | null;
+    category: string | null;
+    notes: string | null;
+    base: { id: string; name_zh: string } | null;
+    herb_aliases: { alias: string }[];
+  } | null;
   if (!herb) notFound();
 
   const monographIds = [herb.id, ...(herb.base ? [herb.base.id] : [])];
-  const [{ data: uses }, { data: inv }, { data: prices }, { data: usage }, { data: monographs }, { data: isReviewer }, { data: batchRows }] = await Promise.all([
+  const [
+    { data: uses },
+    { data: inv },
+    { data: prices },
+    { data: usage },
+    { data: monographs },
+    { data: isReviewer },
+    { data: batchRows },
+  ] = await Promise.all([
     supabase
       .from("prescription_items")
       .select("grams_per_dose, special_prep, prescriptions!inner(id, title, issued_on, dose_count, workspace_id)")
@@ -45,18 +61,34 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       .eq("prescriptions.workspace_id", workspaceId)
       .returns<Use[]>(),
     supabase.from("v_inventory").select("on_hand_grams").eq("workspace_id", workspaceId).eq("herb_id", id).maybeSingle(),
-    supabase.from("v_purchase_prices").select("*").eq("workspace_id", workspaceId).eq("herb_id", id).order("purchased_on", { ascending: false }),
+    supabase
+      .from("v_purchase_prices")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("herb_id", id)
+      .order("purchased_on", { ascending: false }),
     supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).eq("herb_id", id).maybeSingle(),
     supabase.from("herb_monographs").select("*").in("herb_id", monographIds).returns<Monograph[]>(),
     supabase.rpc("is_monograph_reviewer"),
     supabase
       .from("purchase_items")
-      .select("id, grams, price, origin, lot_no, supplier_lot, packed_on, purchases!inner(purchased_on, created_at, workspace_id, stores(name))")
+      .select(
+        "id, grams, price, origin, lot_no, supplier_lot, packed_on, purchases!inner(purchased_on, created_at, workspace_id, stores(name))",
+      )
       .eq("herb_id", id)
       .eq("purchases.workspace_id", workspaceId)
-      .returns<(Omit<BatchRow, "purchased_on" | "created_at" | "store"> & { purchases: { purchased_on: string; created_at: string; stores: { name: string } | null } })[]>(),
+      .returns<
+        (Omit<BatchRow, "purchased_on" | "created_at" | "store"> & {
+          purchases: { purchased_on: string; created_at: string; stores: { name: string } | null };
+        })[]
+      >(),
   ]);
-  const batches: BatchRow[] = (batchRows ?? []).map(({ purchases: pu, ...b }) => ({ ...b, purchased_on: pu.purchased_on, created_at: pu.created_at, store: pu.stores?.name ?? null }));
+  const batches: BatchRow[] = (batchRows ?? []).map(({ purchases: pu, ...b }) => ({
+    ...b,
+    purchased_on: pu.purchased_on,
+    created_at: pu.created_at,
+    store: pu.stores?.name ?? null,
+  }));
   const byHerb = new Map((monographs ?? []).map((m) => [m.herb_id, m]));
   const monograph = resolveMonograph(byHerb.get(herb.id) ?? null, herb.base ? (byHerb.get(herb.base.id) ?? null) : null);
   const sortedUses = (uses ?? []).sort((a, b) => (b.prescriptions?.issued_on ?? "").localeCompare(a.prescriptions?.issued_on ?? ""));
@@ -64,11 +96,21 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="space-y-5">
       <div>
-        <Link href="/herbs" className="text-sm text-muted">← 药材</Link>
+        <Link href="/herbs" className="text-sm text-muted">
+          ← 药材
+        </Link>
         <h1 className="mt-1 font-serif text-3xl font-bold">{herb.name_zh}</h1>
         <p className="mt-1 text-sm text-muted">
           {[herb.pinyin, herb.category].filter(Boolean).join(" · ")}
-          {herb.base && <> · 炮制品，原药材 <Link href={`/herbs/${herb.base.id}`} className="underline">{herb.base.name_zh}</Link></>}
+          {herb.base && (
+            <>
+              {" "}
+              · 炮制品，原药材{" "}
+              <Link href={`/herbs/${herb.base.id}`} className="underline">
+                {herb.base.name_zh}
+              </Link>
+            </>
+          )}
           {herb.herb_aliases.length > 0 && ` · 别名 ${herb.herb_aliases.map((a) => a.alias).join("、")}`}
         </p>
         {monograph?.data.latin_name && <p className="text-sm italic text-muted">{monograph.data.latin_name}</p>}
@@ -82,7 +124,13 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       </div>
 
       {monograph && (
-        <MonographSection m={monograph.data} fromBase={monograph.fromBase} inheritsDraft={monograph.inheritsDraft} baseName={herb.base?.name_zh ?? null} isReviewer={isReviewer === true} />
+        <MonographSection
+          m={monograph.data}
+          fromBase={monograph.fromBase}
+          inheritsDraft={monograph.inheritsDraft}
+          baseName={herb.base?.name_zh ?? null}
+          isReviewer={isReviewer === true}
+        />
       )}
 
       <BatchesSection batches={batches} onHand={Number(inv?.on_hand_grams ?? 0)} />
@@ -93,11 +141,23 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           <p className="text-sm text-muted">还没有。</p>
         ) : (
           <table className="data-table">
-            <thead><tr><th>{t.rx}</th><th>日期</th><th className="text-right">每{t.dose}</th><th className="text-right">{t.dose}数</th></tr></thead>
+            <thead>
+              <tr>
+                <th>{t.rx}</th>
+                <th>日期</th>
+                <th className="text-right">每{t.dose}</th>
+                <th className="text-right">{t.dose}数</th>
+              </tr>
+            </thead>
             <tbody>
               {sortedUses.map((u) => (
                 <tr key={u.prescriptions?.id}>
-                  <td><Link href={`/prescriptions/${u.prescriptions?.id}`} className="hover:text-cinnabar">{u.prescriptions?.title || `未命名${t.rx}`}</Link>{u.special_prep && <span className="ml-1 text-xs text-amber">{u.special_prep}</span>}</td>
+                  <td>
+                    <Link href={`/prescriptions/${u.prescriptions?.id}`} className="hover:text-cinnabar">
+                      {u.prescriptions?.title || `未命名${t.rx}`}
+                    </Link>
+                    {u.special_prep && <span className="ml-1 text-xs text-amber">{u.special_prep}</span>}
+                  </td>
                   <td className="text-muted">{u.prescriptions?.issued_on}</td>
                   <td className="text-right">{grams(u.grams_per_dose)}</td>
                   <td className="text-right">{u.prescriptions?.dose_count}</td>
@@ -114,7 +174,15 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           <p className="text-sm text-muted">还没有。</p>
         ) : (
           <table className="data-table">
-            <thead><tr><th>日期</th><th>店铺</th><th className="text-right">克数</th><th className="text-right">价格</th><th className="text-right">每 100g</th></tr></thead>
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th>店铺</th>
+                <th className="text-right">克数</th>
+                <th className="text-right">价格</th>
+                <th className="text-right">每 100g</th>
+              </tr>
+            </thead>
             <tbody>
               {prices.map((p, i) => (
                 <tr key={i}>

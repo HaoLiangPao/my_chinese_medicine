@@ -48,7 +48,10 @@ export async function signUp(page: Page, u: { email: string; password: string },
   await page.getByLabel("邮箱").fill(u.email);
   await page.getByLabel("密码").fill(u.password);
   await page.getByText("第一次用？先选你是病人还是医生").click();
-  await page.getByTestId("account-kind").getByLabel(clinic ? "我是医生" : "我是病人", { exact: true }).check();
+  await page
+    .getByTestId("account-kind")
+    .getByLabel(clinic ? "我是医生" : "我是病人", { exact: true })
+    .check();
   if (clinic) await page.getByLabel("诊所名称").fill(clinic);
   await page.getByRole("button", { name: "注册" }).click();
   await expect(page.getByRole("heading", { name: clinic ? "最近的处方" : "最近的药方" })).toBeVisible();

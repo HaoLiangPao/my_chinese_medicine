@@ -60,7 +60,10 @@ describe("resolveMonograph", () => {
     expect(resolveMonograph(base, null)).toEqual({ data: base, fromBase: false, inheritsDraft: false });
   });
   it("炮制品自己审核过，但用到了原药材还没审核的字段 → 整份按草稿显示", () => {
-    const r = resolveMonograph({ ...own, status: "reviewed", reviewed_by: "李医生", reviewed_at: "2026-11-08" }, { ...base, status: "draft", reviewed_by: null, reviewed_at: null })!;
+    const r = resolveMonograph(
+      { ...own, status: "reviewed", reviewed_by: "李医生", reviewed_at: "2026-11-08" },
+      { ...base, status: "draft", reviewed_by: null, reviewed_at: null },
+    )!;
     expect(r.inheritsDraft).toBe(true);
     expect(r.data.status).toBe("draft");
     expect(r.data.reviewed_by).toBeNull();
@@ -96,7 +99,14 @@ describe("parseMonographForm", () => {
   };
   it("味、归经可以用顿号 / 逗号 / 空格分开，归经去掉「经」字；空字段是 null", () => {
     const c = parseMonographForm(
-      form({ flavors: "甘、 微苦", nature: " 微寒 ", meridians: "心经，肺经 胃", traditional_use: "养阴生津", toxicity: "none", regions: "  " }),
+      form({
+        flavors: "甘、 微苦",
+        nature: " 微寒 ",
+        meridians: "心经，肺经 胃",
+        traditional_use: "养阴生津",
+        toxicity: "none",
+        regions: "  ",
+      }),
     );
     expect(c.flavors).toEqual(["甘", "微苦"]);
     expect(c.nature).toBe("微寒");

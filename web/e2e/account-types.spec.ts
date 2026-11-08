@@ -166,7 +166,8 @@ test("诊所账号的药材页也是诊所用语", { tag: ["@FIX-5"] }, async ({
 });
 
 test("病人账号接受家人邀请：搬进对方药柜，看不到自己原来的；没有切换", { tag: ["@ACCT-2"] }, async ({ browser }) => {
-  const a = fresh("kind-sw-a"), b = fresh("kind-sw-b");
+  const a = fresh("kind-sw-a"),
+    b = fresh("kind-sw-b");
   const pa = await browser.newPage();
   await signUp(pa, a);
   const pb = await browser.newPage();

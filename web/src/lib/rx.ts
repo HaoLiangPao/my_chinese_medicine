@@ -16,17 +16,13 @@ export function mergeLines<T extends RxLine>(lines: T[]): T[] {
 }
 
 /** 每副总克数 */
-export const perDoseTotal = (lines: { grams: number | string }[]) =>
-  round2(lines.reduce((s, l) => s + Number(l.grams), 0));
+export const perDoseTotal = (lines: { grams: number | string }[]) => round2(lines.reduce((s, l) => s + Number(l.grams), 0));
 
 /**
  * 按现有库存最多能配几副：每味药 floor(库存 / 每副用量) 取最小。
  * 缺药或库存为负 → 0；空方 → 0。
  */
-export function maxDosesFromStock(
-  items: { herb_id: string; grams_per_dose: number | string }[],
-  onHand: Map<string, number>,
-): number {
+export function maxDosesFromStock(items: { herb_id: string; grams_per_dose: number | string }[], onHand: Map<string, number>): number {
   if (!items.length) return 0;
   let min = Infinity;
   for (const i of items) {

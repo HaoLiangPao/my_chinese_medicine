@@ -7,6 +7,7 @@
 - 炮制品是独立药材（`base_herb_id` 指回原药材），别名放 `herb_aliases`。
 - `web/` 是 Next.js 16，和旧版本差别很大：写代码前先看 `web/node_modules/next/dist/docs/`。**Cache Components 是关闭的**（原因见 docs/design/0002 §4），不要重新打开，除非 E2E 的回归测试全过。
 - 写操作（server action）结束时调用 `invalidateAll()`（`src/lib/invalidate.ts`）。
+- 代码格式用 Prettier（`web/.prettierrc.json`，行宽 140）：改完代码在 `web/` 下跑 `npm run format`；`test-all.sh` 和 CI 会跑 `npm run format:check`，格式不对就失败。Markdown 不格式化。
 - 纯计算逻辑放在 `web/src/lib/*.ts` 并写 `*.test.ts`；改动后跑 `scripts/test-all.sh`（非 root）。
 - E2E 场景数据和期望值在 `web/e2e/fixtures/scenario.ts`；期望值要独立计算，不要读 App 的结果。
 - 功能清单和 E2E 对照在 `docs/features.md`：新功能先在那里加一行并写好验收 E2E；E2E 用 `{ tag: ["@编号"] }` 标上功能编号（`scripts/check-features.mjs` 会检查）。

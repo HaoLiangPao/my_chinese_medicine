@@ -48,7 +48,8 @@ async function List() {
     .order("issued_on", { ascending: false })
     .returns<Row[]>();
   if (error) throw new Error(error.message);
-  if (!data.length) return <Empty>{accountKind === "clinic" ? "还没有处方。点右上角开方。" : "还没有药方。点右上角录入，或者直接拍照识别。"}</Empty>;
+  if (!data.length)
+    return <Empty>{accountKind === "clinic" ? "还没有处方。点右上角开方。" : "还没有药方。点右上角录入，或者直接拍照识别。"}</Empty>;
 
   return (
     <div className="space-y-3">
@@ -59,8 +60,7 @@ async function List() {
             <span className="shrink-0 text-sm text-muted">{p.issued_on}</span>
           </div>
           <div className="mt-1 text-sm text-muted">
-            {p.dose_count} {t.dose} · {p.prescription_items.length} 味
-            {p.patient_label && ` · ${p.patient_label}`}
+            {p.dose_count} {t.dose} · {p.prescription_items.length} 味{p.patient_label && ` · ${p.patient_label}`}
             {p.price_paid != null && ` · ${money(p.price_paid)}`}
           </div>
           <p className="mt-2 line-clamp-2 text-sm">

@@ -32,11 +32,7 @@ export async function resolveHerbId(supabase: SupabaseClient, rawName: string): 
   if (error) throw new Error(error.message);
   if (matched) return matched as string;
 
-  const { data: created, error: insErr } = await supabase
-    .from("herbs")
-    .insert({ name_zh: name })
-    .select("id")
-    .single();
+  const { data: created, error: insErr } = await supabase.from("herbs").insert({ name_zh: name }).select("id").single();
   if (insErr) throw new Error(`新增药材「${name}」失败：${insErr.message}`);
   return created.id;
 }

@@ -61,7 +61,12 @@ function splitFootnote(raw: string | undefined): { prep: string | null; note: st
   const prep = text.split(/[；;，,、\s]+/).find((p) => PREPS.has(p)) ?? null;
   // 只删作为一个整词出现的那个煎法（备注里也可能有同一个词，比如「不要先煎太久，先煎」）
   const token = prep ? new RegExp(String.raw`(^|[；;，,、\s])${prep}(?=[；;，,、\s]|$)`) : null;
-  const rest = token ? text.replace(token, "$1").replace(/^[\s；;，,、]+|[\s；;，,、]+$/g, "").replace(/([；;，,、])[\s；;，,、]+/g, "$1") : text;
+  const rest = token
+    ? text
+        .replace(token, "$1")
+        .replace(/^[\s；;，,、]+|[\s；;，,、]+$/g, "")
+        .replace(/([；;，,、])[\s；;，,、]+/g, "$1")
+    : text;
   return { prep, note: rest || null };
 }
 
@@ -119,7 +124,15 @@ const join = (a: string | null, b: string) => (a ? `${a}；${b}` : b); // 同一
 
 /** isKnown：药名在不在目录里（含别名）。用来拿不准的时候判断，不传就更保守 */
 export function parseRxText(text: string, isKnown?: (name: string) => boolean): ParsedText {
-  const out: ParsedText = { items: [], issued_on: null, dose_count: null, patient: null, instructions: null, advice: null, unrecognized: [] };
+  const out: ParsedText = {
+    items: [],
+    issued_on: null,
+    dose_count: null,
+    patient: null,
+    instructions: null,
+    advice: null,
+    unrecognized: [],
+  };
   for (const original of text.split(/\r?\n/)) {
     // 行首的序号：「1.」「1、」「(1)」「①」
     const line = original

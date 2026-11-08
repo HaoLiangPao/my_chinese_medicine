@@ -13,11 +13,15 @@ export default function LoginPage() {
       <p className="mb-6 text-center text-sm text-muted">记下每一张方子、每一罐药材</p>
       <form action={action} className="card space-y-3">
         <div>
-          <label className="label" htmlFor="email">邮箱</label>
+          <label className="label" htmlFor="email">
+            邮箱
+          </label>
           <input id="email" name="email" type="email" autoComplete="email" required className="input" />
         </div>
         <div>
-          <label className="label" htmlFor="password">密码</label>
+          <label className="label" htmlFor="password">
+            密码
+          </label>
           <input id="password" name="password" type="password" autoComplete="current-password" required minLength={6} className="input" />
         </div>
         <details open={state.needsKind || undefined} className="border-t border-line pt-3">
@@ -29,8 +33,12 @@ export default function LoginPage() {
         {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
         {state.info && <p className="text-sm text-jade">{state.info}</p>}
         <div className="flex gap-2 pt-1">
-          <button name="mode" value="signin" disabled={pending} className="btn-primary flex-1">登录</button>
-          <button name="mode" value="signup" disabled={pending} className="btn-ghost flex-1">注册</button>
+          <button name="mode" value="signin" disabled={pending} className="btn-primary flex-1">
+            登录
+          </button>
+          <button name="mode" value="signup" disabled={pending} className="btn-ghost flex-1">
+            注册
+          </button>
         </div>
       </form>
     </div>

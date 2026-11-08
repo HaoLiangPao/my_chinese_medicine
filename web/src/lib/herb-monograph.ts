@@ -35,8 +35,18 @@ export type Monograph = {
 
 /** 核对页能改的字段（和 review_herb_monograph 的 p_content 一致） */
 export const EDITABLE = [
-  "latin_name", "source", "flavors", "nature", "meridians", "traditional_use",
-  "processing", "regions", "quality", "toxicity", "cautions", "storage",
+  "latin_name",
+  "source",
+  "flavors",
+  "nature",
+  "meridians",
+  "traditional_use",
+  "processing",
+  "regions",
+  "quality",
+  "toxicity",
+  "cautions",
+  "storage",
 ] as const;
 export type MonographContent = Pick<Monograph, (typeof EDITABLE)[number]>;
 
@@ -114,7 +124,8 @@ export function parseMonographForm(form: FormData): MonographContent {
 /** 和数据库一样的检查，返回第一条问题（没问题返回 null） */
 export function checkMonograph(c: MonographContent): string | null {
   if (!NATURES.includes(c.nature)) return "「性」只能写 寒 / 凉 / 平 / 温 / 热，可以加「微」「大」";
-  if (!c.flavors.length || c.flavors.some((f) => !FLAVORS.includes(f))) return "「味」只能写 酸 / 苦 / 甘 / 辛 / 咸 / 淡 / 涩，可以加「微」";
+  if (!c.flavors.length || c.flavors.some((f) => !FLAVORS.includes(f)))
+    return "「味」只能写 酸 / 苦 / 甘 / 辛 / 咸 / 淡 / 涩，可以加「微」";
   if (!c.meridians.length || c.meridians.some((m) => !MERIDIANS.includes(m))) return `「归经」只能写 ${MERIDIANS.join(" / ")}`;
   if (!c.traditional_use) return "请填写传统用途";
   if (DOSE.test(c.traditional_use) || DOSE.test(c.cautions ?? "")) return "药材资料里不写用量（传统用途、使用注意里不能有「数字 + 克」）";

@@ -1,0 +1,3 @@
+# git blame 跳过这些只改排版的提交（GitHub 会自动读这个文件；本地：git config blame.ignoreRevsFile .git-blame-ignore-revs）
+# Prettier 全量格式化
+145d95be1932fb9affd9591b3656dd62d1f53da1

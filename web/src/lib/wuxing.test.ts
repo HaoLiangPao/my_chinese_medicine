@@ -31,7 +31,9 @@ describe("五行相克", () => {
 describe("relation", () => {
   it("任意一个元素看其他四个，恰好是 我生/生我/我克/克我 各一个", () => {
     for (const a of ELEMENTS) {
-      const rels = ELEMENTS.filter((b) => b !== a).map((b) => relation(a, b)).sort();
+      const rels = ELEMENTS.filter((b) => b !== a)
+        .map((b) => relation(a, b))
+        .sort();
       expect(rels).toEqual(["克我", "我克", "我生", "生我"].sort());
     }
   });

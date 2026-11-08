@@ -15,15 +15,28 @@ describe("mergeLines", () => {
   });
 
   it("跳过空名字", () => {
-    expect(mergeLines([{ name: "  ", grams: 3 }, { name: "", grams: 1 }])).toEqual([]);
+    expect(
+      mergeLines([
+        { name: "  ", grams: 3 },
+        { name: "", grams: 1 },
+      ]),
+    ).toEqual([]);
   });
 
   it("小数克数不会出现浮点误差", () => {
-    expect(mergeLines([{ name: "甘草", grams: 0.1 }, { name: "甘草", grams: 0.2 }])[0].grams).toBe(0.3);
+    expect(
+      mergeLines([
+        { name: "甘草", grams: 0.1 },
+        { name: "甘草", grams: 0.2 },
+      ])[0].grams,
+    ).toBe(0.3);
   });
 
   it("不修改原数组里的对象", () => {
-    const input = [{ name: "甘草", grams: 3 }, { name: "甘草", grams: 3 }];
+    const input = [
+      { name: "甘草", grams: 3 },
+      { name: "甘草", grams: 3 },
+    ];
     mergeLines(input);
     expect(input[0].grams).toBe(3);
   });
@@ -43,10 +56,26 @@ describe("maxDosesFromStock", () => {
   ];
 
   it("取各味药能配副数的最小值", () => {
-    expect(maxDosesFromStock(items, new Map([["hq", 100], ["md", 35]]))).toBe(3);
+    expect(
+      maxDosesFromStock(
+        items,
+        new Map([
+          ["hq", 100],
+          ["md", 35],
+        ]),
+      ),
+    ).toBe(3);
   });
   it("刚好够的边界：45g / 15g = 3 副", () => {
-    expect(maxDosesFromStock(items, new Map([["hq", 45], ["md", 30]]))).toBe(3);
+    expect(
+      maxDosesFromStock(
+        items,
+        new Map([
+          ["hq", 45],
+          ["md", 30],
+        ]),
+      ),
+    ).toBe(3);
   });
   it("浮点库存（44.99999…）不会少算一副", () => {
     expect(maxDosesFromStock([{ herb_id: "a", grams_per_dose: 0.3 }], new Map([["a", 0.1 + 0.2]]))).toBe(1);
@@ -55,11 +84,27 @@ describe("maxDosesFromStock", () => {
     expect(maxDosesFromStock(items, new Map([["hq", 1000]]))).toBe(0);
   });
   it("库存为负 → 0，不会是负数", () => {
-    expect(maxDosesFromStock(items, new Map([["hq", -30], ["md", 100]]))).toBe(0);
+    expect(
+      maxDosesFromStock(
+        items,
+        new Map([
+          ["hq", -30],
+          ["md", 100],
+        ]),
+      ),
+    ).toBe(0);
   });
   it("空方 → 0", () => expect(maxDosesFromStock([], new Map())).toBe(0));
   it("忽略每副 0 克的脏数据", () => {
-    expect(maxDosesFromStock([{ herb_id: "a", grams_per_dose: 0 }, { herb_id: "b", grams_per_dose: 5 }], new Map([["b", 12]]))).toBe(2);
+    expect(
+      maxDosesFromStock(
+        [
+          { herb_id: "a", grams_per_dose: 0 },
+          { herb_id: "b", grams_per_dose: 5 },
+        ],
+        new Map([["b", 12]]),
+      ),
+    ).toBe(2);
   });
 });
 

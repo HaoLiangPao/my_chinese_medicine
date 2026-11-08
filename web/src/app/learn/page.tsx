@@ -61,7 +61,10 @@ export default function LearnPage() {
               {s.lessons.map((l) =>
                 l.href ? (
                   <li key={l.title}>
-                    <Link href={l.href} className="inline-block rounded-full border border-cinnabar px-3 py-1 text-sm text-cinnabar hover:bg-paper">
+                    <Link
+                      href={l.href}
+                      className="inline-block rounded-full border border-cinnabar px-3 py-1 text-sm text-cinnabar hover:bg-paper"
+                    >
                       {l.title} →
                     </Link>
                   </li>

@@ -22,7 +22,10 @@ export const DEFAULT_MODELS = ["nvidia/nemotron-3.5-super-vl:free", "deepseek/de
 
 /** OPENROUTER_MODELS="a,b" → ["a","b"]；没配置就用默认（免费模型在前，DeepSeek 兜底） */
 export function modelList(env: string | undefined): string[] {
-  const list = (env ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const list = (env ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   return list.length ? list : DEFAULT_MODELS;
 }
 
@@ -46,7 +49,10 @@ export function parseCompletion(body: unknown): Parsed {
 export type Attempt = { model: string; error: string };
 
 /** 依次尝试每个模型，第一个成功的就返回；全失败时把每个模型的错误拼在一起抛出 */
-export async function withFallback<T>(models: string[], call: (model: string) => Promise<T>): Promise<{ model: string; value: T; failed: Attempt[] }> {
+export async function withFallback<T>(
+  models: string[],
+  call: (model: string) => Promise<T>,
+): Promise<{ model: string; value: T; failed: Attempt[] }> {
   const failed: Attempt[] = [];
   for (const model of models) {
     try {

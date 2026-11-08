@@ -38,12 +38,28 @@ export function YinyangDiagram() {
         {LABELS.map((l, i) => {
           const a = ((i * 2) / 24) * 2 * Math.PI + Math.PI / 2;
           return (
-            <text key={l} x={150 + 128 * Math.cos(a)} y={150 + 128 * Math.sin(a)} textAnchor="middle" dy="0.35em" fontSize="11" fill="var(--muted)">
+            <text
+              key={l}
+              x={150 + 128 * Math.cos(a)}
+              y={150 + 128 * Math.sin(a)}
+              textAnchor="middle"
+              dy="0.35em"
+              fontSize="11"
+              fill="var(--muted)"
+            >
               {l}
             </text>
           );
         })}
-        <circle cx={sun.x} cy={sun.y} r="9" fill={yang >= 0.5 ? "var(--amber)" : "var(--ink)"} stroke="white" strokeWidth="2" data-testid="sun" />
+        <circle
+          cx={sun.x}
+          cy={sun.y}
+          r="9"
+          fill={yang >= 0.5 ? "var(--amber)" : "var(--ink)"}
+          stroke="white"
+          strokeWidth="2"
+          data-testid="sun"
+        />
 
         <g className="spin">
           <g transform="translate(150,150)">
@@ -57,19 +73,39 @@ export function YinyangDiagram() {
 
       <div className="card space-y-3 text-sm" aria-live="polite">
         <div>
-          <label htmlFor="hour" className="label">一天中的时间</label>
-          <input id="hour" type="range" min={0} max={23.75} step={0.25} value={hour} onChange={(e) => setHour(Number(e.target.value))} className="w-full accent-[var(--cinnabar)]" />
-          <div className="flex justify-between text-xs text-muted"><span>0 点</span><span>12 点</span><span>24 点</span></div>
+          <label htmlFor="hour" className="label">
+            一天中的时间
+          </label>
+          <input
+            id="hour"
+            type="range"
+            min={0}
+            max={23.75}
+            step={0.25}
+            value={hour}
+            onChange={(e) => setHour(Number(e.target.value))}
+            className="w-full accent-[var(--cinnabar)]"
+          />
+          <div className="flex justify-between text-xs text-muted">
+            <span>0 点</span>
+            <span>12 点</span>
+            <span>24 点</span>
+          </div>
         </div>
         <p data-testid="yy-time">
-          {String(Math.floor(hour)).padStart(2, "0")}:{String(Math.round((hour % 1) * 60)).padStart(2, "0")} · <b>{shichen(hour)}</b> · {phase}
+          {String(Math.floor(hour)).padStart(2, "0")}:{String(Math.round((hour % 1) * 60)).padStart(2, "0")} · <b>{shichen(hour)}</b> ·{" "}
+          {phase}
         </p>
         <div className="flex h-4 overflow-hidden rounded-full border border-line" aria-hidden>
           <div className="bg-amber" style={{ width: `${pct}%` }} />
           <div className="flex-1 bg-ink" />
         </div>
-        <p data-testid="yy-share">阳 {pct}% · 阴 {100 - pct}%</p>
-        <button onClick={() => setPlaying((p) => !p)} className="btn-ghost w-full py-1">{playing ? "暂停" : "▶ 播放一天"}</button>
+        <p data-testid="yy-share">
+          阳 {pct}% · 阴 {100 - pct}%
+        </p>
+        <button onClick={() => setPlaying((p) => !p)} className="btn-ghost w-full py-1">
+          {playing ? "暂停" : "▶ 播放一天"}
+        </button>
         <p className="text-xs text-muted">示意图：子时阴极而一阳生，午时阳极而一阴生。比例只用来说明「消长」的趋势，不是量化指标。</p>
       </div>
     </div>

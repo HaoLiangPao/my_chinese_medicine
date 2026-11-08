@@ -52,7 +52,9 @@ async function Label({
   const { supabase, workspaceId } = await getContext();
   const { data: b } = await supabase
     .from("purchase_items")
-    .select("id, grams, origin, lot_no, supplier_lot, packed_on, herbs(id, name_zh), purchases!inner(purchased_on, workspace_id, stores(name))")
+    .select(
+      "id, grams, origin, lot_no, supplier_lot, packed_on, herbs(id, name_zh), purchases!inner(purchased_on, workspace_id, stores(name))",
+    )
     .eq("id", id)
     .eq("purchases.workspace_id", workspaceId)
     .maybeSingle<Row>();
@@ -70,7 +72,9 @@ async function Label({
   return (
     <div className="space-y-4">
       <style>{PRINT_CSS}</style>
-      <Link href={`/herbs/${b.herbs.id}`} className="text-sm text-muted">← {b.herbs.name_zh}</Link>
+      <Link href={`/herbs/${b.herbs.id}`} className="text-sm text-muted">
+        ← {b.herbs.name_zh}
+      </Link>
       <h1 className="font-serif text-2xl font-bold">批次标签</h1>
       <PrintControls key={String(showStore)} showStore={showStore} />
       <p className="text-xs text-muted">标签纸 4 × 2 英寸。打印时选「实际大小 / 100%」、边距「无」。</p>
@@ -83,17 +87,23 @@ async function Label({
         >
           <div className="flex items-baseline justify-between gap-2">
             <span className="flex items-baseline gap-2.5">
-              <span className="font-serif text-2xl font-black tracking-[3px]" data-testid="label-herb">{b.herbs.name_zh}</span>
+              <span className="font-serif text-2xl font-black tracking-[3px]" data-testid="label-herb">
+                {b.herbs.name_zh}
+              </span>
               <span className="text-[11px] tracking-wider text-neutral-600">本批资料</span>
             </span>
-            <span className="font-bold tracking-wide" data-testid="label-lot">批号 {b.lot_no}</span>
+            <span className="font-bold tracking-wide" data-testid="label-lot">
+              批号 {b.lot_no}
+            </span>
           </div>
           <div className="h-px bg-black" />
           <dl className="grid grid-cols-3 gap-x-3 gap-y-2">
             {cells.map(([k, v]) => (
               <div key={k} className="flex min-w-0 flex-col">
                 <dt className="text-[11px] text-neutral-600">{k}</dt>
-                <dd className="truncate font-medium" data-testid={`label-${k}`}>{v}</dd>
+                <dd className="truncate font-medium" data-testid={`label-${k}`}>
+                  {v}
+                </dd>
               </div>
             ))}
           </dl>
