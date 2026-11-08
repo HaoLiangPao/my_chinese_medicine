@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { matchNames } from "@/lib/herbs";
+import { cleanupStalePhotos, PHOTO_BUCKET, recordPhotoUpload } from "@/lib/photo-cleanup";
 import { callOpenRouter, modelList, withFallback, type Parsed } from "@/lib/ai-parse";
 
 export type ParseResponse =
@@ -45,8 +46,10 @@ export async function POST(req: Request) {
 
   // 1) 存照片（私有 bucket，路径以 workspace_id 开头，RLS 依此判断）
   const photoPath = `${ws}/${crypto.randomUUID()}.${ext}`;
-  const { error: upErr } = await supabase.storage.from("prescription-photos").upload(photoPath, bytes, { contentType: mediaType });
+  const { error: upErr } = await supabase.storage.from(PHOTO_BUCKET).upload(photoPath, bytes, { contentType: mediaType });
   if (upErr) return NextResponse.json({ error: `照片上传失败：${upErr.message}` }, { status: 500 });
+  // 登记这张照片，以后没用上可以清理（docs/design/0012）
+  await recordPhotoUpload(supabase, photoPath, ws);
 
   // 2) 让模型读方子：按 OPENROUTER_MODELS 的顺序试，前一个失败（限流、超时、格式不对）就换下一个
   try {
@@ -86,6 +89,9 @@ export async function POST(req: Request) {
         items: parsed.items.map((i) => ({ ...i, matched_name: ids[i.name] ? (nameById.get(ids[i.name]!) ?? null) : null })),
       },
     };
+    // 响应发出去以后，顺手清理本药柜里没用上的旧照片（docs/design/0012）。
+    // 只在成功时做：这时登录状态已经在上面的查询里刷新过；识别全部失败时跳过，免得在响应之后才刷新、写不回 cookie
+    after(() => cleanupStalePhotos(supabase));
     return NextResponse.json(body);
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message, photo_path: photoPath }, { status: 502 });

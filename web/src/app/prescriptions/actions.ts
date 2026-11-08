@@ -2,6 +2,7 @@
 
 import { invalidateAll } from "@/lib/invalidate";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { getContext } from "@/lib/auth";
 import { resolveHerbId } from "@/lib/herbs";
@@ -9,6 +10,7 @@ import { num, parseJsonField, str, SPECIAL_PREPS } from "@/lib/format";
 import { buildOverrides, cleanExtras, plannedGrams, type PlanItem } from "@/lib/decoction";
 import { parsePrescriberChoice, type PrescriberChoice } from "@/lib/prescribers";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cleanupStalePhotos } from "@/lib/photo-cleanup";
 
 const Items = z
   .array(
@@ -28,6 +30,8 @@ const ExtrasInput = z.array(z.object({ name: z.string(), grams: z.number() })).m
 
 export async function createPrescription(_prev: SaveState, form: FormData): Promise<SaveState> {
   const { supabase, workspaceId } = await getContext();
+  // 保存完（响应发出去以后）顺手清理本药柜里没用上的旧照片（docs/design/0012）
+  after(() => cleanupStalePhotos(supabase));
 
   const parsed = Items.safeParse(parseJsonField(form.get("items"), []));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "药材列表有误" };
@@ -129,7 +133,11 @@ export async function deletePrescription(form: FormData) {
   if (!data) throw new Error("药方不存在或没有权限");
   const { error } = await supabase.from("prescriptions").delete().eq("id", id);
   if (error) throw new Error(error.message); // 删除失败时不要动照片
-  if (data.photo_path) await supabase.storage.from("prescription-photos").remove([data.photo_path]);
+  if (data.photo_path) {
+    // 照片跟着药方立刻删；登记也一起删（docs/design/0012）
+    await supabase.storage.from("prescription-photos").remove([data.photo_path]);
+    await supabase.from("photo_uploads").delete().eq("path", data.photo_path);
+  }
   invalidateAll();
   redirect(`/prescriptions?deleted=${id}`);
 }
