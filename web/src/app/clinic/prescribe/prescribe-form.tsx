@@ -539,6 +539,8 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
                     }
                   })
                 }
+                // 按钮上是搜索框里打的字：Bug 反馈只记成「（已隐藏）」
+                data-bug-private
                 className="rounded-full border border-dashed border-line px-3 py-1 text-sm text-muted"
               >
                 ＋ 新增「{q.trim()}」

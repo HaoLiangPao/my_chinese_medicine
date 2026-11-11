@@ -164,6 +164,12 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
   await hit.click();
   await expect(clinicPage.getByTestId("selected-patient")).toContainText(PATIENT.name);
 
+  // 搜一味目录里没有的药 → 点「＋ 新增「…」」（按钮上是搜索框里打的字）
+  const typed = `秘方草${RUN}`;
+  await clinicPage.getByLabel("搜药材").fill(typed);
+  await clinicPage.getByRole("button", { name: `＋ 新增「${typed}」` }).click();
+  await expect(clinicPage.getByLabel("搜药材")).toHaveValue("");
+
   // 描述超过 100 字，里面有电话和邮箱：数据库里原样保存，Slack 里只有前 100 字、遮过
   const tail = "后面还有很长的说明".repeat(20);
   const desc = `处方保存不了，病人电话 ${PATIENT.phone} 邮箱 a@b.com <!channel>。${tail} ${RUN}`;
@@ -183,9 +189,10 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
     ["nav", "/clinic/prescribe?patient&from"],
     ["click", "换一个"],
     ["click", "（已隐藏）"],
+    ["click", "（已隐藏）"],
   ]);
   const withoutDescription = JSON.stringify({ ...row, description: "" });
-  for (const secret of [PATIENT.name, "三丰", PATIENT.phone, "0199", "secret-value", patient]) {
+  for (const secret of [PATIENT.name, "三丰", PATIENT.phone, "0199", "secret-value", patient, typed, "秘方草"]) {
     expect(withoutDescription, secret).not.toContain(secret);
   }
 

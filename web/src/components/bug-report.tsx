@@ -39,6 +39,7 @@ export function BugReport({ userId }: { userId: string }) {
   const actions = useRef<BugAction[]>([]);
   const errors = useRef<BugError[]>([]);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const downOnBackdrop = useRef(false);
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -136,7 +137,9 @@ export function BugReport({ userId }: { userId: string }) {
         aria-label="反馈问题"
         data-testid="bug-report-panel"
         onClose={() => setOpen(false)}
-        onClick={(e) => e.target === e.currentTarget && dialogRef.current?.close()}
+        // 点遮罩关闭：按下和松开都在遮罩上才算（在文本框里选字、拖到外面松开不关）
+        onMouseDown={(e) => (downOnBackdrop.current = e.target === e.currentTarget)}
+        onClick={(e) => e.target === e.currentTarget && downOnBackdrop.current && dialogRef.current?.close()}
         className="fixed inset-x-0 top-auto bottom-0 mx-auto mb-0 max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-card p-0 text-ink shadow-xl backdrop:bg-black/40"
       >
         {open && snapshot && (

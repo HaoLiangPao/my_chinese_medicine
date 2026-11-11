@@ -58,7 +58,8 @@ async function Inventory({ kind }: { kind: AccountKind }) {
             const tone = g <= 0 ? "border-cinnabar" : r.is_low ? "border-amber" : "";
             return (
               <details key={r.herb_id} className={`card group open:col-span-2 ${tone}`} data-testid={`stock-card-${r.name_zh}`}>
-                <summary className="cursor-pointer list-none">
+                {/* 上面有用户填的罐子标签：Bug 反馈只记成「（已隐藏）」 */}
+                <summary className="cursor-pointer list-none" data-bug-private>
                   <div className="flex items-baseline justify-between">
                     <span className="font-serif text-lg font-bold">{r.name_zh}</span>
                     {r.jar_label && <span className="text-xs text-muted">罐 {r.jar_label}</span>}

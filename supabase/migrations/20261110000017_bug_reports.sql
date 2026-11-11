@@ -66,7 +66,7 @@ as $$
 declare c integer;
 begin
   if new.reporter_id is null then return new; end if;  -- 管理员（没有登录身份）直接写的不计
-  insert into public.bug_report_usage (user_id, day, count) values (new.reporter_id, current_date, 1)
+  insert into public.bug_report_usage (user_id, day, count) values (new.reporter_id, (now() at time zone 'utc')::date, 1)  -- 按 UTC 算一天，不跟会话时区走
   on conflict (user_id, day) do update set count = bug_report_usage.count + 1
   where bug_report_usage.count < 20
   returning count into c;

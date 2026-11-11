@@ -79,6 +79,40 @@ describe("sanitizeLabel / sanitizeError / truncate", () => {
     expect(sanitizeError("发给 a@b.com 失败", "Error: 4165550101\n at x").message).toBe("发给 [邮箱] 失败");
     expect(sanitizeError("", "Error: 4165550101\n at x").stack).toBe("Error: [数字]\n at x");
   });
+  it("堆栈的每一帧留着文件名和行列号（线上是压缩过的，列号常常 6 位以上）；帧以外的行照常遮", () => {
+    const stack = [
+      "Error: 保存 4165550101 失败 a@b.com",
+      "    at s (https://app.example/_next/static/chunks/4bd1b696-9911af18dede28aa.js:1:234567)",
+      "    at async https://app.example/_next/static/chunks/1255-642c76f13c20a3ec.js:1:1234567",
+      "f@https://app.example/_next/static/chunks/1255-642c76f13c20a3ec.js:1:234567",
+      "    at mail (https://app.example/x.js:1:2) a@b.com",
+    ].join("\n");
+    expect(sanitizeError("", stack).stack).toBe(
+      [
+        "Error: 保存 [数字] 失败 [邮箱]",
+        "    at s (https://app.example/_next/static/chunks/4bd1b696-9911af18dede28aa.js:1:234567)",
+        "    at async https://app.example/_next/static/chunks/1255-642c76f13c20a3ec.js:1:1234567",
+        "f@https://app.example/_next/static/chunks/1255-642c76f13c20a3ec.js:1:234567",
+        "    at mail (https://app.example/x.js:1:2) [邮箱]",
+      ].join("\n"),
+    );
+  });
+  it("超长的输入很快处理完（先切再遮，不会被一个巨长的字段卡住）", () => {
+    const huge = "a".repeat(1_000_000);
+    const started = performance.now();
+    const r = normalizeBugReport({
+      description: huge,
+      pagePath: "/" + huge + "?" + huge + "=1",
+      userAgent: huge,
+      actions: Array.from({ length: 20 }, (_, i) => ({ t: "", kind: i % 2 ? "nav" : "click", label: huge })),
+      errors: Array.from({ length: 5 }, () => ({ t: "", message: huge, stack: huge + "\n" + "1".repeat(100_000) })),
+    });
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(r.errors[0].message).toHaveLength(LIMITS.errorMessage);
+    expect(r.errors[0].stack).toHaveLength(LIMITS.errorStack);
+    expect(r.actions[0].label).toHaveLength(LIMITS.actionLabel);
+    expect(r.pagePath).toHaveLength(LIMITS.path);
+  });
   it("先遮再截：截断不会留下半个电话", () => {
     const label = sanitizeLabel("x".repeat(36) + "4165550101");
     expect(label).toBe("x".repeat(36) + "[数字]".slice(0, 4));

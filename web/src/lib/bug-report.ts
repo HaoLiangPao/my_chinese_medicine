@@ -32,11 +32,19 @@ const LONG_NUMBER = /[+(（]?(?:\d[\s\-.()（）]*){5,}\d/g;
 
 /** 按字（不是 UTF-16 单元）截断，不会把一个表情切成两半 */
 export function truncate(s: string, max: number): string {
-  const chars = Array.from(s);
-  return chars.length <= max ? s : chars.slice(0, max).join("");
+  if (s.length <= max) return s; // 字数不会比 UTF-16 单元多
+  // 一个字最多 2 个单元：只看前 max * 2 个单元就够了，不把很长的字符串整个拆开
+  const chars = Array.from(s.slice(0, max * 2));
+  return chars.length <= max && s.length <= max * 2 ? s : chars.slice(0, max).join("");
 }
 
-/** 遮住邮箱和长数字；uuid（内部 id）保留 */
+/**
+ * 遮之前先切到上限的几倍：遮的正则在很长的字符串上很慢（耗时按长度的平方涨），不能让别人传一个巨长的字段把服务器卡住。
+ * 留几倍的余量，是为了「先遮再截」——截断的地方不会留下半个电话。
+ */
+const bounded = (s: string, max: number) => s.slice(0, max * 4);
+
+/** 遮住邮箱和长数字；uuid（内部 id）保留。调用前先用 bounded() 限制长度 */
 export function redactText(s: string): string {
   const keep = s.match(UUID) ?? [];
   return s
@@ -45,11 +53,25 @@ export function redactText(s: string): string {
     .reduce((out, part, i) => out + part + (keep[i] ?? ""), "");
 }
 
+// 堆栈里的一帧：「at f (https://…/chunks/1255-642c76f13c20a3ec.js:1:234567)」或 Firefox / Safari 的「f@https://…js:1:2」
+const STACK_FRAME = /^\s*at\s|:\d+:\d+\)?\s*$/;
+/**
+ * 堆栈：每一帧里的文件名（带哈希）和「:行:列」要留着，不然对不回源码，所以帧里只遮邮箱；
+ * 其他行（开头的错误信息）和别的文字一样遮。
+ */
+function redactStack(stack: string): string {
+  return stack
+    .split("\n")
+    .map((line) => (STACK_FRAME.test(line) ? line.replace(EMAIL, "[邮箱]") : redactText(line)))
+    .join("\n");
+}
+
 /**
  * 路径脱敏：query 只留参数名、去掉值；去掉 # 后面的；路径里的 uuid 保留，其他段按文字规则遮住。
  * 例：/clinic/prescribe?patient=3f…&q=张三#top → /clinic/prescribe?patient&q
  */
 export function sanitizePath(raw: string): string {
+  raw = bounded(raw, LIMITS.path);
   let pathname = raw;
   let search = "";
   try {
@@ -75,13 +97,13 @@ export function sanitizePath(raw: string): string {
 
 /** 按钮上的字：压成一行、遮住、截断 */
 export function sanitizeLabel(raw: string): string {
-  return truncate(redactText(raw.replace(/\s+/g, " ").trim()), LIMITS.actionLabel);
+  return truncate(redactText(bounded(raw.replace(/\s+/g, " ").trim(), LIMITS.actionLabel)), LIMITS.actionLabel);
 }
 
 export function sanitizeError(message: string, stack: string): Pick<BugError, "message" | "stack"> {
   return {
-    message: truncate(redactText(message), LIMITS.errorMessage),
-    stack: truncate(redactText(stack), LIMITS.errorStack),
+    message: truncate(redactText(bounded(message, LIMITS.errorMessage)), LIMITS.errorMessage),
+    stack: truncate(redactStack(bounded(stack, LIMITS.errorStack)), LIMITS.errorStack),
   };
 }
 
