@@ -351,7 +351,8 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
             aria-label="搜病人"
             className="input"
           />
-          <ul className="divide-y divide-line rounded-lg border border-line" data-testid="patient-results">
+          {/* data-bug-private：按钮上是病人的姓名和电话，Bug 反馈的操作记录里只记「（已隐藏）」（docs/design/0014 §4） */}
+          <ul className="divide-y divide-line rounded-lg border border-line" data-testid="patient-results" data-bug-private>
             {results.length === 0 && <li className="p-3 text-sm text-muted">{busy ? "搜索中…" : q ? "没找到" : "还没有病人"}</li>}
             {results.map((p) => (
               <li key={p.id}>

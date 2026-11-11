@@ -141,7 +141,8 @@ export function ReusePicker({
                     ))}
                   </div>
                 </div>
-                <ul className="min-h-0 flex-1 overflow-y-auto" data-testid="reuse-list">
+                {/* data-bug-private：预设药方的名字是用户起的，Bug 反馈的操作记录里不记（docs/design/0014 §4） */}
+                <ul className="min-h-0 flex-1 overflow-y-auto" data-testid="reuse-list" data-bug-private>
                   {scope === "patient" && loading && <li className="p-4 text-sm text-muted">加载中…</li>}
                   {scope === "patient" && !loading && patientId && loadFailed === patientId && (
                     <li className="flex items-center justify-between gap-2 p-4 text-sm text-cinnabar" role="alert">

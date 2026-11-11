@@ -51,6 +51,7 @@ export default defineConfig({
     { name: "paste-text", testMatch: /paste-text\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "herb-picker", testMatch: /herb-picker\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "clinic-templates", testMatch: /clinic-templates\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "bug-report", testMatch: /bug-report\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {
@@ -70,6 +71,9 @@ export default defineConfig({
         OPENROUTER_BASE_URL: `http://127.0.0.1:${MOCK_PORT}/api/v1`,
         OPENROUTER_MODELS: "test/free-vl:free,test/deepseek-vl",
         PARSE_DAILY_LIMIT: "5",
+        // Bug 反馈（docs/design/0014）：App 版本取部署的 commit；Slack 通知发到假的 webhook
+        VERCEL_GIT_COMMIT_SHA: "e2e-test-sha",
+        SLACK_BUG_WEBHOOK_URL: `http://127.0.0.1:${MOCK_PORT}/slack-webhook`,
       },
     },
   ],
