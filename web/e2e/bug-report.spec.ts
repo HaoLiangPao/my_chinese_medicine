@@ -165,7 +165,7 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
   await expect(clinicPage.getByTestId("selected-patient")).toContainText(PATIENT.name);
 
   // 搜一味目录里没有的药 → 点「＋ 新增「…」」（按钮上是搜索框里打的字）
-  const typed = `秘方草${RUN}`;
+  const typed = "秘方草"; // 只能新增全是汉字的药名
   await clinicPage.getByLabel("搜药材").fill(typed);
   await clinicPage.getByRole("button", { name: `＋ 新增「${typed}」` }).click();
   await expect(clinicPage.getByLabel("搜药材")).toHaveValue("");
@@ -192,7 +192,7 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
     ["click", "（已隐藏）"],
   ]);
   const withoutDescription = JSON.stringify({ ...row, description: "" });
-  for (const secret of [PATIENT.name, "三丰", PATIENT.phone, "0199", "secret-value", patient, typed, "秘方草"]) {
+  for (const secret of [PATIENT.name, "三丰", PATIENT.phone, "0199", "secret-value", patient, typed]) {
     expect(withoutDescription, secret).not.toContain(secret);
   }
 
