@@ -96,6 +96,7 @@ test("开方：……", { tag: ["@CLN-3"] }, async ({ page }) => { … });
 | CLN-6 | 病历：病人名下的处方；从病历再开一张（病人自动选好） | `/clinic/patients/[id]` | ✅ clinic 5 | | |
 | CLN-7 | 诊所和家庭药柜隔离 | 全部 | ✅ clinic 7 | SQL `clinic_test` | |
 | CLN-8 | 诊所进货（成本用这些价格） | `/purchases/new` | ✅ clinic 2 | | |
+| RX-9 | 基于已有药方开新处方：预设药方 + 复用（只给医生账号） | `/clinic/prescribe`、`/clinic/templates`、`/prescriptions/[id]` | ✅ clinic-templates：「全部处方」不带病人名字和电话（页面数据里也没有）；照着处方开 → 提醒存成预设；照着预设开 → 同时更新预设、以前的处方不变；「当前病人的」；按药材搜；详情页「照这张再开一张」「存成预设药方」；管理页改名、删除；家庭账号 404 | 单元 `rx-reuse.test.ts`；SQL `prescription_templates_test`；设计 `docs/design/0013` | |
 
 ### LEARN · 学堂（公开）
 
