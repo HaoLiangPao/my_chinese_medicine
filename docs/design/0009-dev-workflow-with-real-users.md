@@ -122,7 +122,7 @@ scripts/backup-prod.sh
 
 恢复：先恢复到本地库里检查，确认没问题再决定怎么修线上。注意：
 - `.dump`：用 `pg_restore --list` 看内容。导出用的是 pg_dump 18，恢复要用 pg_restore 18 或更新的版本
-- `.sql`：新建一个空库（普通 Postgres 就行，不用 Supabase），用超级用户依次跑 `scripts/backup-restore-prep.sql`（补上 Supabase 自带的角色、schema、扩展）、`-schema.sql`、`-data.sql`，命令见脚本开头。2026-11-08 用线上备份在本机的临时库里试过：没有报错，行数和线上一致，RLS 策略和触发器都在
+- `.sql`：新建一个空库（普通 Postgres 就行，不用 Supabase），用超级用户（叫什么名字都行）、带 `-v ON_ERROR_STOP=1` 依次跑 `scripts/backup-restore-prep.sql`（补上 Supabase 自带的角色、schema、扩展）、`-schema.sql`、`-data.sql`，命令见脚本开头。2026-11-08 用线上备份在本机的临时库里试过：没有报错，行数和线上一致，RLS 策略和触发器都在
 - 只恢复 `public` 时，业务表指向 `auth.users` 的外键会因为本地没有这些用户而报错，要连 `auth` 一起恢复
 
 ### 上线审批（还没决定）

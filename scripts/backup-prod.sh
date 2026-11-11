@@ -19,9 +19,10 @@
 #     pg_restore --list backups/<文件>.dump          看里面有什么
 #     pg_restore -d <本地库> --schema=public --schema=auth backups/<文件>.dump   （public 的外键指向 auth.users）
 #   .sql：恢复到一个新建的空库（普通 Postgres 就行），用超级用户按顺序跑：
-#     psql -d <本地空库> -f scripts/backup-restore-prep.sql    补上 Supabase 自带的角色、schema、扩展
-#     psql -d <本地空库> -f backups/<文件>-schema.sql           public、auth、storage 三个 schema 的结构
-#     psql -d <本地空库> -f backups/<文件>-data.sql             数据（开头关掉了外键检查：herbs 表有指向自己的外键）
+#   （带 -v ON_ERROR_STOP=1：出错马上停，不会接着往下灌）
+#     psql -v ON_ERROR_STOP=1 -d <本地空库> -f scripts/backup-restore-prep.sql    补上 Supabase 自带的角色、schema、扩展
+#     psql -v ON_ERROR_STOP=1 -d <本地空库> -f backups/<文件>-schema.sql           public、auth、storage 三个 schema 的结构
+#     psql -v ON_ERROR_STOP=1 -d <本地空库> -f backups/<文件>-data.sql             数据（开头关掉了外键检查：herbs 表有指向自己的外键）
 #
 # 注意：拍照识别的原始照片在 Supabase Storage 里，不在数据库里，这个脚本不导出照片。
 set -euo pipefail
