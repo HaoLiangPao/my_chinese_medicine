@@ -71,7 +71,7 @@ description: 把这个中药药柜 App 当作自己的项目来推进时用：�
 ## 5. 怎么组队
 
 - 一个功能一个 session、一个 worktree、一个 PR，base 一律 main。brief 里写清：任务、文件范围、migration 编号、设计文档编号、完成的标准、所有约束（下一个 session 没看过这段对话）。
-- **migration 和设计文档的编号由负责人统一分配**，写进 roadmap，避免两个分支撞号。
+- **migration 和设计文档的编号由负责人统一分配**，写进 roadmap，避免两个分支撞号。编号按合并顺序分配：`check-migrations.sh` 不允许后合并的编号比已上线的小，插队的修复会让后面的分支改号。
 - **本地 E2E 用固定端口，`local-stack.sh up` 会先 `down`**：同一时间只能有一个 session 跑 E2E。第二个开发 session 要么排队，要么在 brief 里要求它先查端口、等别人跑完。只读的 session 可以随时并行。
 - 两个 session 不碰同一批文件。`features.md`、`docs/ideas.md` 这种大家都改的文件，后合并的那个负责 rebase。
 - 负责人自己留在主 session：回答 Hao、核对结果、做小而急的事。
