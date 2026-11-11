@@ -80,15 +80,17 @@ export function ReviewForm({ m, inherited }: { m: Monograph; inherited: Partial<
       )}
 
       <div className="flex flex-wrap gap-2 border-t border-line pt-3">
-        <button name="action" value="approve" disabled={pending} className="btn-primary min-h-11 flex-1">
+        <button data-bug-label="通过，下一味" name="action" value="approve" disabled={pending} className="btn-primary min-h-11 flex-1">
           通过，下一味
         </button>
-        <button name="action" value="save" disabled={pending} className="btn-ghost min-h-11">
+        <button data-bug-label="先存着" name="action" value="save" disabled={pending} className="btn-ghost min-h-11">
           先存着
         </button>
       </div>
       <details className="text-sm">
-        <summary className="cursor-pointer text-muted">有问题？</summary>
+        <summary data-bug-label="有问题？" className="cursor-pointer text-muted">
+          有问题？
+        </summary>
         <div className="mt-2 space-y-2">
           <textarea
             name="note"
@@ -98,7 +100,7 @@ export function ReviewForm({ m, inherited }: { m: Monograph; inherited: Partial<
             rows={2}
             className="input"
           />
-          <button name="action" value="flag" disabled={pending} className="btn-ghost">
+          <button data-bug-label="记下问题" name="action" value="flag" disabled={pending} className="btn-ghost">
             记下问题
           </button>
         </div>

@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { LIMITS, normalizeBugReport, pushCapped, redactText, sanitizeError, sanitizeLabel, sanitizePath, truncate } from "./bug-report";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import {
+  clickLabel,
+  LIMITS,
+  normalizeBugReport,
+  pushCapped,
+  redactText,
+  sanitizeError,
+  sanitizeLabel,
+  sanitizePath,
+  truncate,
+} from "./bug-report";
 
 const UUID = "3f2b8c1e-4a5d-4e6f-9a7b-0123456789ab";
 
@@ -67,7 +79,7 @@ describe("sanitizePath", () => {
 });
 
 describe("sanitizeLabel / sanitizeError / truncate", () => {
-  it("按钮上的字：压成一行、遮住、最多 40 字", () => {
+  it("操作记录里的一条文字：压成一行、遮住、最多 40 字", () => {
     expect(sanitizeLabel("  保存\n  处方 ")).toBe("保存 处方");
     expect(sanitizeLabel("张三 416-555-0101")).toBe("张三 [数字]");
     expect(Array.from(sanitizeLabel("药".repeat(100)))).toHaveLength(LIMITS.actionLabel);
@@ -134,6 +146,49 @@ describe("sanitizeLabel / sanitizeError / truncate", () => {
   it("truncate 按字算，不把表情切成两半", () => {
     expect(truncate("药🌿材", 2)).toBe("药🌿");
     expect(truncate("abc", 5)).toBe("abc");
+  });
+});
+
+describe("clickLabel（白名单：不读按钮上的字）", () => {
+  it("标了 data-bug-label 的按钮：记这个标签", () => {
+    expect(clickLabel({ tag: "BUTTON", bugLabel: "保存处方", href: null })).toBe("保存处方");
+    expect(clickLabel({ tag: "SUMMARY", bugLabel: "批次信息", href: null })).toBe("批次信息");
+  });
+  it("没标的：只记元素类型（参数里根本没有元素上显示的字）", () => {
+    expect(clickLabel({ tag: "BUTTON", bugLabel: null, href: null })).toBe("（按钮）");
+    expect(clickLabel({ tag: "DIV", bugLabel: null, href: null })).toBe("（按钮）"); // role=button
+    expect(clickLabel({ tag: "SUMMARY", bugLabel: null, href: null })).toBe("（折叠栏）");
+    expect(clickLabel({ tag: "BUTTON", bugLabel: "  ", href: null })).toBe("（按钮）");
+  });
+  it("链接：只记目标路径，query 的值去掉", () => {
+    expect(clickLabel({ tag: "A", bugLabel: null, href: "https://app.example/clinic/patients?q=张三#top" })).toBe("→ /clinic/patients?q");
+    expect(clickLabel({ tag: "A", bugLabel: "标签", href: "https://app.example/herbs" })).toBe("→ /herbs");
+  });
+  it("兜底：标签万一带了电话、太长，照文字规则遮住、截断", () => {
+    expect(clickLabel({ tag: "BUTTON", bugLabel: "打给 416-555-0101", href: null })).toBe("打给 [数字]");
+    expect(Array.from(clickLabel({ tag: "BUTTON", bugLabel: "药".repeat(100), href: null }))).toHaveLength(LIMITS.actionLabel);
+  });
+});
+
+describe("data-bug-label 只能是写死的字", () => {
+  const SRC = path.resolve(__dirname, "..");
+  const files = (readdirSync(SRC, { recursive: true }) as string[]).filter((f) => f.endsWith(".tsx")).map((f) => path.join(SRC, f));
+  // 唯一的例外：ConfirmButton 把调用方写死的标签原样传给 <button>
+  const FORWARD = "data-bug-label={bugLabel}";
+  it("源码里每一处 data-bug-label 都是字符串字面量，不是 {表达式}（表达式里可能带病人姓名）", () => {
+    const uses: string[] = [];
+    const bad: string[] = [];
+    for (const f of files) {
+      const rel = path.relative(SRC, f);
+      const src =
+        rel === path.join("components", "confirm-button.tsx") ? readFileSync(f, "utf8").replace(FORWARD, "") : readFileSync(f, "utf8");
+      for (const m of src.matchAll(/data-bug-label=[^\n]{0,60}/g)) {
+        uses.push(m[0]);
+        if (!/^data-bug-label="[^"{}$`]+"/.test(m[0])) bad.push(`${rel}: ${m[0]}`);
+      }
+    }
+    expect(bad).toEqual([]);
+    expect(uses.length).toBeGreaterThan(50); // 真的扫到了（主要流程的按钮都标了）
   });
 });
 

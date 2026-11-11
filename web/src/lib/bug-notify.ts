@@ -1,30 +1,17 @@
-import { redactText, truncate } from "./bug-report";
-
 /**
  * Bug 反馈的 Slack 通知（docs/design/0014 §6）。
- * 没配置 SLACK_BUG_WEBHOOK_URL 就什么都不做；配置了，发一条只有「id、路径、时间、描述前 100 字」的消息。
+ * 没配置 SLACK_BUG_WEBHOOK_URL 就什么都不做；配置了，发一条只有「编号、页面路径、时间」的消息。
+ * 描述不发：用户可能在里面写病人的姓名、电话，这些不应该离开数据库。看内容要去数据库里查这个编号。
  */
 
-export type BugNotice = { id: string; pagePath: string; description: string; createdAt: string };
+export type BugNotice = { id: string; pagePath: string; createdAt: string };
 
-export const SLACK_EXCERPT = 100;
-
-/** Slack 的文字里 & < > 要转义，不然描述里的 <!channel> 会真的 @ 所有人 */
+/** Slack 的文字里 & < > 要转义，不然路径里的 <!channel> 会真的 @ 所有人 */
 const escapeSlack = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/** 消息内容：只用这四样。参数类型里也只有这四样，操作记录、错误、浏览器、提交人传不进来 */
+/** 消息内容：只用这三样（一个个字段取，不展开整个对象）。描述、操作记录、错误、浏览器、提交人都不发 */
 export function buildSlackMessage(n: BugNotice): { text: string } {
-  const oneLine = n.description.replace(/\s+/g, " ").trim();
-  const excerpt = truncate(redactText(oneLine), SLACK_EXCERPT);
-  const more = Array.from(redactText(oneLine)).length > SLACK_EXCERPT ? "…" : "";
-  return {
-    text: [
-      `🐞 新的问题反馈 ${n.id}`,
-      `页面：${escapeSlack(n.pagePath)}`,
-      `时间：${n.createdAt}`,
-      `描述：${escapeSlack(excerpt)}${more}`,
-    ].join("\n"),
-  };
+  return { text: [`🐞 新的问题反馈 ${n.id}`, `页面：${escapeSlack(n.pagePath)}`, `时间：${n.createdAt}`].join("\n") };
 }
 
 /** 只发到 https 地址；本机地址可以用 http（E2E 的假 webhook） */

@@ -97,6 +97,7 @@ export function PurchaseForm({ herbNames, storeNames, today }: { herbNames: stri
                 className="input"
               />
               <button
+                data-bug-label="删这一行"
                 type="button"
                 onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
                 className="text-muted hover:text-cinnabar"
@@ -108,7 +109,9 @@ export function PurchaseForm({ herbNames, storeNames, today }: { herbNames: stri
             {/* 批次信息（docs/design/0010 §3.3）：可选，默认收起 */}
             {/* 展开 / 收起由用户决定（每行自己记），不跟着内容变：删空内容时不会在光标下收起 */}
             <details className="text-sm" open={l.showBatch} onToggle={(e) => set(l.key, { showBatch: e.currentTarget.open })}>
-              <summary className="cursor-pointer text-xs text-muted">批次信息（产地、批号、分装日期，可不填）</summary>
+              <summary data-bug-label="批次信息" className="cursor-pointer text-xs text-muted">
+                批次信息（产地、批号、分装日期，可不填）
+              </summary>
               <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <input
                   value={l.origin}
@@ -140,7 +143,7 @@ export function PurchaseForm({ herbNames, storeNames, today }: { herbNames: stri
             </details>
           </div>
         ))}
-        <button type="button" onClick={() => setLines((ls) => [...ls, blank()])} className="btn-ghost w-full">
+        <button data-bug-label="＋ 加一行" type="button" onClick={() => setLines((ls) => [...ls, blank()])} className="btn-ghost w-full">
           ＋ 加一行
         </button>
         <p className="text-xs text-muted">提示：按斤买的，1 斤 = 500 g。</p>
@@ -165,7 +168,7 @@ export function PurchaseForm({ herbNames, storeNames, today }: { herbNames: stri
         <input name="notes" className="input" />
       </div>
       {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
-      <button disabled={pending || filled.length === 0} className="btn-primary w-full py-3">
+      <button data-bug-label="保存采购" disabled={pending || filled.length === 0} className="btn-primary w-full py-3">
         {pending ? "保存中…" : "保存"}
       </button>
     </form>

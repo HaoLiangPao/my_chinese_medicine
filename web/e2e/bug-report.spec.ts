@@ -1,6 +1,7 @@
 /**
  * 应用内 Bug 反馈（PLAT-3，docs/design/0014）。
  * 期望值都在这里独立写出来（走了哪些页面、点了哪些按钮），不读 App 里的脱敏函数。
+ * 点按钮记的是代码里写死的 data-bug-label，不是按钮上的字：没标的只记「（按钮）」。
  */
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
@@ -76,6 +77,18 @@ test("1. 家庭账号：按钮在；描述为空不能提交；提交后数据�
   await page.getByLabel("药名", { exact: true }).first().fill("黄芪");
   await page.getByLabel("每副克数", { exact: true }).first().fill("30");
   await page.getByRole("button", { name: "＋ 加一味" }).click();
+  // 一个没标 data-bug-label 的按钮（测试里临时加的，上面的字像病人信息）：只记「（按钮）」
+  await page.evaluate(() => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.id = "unlabelled";
+    b.textContent = "王小明 的药方";
+    b.setAttribute("aria-label", "王小明 aria");
+    b.title = "王小明 title";
+    document.querySelector("main")!.append(b);
+  });
+  await page.locator("#unlabelled").click();
+  await page.locator("#unlabelled").evaluate((b) => b.remove());
   await page.screenshot({ path: `${SHOTS}/bug-report-desktop-closed.png` });
 
   // 面板：空的、只有空格的都不能提交
@@ -123,6 +136,7 @@ test("1. 家庭账号：按钮在；描述为空不能提交；提交后数据�
     ["click", "→ /prescriptions/new"],
     ["nav", "/prescriptions/new"],
     ["click", "＋ 加一味"],
+    ["click", "（按钮）"],
   ]);
   for (const a of row.recent_actions) {
     expect(Date.parse(a.t)).toBeGreaterThanOrEqual(started);
@@ -131,7 +145,8 @@ test("1. 家庭账号：按钮在；描述为空不能提交；提交后数据�
   expect(row.recent_errors).toEqual([]);
   // query 的值、输入框里打的字都不在这条记录里
   const all = JSON.stringify(row);
-  for (const secret of ["secret-value", "4165550101", "输入框里的字", "hao@example.com", "黄芪"]) expect(all, secret).not.toContain(secret);
+  for (const secret of ["secret-value", "4165550101", "输入框里的字", "hao@example.com", "黄芪", "王小明"])
+    expect(all, secret).not.toContain(secret);
 
   // 关掉面板：表单里填了一半的还在（提交反馈不会把页面上的东西冲掉）
   await closePanel(page);
@@ -144,7 +159,7 @@ test("1. 家庭账号：按钮在；描述为空不能提交；提交后数据�
   await closePanel(page);
 });
 
-test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话；Slack 只收到 id、路径、时间、描述前 100 字", { tag: ["@PLAT-3"] }, async () => {
+test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话；Slack 只收到编号、路径、时间（没有描述）", { tag: ["@PLAT-3"] }, async () => {
   await signUp(clinicPage, doctor, "反馈诊所");
   const ws = await workspaceOf(doctor.email);
   const [{ id: patient }] = await sql<{ id: string }>("insert into patients (workspace_id, name, phone) values ($1, $2, $3) returning id", [
@@ -154,7 +169,7 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
   ]);
   await expect(fab(clinicPage)).toBeVisible();
 
-  // 开方页（地址里带病人 id）→ 换一个 → 搜病人 → 点搜索结果（按钮上是姓名和电话）
+  // 开方页（地址里带病人 id）→ 换一个 → 搜病人 → 点搜索结果（按钮上是姓名和电话，记下来的是写死的「选病人」）
   await clinicPage.goto(`/clinic/prescribe?patient=${patient}&from=secret-value`);
   await expect(clinicPage.getByTestId("selected-patient")).toContainText(PATIENT.name);
   await clinicPage.getByRole("button", { name: "换一个" }).click();
@@ -164,13 +179,13 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
   await hit.click();
   await expect(clinicPage.getByTestId("selected-patient")).toContainText(PATIENT.name);
 
-  // 搜一味目录里没有的药 → 点「＋ 新增「…」」（按钮上是搜索框里打的字）
+  // 搜一味目录里没有的药 → 点「＋ 新增「…」」（按钮上是搜索框里打的字，记下来的是「＋ 新增药材」）
   const typed = "秘方草"; // 只能新增全是汉字的药名
   await clinicPage.getByLabel("搜药材").fill(typed);
   await clinicPage.getByRole("button", { name: `＋ 新增「${typed}」` }).click();
   await expect(clinicPage.getByLabel("搜药材")).toHaveValue("");
 
-  // 描述超过 100 字，里面有电话和邮箱：数据库里原样保存，Slack 里只有前 100 字、遮过
+  // 描述里有电话和邮箱：数据库里原样保存，Slack 里完全没有描述
   const tail = "后面还有很长的说明".repeat(20);
   const desc = `处方保存不了，病人电话 ${PATIENT.phone} 邮箱 a@b.com <!channel>。${tail} ${RUN}`;
   await openPanel(clinicPage);
@@ -187,9 +202,9 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
   expect(row.page_path).toBe("/clinic/prescribe?patient&from");
   expect(row.recent_actions.map((a) => [a.kind, a.label])).toEqual([
     ["nav", "/clinic/prescribe?patient&from"],
-    ["click", "换一个"],
-    ["click", "（已隐藏）"],
-    ["click", "（已隐藏）"],
+    ["click", "换一个病人"],
+    ["click", "选病人"],
+    ["click", "＋ 新增药材"],
   ]);
   const withoutDescription = JSON.stringify({ ...row, description: "" });
   for (const secret of [PATIENT.name, "三丰", PATIENT.phone, "0199", "secret-value", patient, typed]) {
@@ -197,9 +212,6 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
   }
 
   // Slack（假的 webhook）：响应发出去以后才发，等它到
-  // 独立算出来的前 100 字：先遮电话和邮箱，再取 100 个字，最后转义 < >
-  const plain = Array.from(`处方保存不了，病人电话 [数字] 邮箱 [邮箱] <!channel>。${tail}`).slice(0, 100).join("");
-  const escaped = plain.replace("<!channel>", "&lt;!channel&gt;");
   let mine: { text: string }[] = [];
   await expect
     .poll(async () => {
@@ -210,13 +222,27 @@ test("2. 诊所账号：提交成功；报告里没有病人的姓名和电话�
     .toBe(1);
   expect(Object.keys(mine[0])).toEqual(["text"]);
   const lines = mine[0].text.split("\n");
-  expect(lines).toHaveLength(4);
+  expect(lines).toHaveLength(3);
   expect(lines[0]).toBe(`🐞 新的问题反馈 ${row.id}`);
   expect(lines[1]).toBe("页面：/clinic/prescribe?patient&amp;from");
   expect(lines[2]).toMatch(/^时间：/);
   expect(new Date(lines[2].slice("时间：".length)).getTime()).toBe(row.created_at.getTime());
-  expect(lines[3]).toBe(`描述：${escaped}…`);
-  for (const secret of [PATIENT.phone, "0199", "a@b.com", "换一个", "已隐藏", "Mozilla", doctor.email])
+  // 描述里的任何一段都不在消息里；操作记录、浏览器、提交人也不在
+  for (const secret of [
+    "描述",
+    "处方保存不了",
+    "病人电话",
+    "channel",
+    "后面还有",
+    RUN,
+    PATIENT.phone,
+    "0199",
+    "a@b.com",
+    "换一个",
+    "选病人",
+    "Mozilla",
+    doctor.email,
+  ])
     expect(mine[0].text, secret).not.toContain(secret);
   // 家庭账号那一条也发了，一共就这两条
   const all = (await (await fetch(SLACK)).json()) as { text: string }[];

@@ -44,8 +44,8 @@ export async function submitBugReport(raw: unknown): Promise<BugReportResult> {
     return { ok: false, error: "没存上，请再试一次。写的内容还在。" };
   }
 
-  // 响应发出去以后再通知，不拖慢用户；没配置 SLACK_BUG_WEBHOOK_URL 时什么都不做
-  after(() => notifyBugReport({ id: data.id, pagePath: report.pagePath, description: report.description, createdAt: data.created_at }));
+  // 响应发出去以后再通知，不拖慢用户；没配置 SLACK_BUG_WEBHOOK_URL 时什么都不做。通知里不带描述
+  after(() => notifyBugReport({ id: data.id, pagePath: report.pagePath, createdAt: data.created_at }));
   invalidateAll();
   return { ok: true, id: data.id };
 }

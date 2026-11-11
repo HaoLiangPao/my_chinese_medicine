@@ -1,10 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildSlackMessage, isAllowedWebhook, notifyBugReport, SLACK_EXCERPT } from "./bug-notify";
+import { buildSlackMessage, isAllowedWebhook, notifyBugReport } from "./bug-notify";
 
 const notice = {
   id: "3f2b8c1e-4a5d-4e6f-9a7b-0123456789ab",
   pagePath: "/clinic/prescribe?patient",
-  description: "保存按钮点了没反应",
   createdAt: "2026-11-10T01:02:03.456Z",
 };
 const okFetch = () => vi.fn<typeof fetch>(async () => new Response("ok", { status: 200 }));
@@ -15,28 +14,22 @@ afterEach(() => {
 });
 
 describe("buildSlackMessage", () => {
-  it("只有 id、路径、时间、描述", () => {
+  it("只有编号、路径、时间", () => {
     expect(buildSlackMessage(notice)).toEqual({
-      text: "🐞 新的问题反馈 3f2b8c1e-4a5d-4e6f-9a7b-0123456789ab\n页面：/clinic/prescribe?patient\n时间：2026-11-10T01:02:03.456Z\n描述：保存按钮点了没反应",
+      text: "🐞 新的问题反馈 3f2b8c1e-4a5d-4e6f-9a7b-0123456789ab\n页面：/clinic/prescribe?patient\n时间：2026-11-10T01:02:03.456Z",
     });
   });
-  it("描述只取前 100 字，电话和邮箱遮住", () => {
-    const { text } = buildSlackMessage({ ...notice, description: "病人 4165550101 a@b.com 的处方" + "存".repeat(300) });
-    const line = text.split("\n")[3];
-    expect(line.startsWith("描述：病人 [数字] [邮箱] 的处方存")).toBe(true);
-    expect(Array.from(line)).toHaveLength("描述：".length + SLACK_EXCERPT + 1); // 末尾一个 …
-    expect(text).not.toContain("4165550101");
-    expect(text).not.toContain("a@b.com");
+  it("不带描述：调用方就算把描述传进来，消息里也没有", () => {
+    const withDescription = { ...notice, description: "病人张三 4165550101 的处方保存不了" };
+    const { text } = buildSlackMessage(withDescription);
+    expect(text).toBe(buildSlackMessage(notice).text);
+    expect(text.split("\n")).toHaveLength(3);
+    for (const secret of ["张三", "4165550101", "处方", "描述"]) expect(text).not.toContain(secret);
   });
-  it("先遮再截：第 100 个字附近的电话不会漏出一半", () => {
-    const { text } = buildSlackMessage({ ...notice, description: "字".repeat(95) + "4165550101" });
-    expect(text.split("\n")[3]).not.toMatch(/\d/);
-  });
-  it("多行描述压成一行；Slack 的特殊字符转义（<!channel> 不会真的 @ 所有人）", () => {
-    const { text } = buildSlackMessage({ ...notice, description: "第一行\n\n第二行 <!channel> & <b>", pagePath: "/a?<x>" });
-    expect(text.split("\n")).toHaveLength(4);
-    expect(text).toContain("描述：第一行 第二行 &lt;!channel&gt; &amp; &lt;b&gt;");
-    expect(text).toContain("页面：/a?&lt;x&gt;");
+  it("Slack 的特殊字符转义（路径里的 <!channel> 不会真的 @ 所有人）", () => {
+    const { text } = buildSlackMessage({ ...notice, pagePath: "/a?<!channel>&<x>" });
+    expect(text).toContain("页面：/a?&lt;!channel&gt;&amp;&lt;x&gt;");
+    expect(text).not.toMatch(/[<>]/);
   });
 });
 
@@ -53,9 +46,10 @@ describe("notifyBugReport", () => {
   it("配置了：POST 一条 JSON，内容就是 buildSlackMessage，不含操作记录等别的字段", async () => {
     vi.stubEnv("SLACK_BUG_WEBHOOK_URL", "https://hooks.slack.com/services/T/B/x");
     const fetchImpl = okFetch();
-    // 调用方就算多传了字段（操作记录、错误、提交人），消息里也没有
+    // 调用方就算多传了字段（描述、操作记录、错误、提交人），消息里也没有
     const extra = {
       ...notice,
+      description: "秘密描述",
       recent_actions: [{ t: "", kind: "click", label: "点了秘密按钮" }],
       recent_errors: [{ message: "秘密错误", stack: "秘密堆栈" }],
       user_agent: "秘密浏览器",

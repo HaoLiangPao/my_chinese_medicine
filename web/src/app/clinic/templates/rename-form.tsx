@@ -15,7 +15,7 @@ export function RenameForm({ id, name }: { id: string; name: string }) {
   }, {});
   if (!editing)
     return (
-      <button type="button" onClick={() => setEditing(true)} className="btn-ghost min-h-11 text-sm">
+      <button data-bug-label="改名" type="button" onClick={() => setEditing(true)} className="btn-ghost min-h-11 text-sm">
         改名
       </button>
     );
@@ -30,10 +30,10 @@ export function RenameForm({ id, name }: { id: string; name: string }) {
         aria-label="新名字"
         className="input w-48"
       />
-      <button disabled={pending} className="btn-primary min-h-11 text-sm">
+      <button data-bug-label="保存改名" disabled={pending} className="btn-primary min-h-11 text-sm">
         保存
       </button>
-      <button type="button" onClick={() => setEditing(false)} className="text-sm text-muted underline">
+      <button data-bug-label="取消改名" type="button" onClick={() => setEditing(false)} className="text-sm text-muted underline">
         取消
       </button>
       {state.error && <span className="w-full text-sm text-cinnabar">{state.error}</span>}

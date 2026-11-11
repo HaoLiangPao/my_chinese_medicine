@@ -87,6 +87,7 @@ export function ReusePicker({
   return (
     <>
       <button
+        data-bug-label="从已有药方开始"
         type="button"
         onClick={() => {
           setOpen(true);
@@ -120,13 +121,14 @@ export function ReusePicker({
                       aria-label="搜药方"
                       className="input flex-1"
                     />
-                    <button type="button" onClick={close} className="btn-ghost min-h-11 shrink-0">
+                    <button data-bug-label="关闭已有药方" type="button" onClick={close} className="btn-ghost min-h-11 shrink-0">
                       关闭
                     </button>
                   </div>
                   <div className="flex gap-1" role="group" aria-label="范围">
                     {SCOPES.map((s) => (
                       <button
+                        data-bug-label="切换药方范围"
                         key={s.scope}
                         type="button"
                         aria-pressed={scope === s.scope}
@@ -141,13 +143,12 @@ export function ReusePicker({
                     ))}
                   </div>
                 </div>
-                {/* data-bug-private：预设药方的名字是用户起的，Bug 反馈的操作记录里不记（docs/design/0014 §4） */}
-                <ul className="min-h-0 flex-1 overflow-y-auto" data-testid="reuse-list" data-bug-private>
+                <ul className="min-h-0 flex-1 overflow-y-auto" data-testid="reuse-list">
                   {scope === "patient" && loading && <li className="p-4 text-sm text-muted">加载中…</li>}
                   {scope === "patient" && !loading && patientId && loadFailed === patientId && (
                     <li className="flex items-center justify-between gap-2 p-4 text-sm text-cinnabar" role="alert">
                       这个病人更早的处方没加载出来（下面只有最近的）。
-                      <button type="button" onClick={ensurePatient} className="btn-ghost min-h-11 shrink-0">
+                      <button data-bug-label="重试" type="button" onClick={ensurePatient} className="btn-ghost min-h-11 shrink-0">
                         重试
                       </button>
                     </li>
@@ -164,6 +165,7 @@ export function ReusePicker({
                   {list.map((s) => (
                     <li key={`${s.kind}-${s.id}`} className="border-b border-line last:border-0">
                       <button
+                        data-bug-label="选已有药方"
                         type="button"
                         onClick={() => pick(s)}
                         className="w-full space-y-0.5 px-4 py-3 text-left hover:bg-paper"

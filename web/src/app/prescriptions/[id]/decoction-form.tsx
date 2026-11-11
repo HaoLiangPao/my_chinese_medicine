@@ -111,6 +111,7 @@ export function DecoctionForm({
             className="input py-1"
           />
           <button
+            data-bug-label="去掉处方外的药"
             type="button"
             onClick={() => setExtras((xs) => xs.filter((x) => x.key !== e.key))}
             className="text-muted"
@@ -120,12 +121,17 @@ export function DecoctionForm({
           </button>
         </div>
       ))}
-      <button type="button" onClick={() => setExtras((xs) => [...xs, { key: k++, name: "", grams: "" }])} className="btn-ghost w-full py-1">
+      <button
+        data-bug-label="＋ 加一味处方外的药"
+        type="button"
+        onClick={() => setExtras((xs) => [...xs, { key: k++, name: "", grams: "" }])}
+        className="btn-ghost w-full py-1"
+      >
         ＋ 加一味处方外的药
       </button>
       <input name="note" placeholder="备注（可选）" className="input" />
       {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
-      <button disabled={pending || n <= 0} className="btn-primary">
+      <button data-bug-label="煎药扣库存" disabled={pending || n <= 0} className="btn-primary">
         {pending ? "记录中…" : `${verb} ${n} ${unit}，扣库存`}
       </button>
     </form>

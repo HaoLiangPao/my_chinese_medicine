@@ -3,19 +3,19 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { submitBugReport } from "@/app/bug-report/actions";
-import { LIMITS, pushCapped, sanitizeError, sanitizeLabel, sanitizePath, type BugAction, type BugError } from "@/lib/bug-report";
+import { clickLabel, LIMITS, pushCapped, sanitizeError, sanitizePath, type BugAction, type BugError } from "@/lib/bug-report";
 
 /**
  * 右下角的「反馈问题」按钮和面板（docs/design/0014 §3、§4）。放在根布局里，登录后每个页面都有。
  *
- * 顺便在内存里记最近的操作和前端错误，提交时带上。只记「去了哪个页面、点了哪个按钮（按钮上的字）」：
- * 从不读输入框的内容；`data-bug-private` 里面的按钮只记成「（已隐藏）」；链接只记目标路径。
+ * 顺便在内存里记最近的操作和前端错误，提交时带上。只记「去了哪个页面、点了哪个按钮」：
+ * 从不读输入框的内容，也不读按钮上的字（上面可能有病人姓名）——按钮只记它的 `data-bug-label`（代码里写死的名字），
+ * 没有的只记「（按钮）」；链接只记目标路径。
  */
 
 type Snapshot = { pagePath: string; userAgent: string; viewport: string; actions: BugAction[]; errors: BugError[] };
 type Result = { ok: true; id: string } | { ok: false; error: string } | null;
 
-const HIDDEN = "（已隐藏）";
 const draftKey = (userId: string) => `bug-report-draft:${userId}`;
 // sessionStorage 在隐私模式等情况下可能不能用：草稿只是保险，读写失败都不影响提交
 const readDraft = (userId: string) => {
@@ -57,10 +57,11 @@ export function BugReport({ userId }: { userId: string }) {
     const onClick = (e: MouseEvent) => {
       const el = e.target instanceof Element ? e.target.closest("button, a[href], [role=button], summary") : null;
       if (!el || el.closest("[data-bug-report]")) return;
-      let label: string;
-      if (el.closest("[data-bug-private]")) label = HIDDEN;
-      else if (el instanceof HTMLAnchorElement) label = sanitizeLabel(`→ ${sanitizePath(el.href)}`);
-      else label = sanitizeLabel(el.getAttribute("aria-label") || el.textContent || "");
+      const label = clickLabel({
+        tag: el.tagName,
+        bugLabel: el.getAttribute("data-bug-label"),
+        href: el instanceof HTMLAnchorElement ? el.href : null,
+      });
       actions.current = pushCapped(actions.current, { t: new Date().toISOString(), kind: "click", label }, LIMITS.actions);
     };
     const record = (message: string, stack: string) => {
@@ -180,7 +181,7 @@ export function BugReport({ userId }: { userId: string }) {
                 </div>
                 <details className="rounded-lg bg-paper p-3 text-xs text-muted" data-testid="bug-report-attached">
                   <summary className="cursor-pointer">
-                    会附带：当前页面的路径、最近去过的页面和点过的按钮（不含输入的内容）、最近的出错信息、浏览器型号。点开看这一次带上的内容
+                    会附带：当前页面的路径、最近去过的页面和点过的按钮（不含按钮上的字和输入的内容）、最近的出错信息、浏览器型号。点开看这一次带上的内容
                   </summary>
                   <dl className="mt-2 space-y-1 break-all">
                     <dt className="font-medium">页面</dt>

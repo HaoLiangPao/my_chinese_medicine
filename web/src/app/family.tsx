@@ -33,6 +33,7 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
                 <form action={acceptInvitation}>
                   <input type="hidden" name="id" value={i.id} />
                   <ConfirmButton
+                    data-bug-label="接受邀请"
                     message={`加入「${i.workspace_name}」？\n以后你只用这个药柜，你自己现在的药柜会隐藏起来（数据不删，退出「${i.workspace_name}」后会回来）。`}
                     className="btn-primary py-1"
                   >
@@ -41,7 +42,9 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
                 </form>
                 <form action={declineInvitation}>
                   <input type="hidden" name="id" value={i.id} />
-                  <button className="btn-ghost py-1">拒绝</button>
+                  <button data-bug-label="拒绝邀请" className="btn-ghost py-1">
+                    拒绝
+                  </button>
                 </form>
               </span>
             </div>
@@ -54,7 +57,9 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
         <div className="flex items-center justify-between">
           <h2 className="font-serif text-lg font-bold">家庭成员</h2>
           <form action={signOut}>
-            <button className="text-sm text-muted underline">退出登录 {user.email}</button>
+            <button data-bug-label="退出登录" className="text-sm text-muted underline">
+              退出登录 {user.email}
+            </button>
           </form>
         </div>
         <ul className="space-y-1 text-sm" data-testid="member-list">
@@ -66,7 +71,11 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
               {isOwner && x.user_id !== user.id && (
                 <form action={removeMember}>
                   <input type="hidden" name="user_id" value={x.user_id} />
-                  <ConfirmButton message={`把 ${x.email} 移出这个药柜？`} className="text-xs text-muted underline">
+                  <ConfirmButton
+                    data-bug-label="移除成员"
+                    message={`把 ${x.email} 移出这个药柜？`}
+                    className="text-xs text-muted underline"
+                  >
                     移除
                   </ConfirmButton>
                 </form>
@@ -85,7 +94,9 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
                     <span>已邀请 {s.email}，等待对方接受</span>
                     <form action={revokeInvitation}>
                       <input type="hidden" name="id" value={s.id} />
-                      <button className="text-xs underline">撤销</button>
+                      <button data-bug-label="撤销邀请" className="text-xs underline">
+                        撤销
+                      </button>
                     </form>
                   </li>
                 ))}
@@ -96,6 +107,7 @@ export async function Family({ supabase, user, workspaceId }: { supabase: Supaba
           <form action={leaveWorkspace}>
             <input type="hidden" name="workspace_id" value={workspaceId} />
             <ConfirmButton
+              data-bug-label="退出这个药柜"
               message="退出这个共享药柜？之后就看不到这里的数据了，会回到你自己原来的药柜。"
               className="text-sm text-muted underline"
             >
@@ -115,7 +127,9 @@ export function ClinicAccount({ user }: { user: User }) {
       <div className="flex items-center justify-between">
         <h2 className="font-serif text-lg font-bold">账号</h2>
         <form action={signOut}>
-          <button className="text-sm text-muted underline">退出登录 {user.email}</button>
+          <button data-bug-label="退出登录" className="text-sm text-muted underline">
+            退出登录 {user.email}
+          </button>
         </form>
       </div>
     </section>

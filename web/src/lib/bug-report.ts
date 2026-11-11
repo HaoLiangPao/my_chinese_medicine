@@ -102,9 +102,22 @@ export function sanitizePath(raw: string): string {
   return truncate(path.startsWith("/") ? path : `/${path}`, LIMITS.path);
 }
 
-/** 按钮上的字：压成一行、遮住、截断 */
+/** 操作记录里的一条文字：压成一行、遮住、截断 */
 export function sanitizeLabel(raw: string): string {
   return truncate(redactText(bounded(raw.replace(/\s+/g, " ").trim(), LIMITS.actionLabel)), LIMITS.actionLabel);
+}
+
+/**
+ * 点了什么（白名单，docs/design/0014 §4）：从不读元素上显示的字——病人姓名、用户起的名字都会出现在按钮上。
+ * - 链接：只记目标路径（脱敏过的）
+ * - 标了 `data-bug-label` 的按钮：记这个标签（代码里写死的）
+ * - 别的：只记元素类型
+ */
+export function clickLabel(el: { tag: string; bugLabel: string | null; href: string | null }): string {
+  if (el.href) return sanitizeLabel(`→ ${sanitizePath(el.href)}`);
+  const label = sanitizeLabel(el.bugLabel ?? "");
+  if (label) return label;
+  return el.tag.toLowerCase() === "summary" ? "（折叠栏）" : "（按钮）";
 }
 
 export function sanitizeError(message: string, stack: string): Pick<BugError, "message" | "stack"> {
