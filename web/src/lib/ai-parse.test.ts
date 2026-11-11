@@ -15,8 +15,9 @@ describe("modelList", () => {
   it("没配置 → 默认：免费模型在前，DeepSeek 兜底", () => {
     expect(modelList(undefined)).toEqual(DEFAULT_MODELS);
     expect(modelList(" , ")).toEqual(DEFAULT_MODELS);
-    expect(DEFAULT_MODELS[0]).toMatch(/:free$/);
-    expect(DEFAULT_MODELS[1]).toMatch(/^deepseek\//);
+    // 默认列表里不能有免费模型：照片上可能有病人姓名
+    expect(DEFAULT_MODELS.length).toBeGreaterThan(0);
+    for (const m of DEFAULT_MODELS) expect(m).not.toMatch(/:free$/);
   });
   it("逗号分隔，去空格，保持顺序", () => {
     expect(modelList(" b/x , a/y ")).toEqual(["b/x", "a/y"]);
@@ -75,6 +76,7 @@ describe("buildRequest", () => {
     expect(req.response_format.type).toBe("json_schema");
     expect(req.response_format.json_schema.strict).toBe(true);
     expect(req.provider.require_parameters).toBe(true);
+    expect(req.provider.data_collection).toBe("deny");
   });
   it("schema：所有字段必填（可为 null）、不允许多余字段、没有 $schema", () => {
     const s = req.response_format.json_schema.schema as Record<string, unknown>;
