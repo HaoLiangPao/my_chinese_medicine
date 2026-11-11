@@ -68,7 +68,7 @@ bug_report_usage (user_id, day, count)   -- 每人每天提交了几次（防刷
 |---|---|---|
 | 当前路径 | `location.pathname + search` | **query 只留参数名、去掉值**（`?patient=…` → `?patient`）；去掉 `#` 后面的；路径里的 uuid 保留（是内部 id，定位问题要用），其他段照文字规则遮住；≤ 300 字 |
 | 最近的操作 | 浏览器内存里的一个队列 | 最多 20 条；按钮上的字 ≤ 40 字，路径 ≤ 120 字。只有两种：**去了哪个页面**（脱敏后的路径）、**点了哪个按钮**（按钮上的字）或**链接**（只记目标路径「→ /路径」，不记链接上的字；和按钮一样 ≤ 40 字，完整的路径在紧跟着的「去了哪个页面」里） |
-| 最近的前端错误 | `window` 的 `error`、`unhandledrejection` | 最多 5 条；message ≤ 300 字、stack ≤ 1000 字。message 和 stack 里不是「帧」的行按文字规则遮住；stack 的每一帧（`at …` 或以 `:行:列` 结尾的行）只遮邮箱，文件名里的哈希和行列号留着，不然线上压缩过的代码对不回源码 |
+| 最近的前端错误 | `window` 的 `error`、`unhandledrejection` | 最多 5 条；message ≤ 300 字、stack ≤ 1000 字。message 和 stack 里不是「帧」的行按文字规则遮住；stack 每一帧末尾的位置（`文件名:行:列`）只遮邮箱，文件名里的哈希和行列号留着，不然线上压缩过的代码对不回源码 |
 | 浏览器 | `navigator.userAgent`、视口宽高 | UA ≤ 300 字 |
 | App 版本 | **服务器**填：`VERCEL_GIT_COMMIT_SHA`，没有时用 `VERCEL_DEPLOYMENT_ID` | — |
 | 时间 | 数据库 `now()` | — |

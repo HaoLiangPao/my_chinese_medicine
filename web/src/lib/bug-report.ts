@@ -42,7 +42,11 @@ export function truncate(s: string, max: number): string {
  * 遮之前先切到上限的几倍：遮的正则在很长的字符串上很慢（耗时按长度的平方涨），不能让别人传一个巨长的字段把服务器卡住。
  * 留几倍的余量，是为了「先遮再截」——截断的地方不会留下半个电话。
  */
-const bounded = (s: string, max: number) => s.slice(0, max * 4);
+const bounded = (s: string, max: number) => {
+  const cut = s.slice(0, max * 4);
+  // 正好切在一个表情中间时，去掉剩下的半个（孤立的代理字符存不进数据库）
+  return /[\uD800-\uDBFF]$/.test(cut) && cut.length < s.length ? cut.slice(0, -1) : cut;
+};
 
 /** 遮住邮箱和长数字；uuid（内部 id）保留。调用前先用 bounded() 限制长度 */
 export function redactText(s: string): string {
@@ -53,16 +57,19 @@ export function redactText(s: string): string {
     .reduce((out, part, i) => out + part + (keep[i] ?? ""), "");
 }
 
-// 堆栈里的一帧：「at f (https://…/chunks/1255-642c76f13c20a3ec.js:1:234567)」或 Firefox / Safari 的「f@https://…js:1:2」
-const STACK_FRAME = /^\s*at\s|:\d+:\d+\)?\s*$/;
+// 一帧末尾的位置：「at f (https://…/chunks/1255-642c76f13c20a3ec.js:1:234567)」或 Firefox / Safari 的「f@https://…js:1:2」
+const FRAME_LOCATION = /\S+:\d+:\d+\)?\s*$/;
 /**
- * 堆栈：每一帧里的文件名（带哈希）和「:行:列」要留着，不然对不回源码，所以帧里只遮邮箱；
- * 其他行（开头的错误信息）和别的文字一样遮。
+ * 堆栈：每一帧末尾的位置（带哈希的文件名和「:行:列」）要留着，不然对不回源码，所以这一段只遮邮箱；
+ * 这一行前面的字、别的行（开头的错误信息）和别的文字一样遮。
  */
 function redactStack(stack: string): string {
   return stack
     .split("\n")
-    .map((line) => (STACK_FRAME.test(line) ? line.replace(EMAIL, "[邮箱]") : redactText(line)))
+    .map((line) => {
+      const at = line.search(FRAME_LOCATION);
+      return at < 0 ? redactText(line) : redactText(line.slice(0, at)) + line.slice(at).replace(EMAIL, "[邮箱]");
+    })
     .join("\n");
 }
 

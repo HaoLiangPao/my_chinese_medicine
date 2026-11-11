@@ -30,7 +30,7 @@ create index on public.bug_reports (status, created_at desc);
 
 create table public.bug_report_usage (
   user_id uuid not null references auth.users(id) on delete cascade,
-  day     date not null default current_date,
+  day     date not null,  -- 触发器写入，按 UTC 算
   count   integer not null default 0,
   primary key (user_id, day)
 );

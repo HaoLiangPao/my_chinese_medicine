@@ -97,6 +97,19 @@ describe("sanitizeLabel / sanitizeError / truncate", () => {
       ].join("\n"),
     );
   });
+  it("错误信息的行尾像行列号（时间）、或者以 at 开头：里面的电话照常遮", () => {
+    const stack =
+      "Error: 病人 4165550101 预约 2026-11-10 12:30:45\nat 4165550101 张三\n    at 4165550101 (https://app.example/a-1234567890ab.js:1:234567)";
+    expect(sanitizeError("", stack).stack).toBe(
+      "Error: 病人 [数字] 预约 [数字] 12:30:45\nat [数字] 张三\n    at [数字] (https://app.example/a-1234567890ab.js:1:234567)",
+    );
+  });
+  it("切在表情中间：不留半个表情", () => {
+    const stack = "1".repeat(LIMITS.errorStack * 4 - 1) + "🌿" + "后面的";
+    const out = sanitizeError("", stack).stack;
+    expect(out).toBe("[数字]");
+    expect(sanitizeLabel("药".repeat(LIMITS.actionLabel * 4 - 1) + "🌿🌿")).toBe("药".repeat(LIMITS.actionLabel));
+  });
   it("超长的输入很快处理完（先切再遮，不会被一个巨长的字段卡住）", () => {
     const huge = "a".repeat(1_000_000);
     const started = performance.now();
