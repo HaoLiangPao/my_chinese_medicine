@@ -90,7 +90,7 @@ export function buildRequest(model: string, mediaType: string, base64: string) {
       },
     ],
     response_format: { type: "json_schema", json_schema: { name: "prescription", strict: true, schema: jsonSchema } },
-    // data_collection: "deny" → 只路由到不保存、不拿输入训练的服务商；没有这样的服务商时请求失败，换下一个模型
+    // data_collection: "deny" → 不路由到会保存输入或拿去训练的服务商（不等于零留存，那是 zdr）；没有这样的服务商时请求失败，换下一个模型
     provider: { require_parameters: true, data_collection: "deny" },
   };
 }

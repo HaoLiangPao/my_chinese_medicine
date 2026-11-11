@@ -12,7 +12,7 @@ const ok = {
 const completion = (content: unknown) => ({ choices: [{ message: { content } }] });
 
 describe("modelList", () => {
-  it("没配置 → 默认：免费模型在前，DeepSeek 兜底", () => {
+  it("没配置 → 默认：只有付费模型", () => {
     expect(modelList(undefined)).toEqual(DEFAULT_MODELS);
     expect(modelList(" , ")).toEqual(DEFAULT_MODELS);
     // 默认列表里不能有免费模型：照片上可能有病人姓名
