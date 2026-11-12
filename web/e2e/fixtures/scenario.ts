@@ -359,3 +359,151 @@ export function expectedPrices() {
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// 管理员看板（PLAT-4，docs/design/0015）：某个月里的处方，和从它们独立算出来的看板数字。
+// 月份在测试运行时挑一个没有任何处方的月份，下面的函数按「这个月的第几天」算，不读 App 的结果。
+// ---------------------------------------------------------------------------
+
+/** 谁建的：doctor = 诊所账号（patient 是诊所里的第几个病人）；home = 病人账号；admin = 管理员（也是病人账号） */
+export type AdminRx = {
+  who: "doctor" | "home" | "admin";
+  patient?: number;
+  day: number | "last" | "prevLast";
+  time?: string;
+  doses?: number;
+  herbs: string[];
+};
+
+/**
+ * 小样本门槛：至少 5 个不同病人。诊所按病人数，家庭按药柜数（一家算一个），两组取较大的，不相加
+ * （同一个人可能既是诊所的病人、又在自己家录了同一张方）
+ */
+export const ADMIN_MIN_SUBJECTS = 5;
+
+/** 每副的克数：甘草 30 g，其他 10 g（让「按用量」和「按张数」排出来不一样） */
+export const adminGramsPerDose = (herb: string) => (herb === "甘草" ? 30 : 10);
+
+export const ADMIN_RX: AdminRx[] = [
+  { who: "doctor", patient: 1, day: 3, herbs: ["黄芪", "甘草", "白术"] },
+  { who: "doctor", patient: 2, day: 3, herbs: ["黄芪", "甘草", "当归"] },
+  { who: "doctor", patient: 3, day: 5, herbs: ["黄芪", "甘草", "茯苓"] },
+  { who: "doctor", patient: 4, day: 10, herbs: ["黄芪", "甘草", "白术"] },
+  { who: "doctor", patient: 5, day: 10, herbs: ["黄芪", "甘草", "党参"] },
+  { who: "doctor", patient: 1, day: 17, herbs: ["黄芪", "白术"] },
+  { who: "doctor", patient: 6, day: 17, herbs: ["川芎", "当归"] },
+  { who: "doctor", patient: 1, day: 24, herbs: ["黄芪", "白术"] },
+  { who: "doctor", patient: 1, day: 26, herbs: ["白术"] }, // 白术 6 张，但诊所里只有 2 个病人 → 不显示
+  { who: "admin", day: 20, doses: 2, herbs: ["黄芪", "甘草"] },
+  { who: "admin", day: 20, herbs: ["黄芪", "白术"] },
+  { who: "home", day: 25, herbs: ["当归", "茯苓"] },
+  // 多伦多时间这个月最后一天 23:30（UTC 已经是下个月）：算这个月
+  { who: "home", day: "last", time: "23:30", herbs: ["当归"] },
+  // 多伦多时间上个月最后一天 23:30（UTC 已经是这个月）：不算这个月
+  { who: "home", day: "prevLast", time: "23:30", herbs: ["黄芪"] },
+];
+
+/** 诊所这个月记了几次煎药（只有数量） */
+export const ADMIN_DOCTOR_DECOCTIONS = 3;
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const daysIn = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+
+/** 这张处方在多伦多时间的日期 YYYY-MM-DD（month = "YYYY-MM"） */
+export function adminRxDate(month: string, rx: AdminRx): string {
+  const [y, m] = month.split("-").map(Number);
+  if (rx.day === "prevLast") {
+    const py = m === 1 ? y - 1 : y;
+    const pm = m === 1 ? 12 : m - 1;
+    return `${py}-${pad2(pm)}-${pad2(daysIn(py, pm))}`;
+  }
+  return `${month}-${pad2(rx.day === "last" ? daysIn(y, m) : rx.day)}`;
+}
+
+/** 这个月的第一天和最后一天（看板的时间段） */
+export function adminMonthRange(month: string) {
+  const [y, m] = month.split("-").map(Number);
+  return { from: `${month}-01`, to: `${month}-${pad2(daysIn(y, m))}` };
+}
+
+const inMonth = (month: string) => ADMIN_RX.filter((r) => adminRxDate(month, r).startsWith(month));
+const subjectOf = (r: AdminRx) => (r.who === "doctor" ? `clinic:${r.patient}` : `home:${r.who}`);
+const peopleCount = (subjects: Set<string>) => {
+  const clinic = [...subjects].filter((s) => s.startsWith("clinic:")).length;
+  return Math.max(clinic, subjects.size - clinic);
+};
+const gramsOf = (r: AdminRx, herb: string) => adminGramsPerDose(herb) * (r.doses ?? 1);
+
+type Group = { rx: number; grams: number; subjects: Set<string> };
+function add(groups: Map<string, Group>, key: string, r: AdminRx, grams: number) {
+  const e = groups.get(key) ?? { rx: 0, grams: 0, subjects: new Set<string>() };
+  e.rx += 1;
+  e.grams += grams;
+  e.subjects.add(subjectOf(r));
+  groups.set(key, e);
+}
+function ranked(groups: Map<string, Group>, by: "grams" | "rx") {
+  const shown = [...groups]
+    .filter(([, g]) => peopleCount(g.subjects) >= ADMIN_MIN_SUBJECTS)
+    .map(([name, g]) => ({ name, count: g.rx, grams: g.grams }))
+    .sort((a, b) => (by === "rx" ? b.count - a.count : b.grams - a.grams));
+  return { shown, other: groups.size - shown.length };
+}
+
+/** 常用药材：每味药出现在几张处方里、累计多少克；不到门槛的只数有几味 */
+export function expectedAdminHerbs(month: string, by: "grams" | "rx" = "grams") {
+  const g = new Map<string, Group>();
+  for (const r of inMonth(month)) for (const h of new Set(r.herbs)) add(g, h, r, gramsOf(r, h));
+  return ranked(g, by);
+}
+
+/** 常见组合：同一张处方里的每两味药（名字排好序后用 | 拼起来当 key） */
+export function expectedAdminPairs(month: string) {
+  const g = new Map<string, Group>();
+  for (const r of inMonth(month)) {
+    const hs = [...new Set(r.herbs)].sort();
+    for (let i = 0; i < hs.length; i++) for (let j = i + 1; j < hs.length; j++) add(g, `${hs[i]}|${hs[j]}`, r, 0);
+  }
+  return ranked(g, "rx");
+}
+
+/** 医生的库存消耗：测试按处方量给诊所的每张处方扣库存，所以消耗 = 诊所处方的克数；门槛一样 */
+export function expectedDoctorConsumption(month: string) {
+  const g = new Map<string, Group>();
+  for (const r of inMonth(month).filter((x) => x.who === "doctor")) for (const h of new Set(r.herbs)) add(g, h, r, gramsOf(r, h));
+  const { shown, other } = ranked(g, "grams");
+  return { shown, other, total: [...g.values()].reduce((s, e) => s + e.grams, 0) };
+}
+
+/** 每个账号：处方数、用过几种药、录药方的天数、最后一次的日期；医生还有看过几个病人 */
+export function expectedAdminUsers(month: string) {
+  const out = new Map<AdminRx["who"], { rx: number; herbs: number; days: number; last: string; patients: number }>();
+  for (const who of ["doctor", "home", "admin"] as const) {
+    const list = inMonth(month).filter((r) => r.who === who);
+    if (!list.length) continue;
+    const dates = list.map((r) => adminRxDate(month, r));
+    out.set(who, {
+      rx: list.length,
+      herbs: new Set(list.flatMap((r) => r.herbs)).size,
+      days: new Set(dates).size,
+      last: dates.sort().at(-1)!,
+      patients: new Set(list.filter((r) => r.patient).map((r) => r.patient)).size,
+    });
+  }
+  return out;
+}
+
+/** 这个月每天的处方数（每一天都有，没有的是 0） */
+export function expectedAdminDays(month: string, who?: AdminRx["who"]): Map<string, number> {
+  const [y, m] = month.split("-").map(Number);
+  const out = new Map<string, number>();
+  for (let d = 1; d <= daysIn(y, m); d++) out.set(`${month}-${pad2(d)}`, 0);
+  for (const r of inMonth(month)) if (!who || r.who === who) out.set(adminRxDate(month, r), out.get(adminRxDate(month, r))! + 1);
+  return out;
+}
+
+/** 病人的数字（病人账号的数字、医生的病人数、病人档案总数）：1–4 显示「<5」，0 和 5 以上照常（0015 §5.4） */
+export const adminSmall = (n: number) => (n >= 1 && n <= 4 ? "<5" : String(n));
+
+/** 纵轴的最大刻度要不小于最大的柱子 */
+export const maxOf = (m: Map<string, number>) => Math.max(...m.values());
