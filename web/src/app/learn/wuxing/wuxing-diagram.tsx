@@ -141,6 +141,7 @@ export function WuxingDiagram() {
                 onClick={() => setSel(sel === e ? null : e)}
                 className="cursor-pointer"
                 role="button"
+                data-bug-label="五行图：点一行"
                 aria-label={`${e}（${c.zang}）`}
                 aria-pressed={sel === e}
                 data-testid={`node-${e}`}
