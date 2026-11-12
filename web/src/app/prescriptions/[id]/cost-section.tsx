@@ -140,7 +140,9 @@ export async function CostSection({
             defaultValue={rx.price_paid ?? ""}
             className="input w-28 py-1"
           />
-          <button className="btn-ghost py-1">保存</button>
+          <button data-bug-label="保存费用" className="btn-ghost py-1">
+            保存
+          </button>
         </form>
       )}
 

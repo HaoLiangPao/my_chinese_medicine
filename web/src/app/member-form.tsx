@@ -9,7 +9,7 @@ export function InviteForm() {
     <form action={action} className="space-y-2">
       <div className="flex gap-2">
         <input name="email" type="email" required placeholder="家人的邮箱" aria-label="邀请邮箱" className="input" />
-        <button disabled={pending} className="btn-ghost shrink-0">
+        <button data-bug-label="邀请" disabled={pending} className="btn-ghost shrink-0">
           邀请
         </button>
       </div>

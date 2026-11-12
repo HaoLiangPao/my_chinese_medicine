@@ -23,7 +23,7 @@ export function PrintControls({ showStore }: { showStore: boolean }) {
         />
         印上「购自」（店名）
       </label>
-      <button type="button" onClick={() => window.print()} className="btn-primary min-h-11 px-6">
+      <button data-bug-label="打印" type="button" onClick={() => window.print()} className="btn-primary min-h-11 px-6">
         打印
       </button>
     </div>

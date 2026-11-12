@@ -21,7 +21,7 @@ export function MessageBox({ text, highlight }: { text: string; highlight?: bool
     <div className={`card space-y-2 ${highlight ? "border-2 border-jade" : ""}`} data-testid="message-box">
       <div className="flex items-center justify-between">
         <h2 className="font-serif text-lg font-bold">发给病人的消息</h2>
-        <button type="button" onClick={copy} className="btn-primary py-1">
+        <button data-bug-label="复制消息" type="button" onClick={copy} className="btn-primary py-1">
           {copied === "ok" ? "已复制 ✓" : copied === "fail" ? "已选中，请手动复制" : "复制，粘贴到微信"}
         </button>
       </div>

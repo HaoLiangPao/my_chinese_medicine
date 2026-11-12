@@ -64,6 +64,7 @@ export function WuxingDiagram() {
           ] as const
         ).map(([m, label]) => (
           <button
+            data-bug-label="五行图：选一行"
             key={m}
             role="tab"
             aria-selected={mode === m}
@@ -74,7 +75,11 @@ export function WuxingDiagram() {
           </button>
         ))}
         {sel && (
-          <button onClick={() => setSel(null)} className="rounded-full border border-line px-3 py-1 text-muted">
+          <button
+            data-bug-label="五行图：取消选择"
+            onClick={() => setSel(null)}
+            className="rounded-full border border-line px-3 py-1 text-muted"
+          >
             取消选择
           </button>
         )}
@@ -136,6 +141,7 @@ export function WuxingDiagram() {
                 onClick={() => setSel(sel === e ? null : e)}
                 className="cursor-pointer"
                 role="button"
+                data-bug-label="五行图：点一行"
                 aria-label={`${e}（${c.zang}）`}
                 aria-pressed={sel === e}
                 data-testid={`node-${e}`}

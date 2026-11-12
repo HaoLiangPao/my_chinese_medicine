@@ -185,14 +185,27 @@ export function PrescriptionForm({
           disabled={!hydrated}
           onChange={(e) => e.target.files?.[0] && onPhoto(e.target.files[0])}
         />
-        <button type="button" onClick={() => fileRef.current?.click()} disabled={parsing || !hydrated} className="btn-primary">
+        <button
+          data-bug-label="拍照识别"
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={parsing || !hydrated}
+          className="btn-primary"
+        >
           {!hydrated ? "加载中…" : parsing ? "识别中…（10–30 秒）" : "📷 拍照 / 选照片识别"}
         </button>
         {preview && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={preview} alt="药方照片" className="h-24 w-auto rounded-md border border-line object-cover" />
         )}
-        <button type="button" onClick={() => setPasteOpen((o) => !o)} disabled={!hydrated} className="btn-ghost" aria-expanded={pasteOpen}>
+        <button
+          data-bug-label="粘贴文字"
+          type="button"
+          onClick={() => setPasteOpen((o) => !o)}
+          disabled={!hydrated}
+          className="btn-ghost"
+          aria-expanded={pasteOpen}
+        >
           📋 粘贴文字
         </button>
         {parseMsg && <p className="whitespace-pre-line text-sm text-muted">{parseMsg}</p>}
@@ -208,7 +221,7 @@ export function PrescriptionForm({
             className="input font-mono text-sm"
           />
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={onPasteParse} disabled={!pasteText.trim()} className="btn-primary">
+            <button data-bug-label="识别文字" type="button" onClick={onPasteParse} disabled={!pasteText.trim()} className="btn-primary">
               识别文字
             </button>
             {pasteMsg && (
@@ -356,6 +369,7 @@ export function PrescriptionForm({
                 ))}
               </select>
               <button
+                data-bug-label="删这一行"
                 type="button"
                 onClick={() => setItems((xs) => xs.filter((x) => x.key !== it.key))}
                 className="text-muted hover:text-cinnabar"
@@ -373,7 +387,7 @@ export function PrescriptionForm({
         })}
         <div className="grid grid-cols-2 gap-2">
           <HerbPicker rows={azRows} aliases={catalog.aliases} onPick={addHerb} />
-          <button type="button" onClick={() => setItems((xs) => [...xs, blank()])} className="btn-ghost w-full">
+          <button data-bug-label="＋ 加一味" type="button" onClick={() => setItems((xs) => [...xs, blank()])} className="btn-ghost w-full">
             ＋ 加一味
           </button>
         </div>
@@ -391,7 +405,7 @@ export function PrescriptionForm({
         <textarea id="rx-notes" name="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="input" />
       </div>
       {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
-      <button disabled={pending || parsing || filled.length === 0} className="btn-primary w-full py-3">
+      <button data-bug-label="保存药方" disabled={pending || parsing || filled.length === 0} className="btn-primary w-full py-3">
         {pending ? "保存中…" : "保存药方"}
       </button>
     </form>

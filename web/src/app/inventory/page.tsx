@@ -58,7 +58,7 @@ async function Inventory({ kind }: { kind: AccountKind }) {
             const tone = g <= 0 ? "border-cinnabar" : r.is_low ? "border-amber" : "";
             return (
               <details key={r.herb_id} className={`card group open:col-span-2 ${tone}`} data-testid={`stock-card-${r.name_zh}`}>
-                <summary className="cursor-pointer list-none">
+                <summary data-bug-label="展开药柜卡片" className="cursor-pointer list-none">
                   <div className="flex items-baseline justify-between">
                     <span className="font-serif text-lg font-bold">{r.name_zh}</span>
                     {r.jar_label && <span className="text-xs text-muted">罐 {r.jar_label}</span>}
@@ -86,7 +86,9 @@ async function Inventory({ kind }: { kind: AccountKind }) {
                       aria-label={`${r.name_zh} 称重克数`}
                       className="input"
                     />
-                    <button className="btn-ghost shrink-0 px-2">校准</button>
+                    <button data-bug-label="校准" className="btn-ghost shrink-0 px-2">
+                      校准
+                    </button>
                   </form>
                   <form action={savePantrySettings} className="flex gap-1">
                     <input type="hidden" name="herb_id" value={r.herb_id} />
@@ -98,7 +100,9 @@ async function Inventory({ kind }: { kind: AccountKind }) {
                       placeholder="低于多少克提醒"
                       className="input"
                     />
-                    <button className="btn-ghost shrink-0 px-2">存</button>
+                    <button data-bug-label="保存药柜设置" className="btn-ghost shrink-0 px-2">
+                      存
+                    </button>
                   </form>
                   <Link href={`/herbs/${r.herb_id}`} className="block text-xs text-muted underline">
                     查看用量和{kind === "clinic" ? "进货" : "购买"}记录 →
@@ -123,7 +127,9 @@ async function Inventory({ kind }: { kind: AccountKind }) {
           </datalist>
           <input name="herb_name" list="herb-names" required placeholder="药名，如 麦冬" className="input" />
           <input name="actual" type="number" step="0.5" min={0} required placeholder="克" className="input" />
-          <button className="btn-primary">录入</button>
+          <button data-bug-label="录入" className="btn-primary">
+            录入
+          </button>
         </form>
       </div>
     </div>

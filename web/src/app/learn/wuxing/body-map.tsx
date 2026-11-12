@@ -77,6 +77,7 @@ export function BodyMap({ selected, onSelect }: { selected: Element | null; onSe
                 onClick={() => onSelect(selected === e ? null : e)}
                 className="cursor-pointer"
                 role="button"
+                data-bug-label="人体图：选一个脏腑"
                 aria-label={`${o}（属${e}）`}
                 aria-pressed={on}
                 data-testid={`organ-${o}`}

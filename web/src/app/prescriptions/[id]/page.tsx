@@ -252,6 +252,7 @@ async function Detail({
                   <input type="hidden" name="decoction_id" value={decId} />
                   <input type="hidden" name="prescription_id" value={rx.id} />
                   <ConfirmButton
+                    data-bug-label="撤销煎药"
                     message={`撤销这次${verb}药？扣掉的库存会加回去。`}
                     className="text-xs text-muted underline hover:text-cinnabar"
                   >
@@ -277,6 +278,7 @@ async function Detail({
       <form action={deletePrescription}>
         <input type="hidden" name="id" value={rx.id} />
         <ConfirmButton
+          data-bug-label="删除药方"
           message={`确定删除这张${rxWord}？（已扣的库存不会退回）`}
           className="text-sm text-muted underline hover:text-cinnabar"
         >

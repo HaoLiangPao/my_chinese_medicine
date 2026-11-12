@@ -32,7 +32,9 @@ async function List({ searchParams }: { searchParams: Promise<Record<string, str
     <div className="space-y-3">
       <form className="flex gap-2">
         <input name="q" defaultValue={q} placeholder="名字或电话（可以只输后几位）" aria-label="搜病人" className="input" />
-        <button className="btn-ghost shrink-0">搜</button>
+        <button data-bug-label="搜病人" className="btn-ghost shrink-0">
+          搜
+        </button>
       </form>
       {!data.length ? (
         <Empty>{q ? "没找到。" : "还没有病人。开方时可以直接新建。"}</Empty>

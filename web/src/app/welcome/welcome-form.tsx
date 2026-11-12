@@ -30,12 +30,14 @@ export function WelcomeForm(props: {
         )}
         <AccountKindFields defaultKind={props.defaultKind} defaultClinicName={props.defaultClinicName} needsClinicName={!props.hasClinic} />
         {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
-        <button disabled={pending} className="btn-primary w-full">
+        <button data-bug-label="确定账号类型" disabled={pending} className="btn-primary w-full">
           确定
         </button>
       </form>
       <form action={signOut} className="text-center">
-        <button className="text-sm text-muted underline">退出登录 {props.email}</button>
+        <button data-bug-label="退出登录" className="text-sm text-muted underline">
+          退出登录 {props.email}
+        </button>
       </form>
     </div>
   );

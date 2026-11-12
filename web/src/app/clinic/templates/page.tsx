@@ -58,7 +58,11 @@ async function List({ searchParams }: { searchParams: Promise<Record<string, str
                 <RenameForm id={t.id} name={t.name} />
                 <form action={deleteTemplate}>
                   <input type="hidden" name="id" value={t.id} />
-                  <ConfirmButton message={`删掉预设「${t.name}」？以前从它开出的处方不受影响。`} className="btn-ghost min-h-11 text-sm">
+                  <ConfirmButton
+                    data-bug-label="删除预设"
+                    message={`删掉预设「${t.name}」？以前从它开出的处方不受影响。`}
+                    className="btn-ghost min-h-11 text-sm"
+                  >
                     删除
                   </ConfirmButton>
                 </form>

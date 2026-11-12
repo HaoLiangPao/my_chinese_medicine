@@ -70,7 +70,14 @@ export function HerbPicker({ rows, aliases, onPick }: { rows: AzRow[]; aliases: 
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} disabled={!hydrated} className="btn-ghost w-full" data-testid="az-open">
+      <button
+        data-bug-label="A–Z 选药"
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={!hydrated}
+        className="btn-ghost w-full"
+        data-testid="az-open"
+      >
         A–Z 选药
       </button>
       {hydrated &&
@@ -100,7 +107,7 @@ export function HerbPicker({ rows, aliases, onPick }: { rows: AzRow[]; aliases: 
                     aria-label="搜药材"
                     className="input flex-1"
                   />
-                  <button type="button" onClick={close} className="btn-ghost min-h-11 shrink-0">
+                  <button data-bug-label="关闭选药" type="button" onClick={close} className="btn-ghost min-h-11 shrink-0">
                     关闭
                   </button>
                 </div>
@@ -113,6 +120,7 @@ export function HerbPicker({ rows, aliases, onPick }: { rows: AzRow[]; aliases: 
                     {hits.map(({ entry, via }) => (
                       <li key={entry.name}>
                         <button
+                          data-bug-label="选药材（搜索结果）"
                           type="button"
                           onClick={() => pick(entry.name)}
                           className="flex min-h-12 w-full items-center justify-between px-4 text-left hover:bg-paper"
@@ -137,6 +145,7 @@ export function HerbPicker({ rows, aliases, onPick }: { rows: AzRow[]; aliases: 
                             {index.groups[l].map((e) => (
                               <li key={e.name}>
                                 <button
+                                  data-bug-label="选药材"
                                   type="button"
                                   onClick={() => pick(e.name)}
                                   className="flex min-h-11 w-full items-center justify-between px-4 text-left hover:bg-paper"
@@ -162,6 +171,7 @@ export function HerbPicker({ rows, aliases, onPick }: { rows: AzRow[]; aliases: 
                     >
                       {index.letters.map((l) => (
                         <button
+                          data-bug-label="跳到字母"
                           key={l}
                           type="button"
                           data-az-letter={l}

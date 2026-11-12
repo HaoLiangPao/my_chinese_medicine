@@ -103,7 +103,7 @@ export function YinyangDiagram() {
         <p data-testid="yy-share">
           阳 {pct}% · 阴 {100 - pct}%
         </p>
-        <button onClick={() => setPlaying((p) => !p)} className="btn-ghost w-full py-1">
+        <button data-bug-label="阴阳图：播放 / 暂停" onClick={() => setPlaying((p) => !p)} className="btn-ghost w-full py-1">
           {playing ? "暂停" : "▶ 播放一天"}
         </button>
         <p className="text-xs text-muted">示意图：子时阴极而一阳生，午时阳极而一阴生。比例只用来说明「消长」的趋势，不是量化指标。</p>

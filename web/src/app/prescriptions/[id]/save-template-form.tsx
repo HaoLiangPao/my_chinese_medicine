@@ -17,7 +17,7 @@ export function SaveTemplateForm({ prescriptionId }: { prescriptionId: string })
     );
   if (!open)
     return (
-      <button type="button" onClick={() => setOpen(true)} className="btn-ghost min-h-11 text-sm">
+      <button data-bug-label="存成预设药方" type="button" onClick={() => setOpen(true)} className="btn-ghost min-h-11 text-sm">
         存成预设药方
       </button>
     );
@@ -33,10 +33,10 @@ export function SaveTemplateForm({ prescriptionId }: { prescriptionId: string })
         aria-label="预设药方的名字"
         className="input w-60"
       />
-      <button disabled={pending} className="btn-primary min-h-11 text-sm">
+      <button data-bug-label="保存预设" disabled={pending} className="btn-primary min-h-11 text-sm">
         存
       </button>
-      <button type="button" onClick={() => setOpen(false)} className="text-sm text-muted underline">
+      <button data-bug-label="取消存预设" type="button" onClick={() => setOpen(false)} className="text-sm text-muted underline">
         取消
       </button>
       {state.error && <span className="w-full text-sm text-cinnabar">{state.error}</span>}

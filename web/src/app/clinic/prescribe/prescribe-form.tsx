@@ -90,7 +90,12 @@ export function PrescribeForm({
         {source && (
           <p className="flex items-center justify-between gap-2 rounded-md bg-paper px-3 py-2 text-sm" data-testid="reuse-source">
             <span>照着：{source.kind === "template" ? `预设「${source.name}」` : sourceLabel(source)}</span>
-            <button type="button" onClick={() => setSource(null)} className="min-h-11 shrink-0 px-2 text-sm text-muted underline">
+            <button
+              data-bug-label="不算照着开的"
+              type="button"
+              onClick={() => setSource(null)}
+              className="min-h-11 shrink-0 px-2 text-sm text-muted underline"
+            >
               不算照着开的
             </button>
           </p>
@@ -142,6 +147,7 @@ export function PrescribeForm({
                     </td>
                     <td className="text-right">
                       <button
+                        data-bug-label="上移"
                         type="button"
                         className="px-1 text-muted"
                         aria-label={`${l.name} 上移`}
@@ -150,6 +156,7 @@ export function PrescribeForm({
                         ↑
                       </button>
                       <button
+                        data-bug-label="下移"
                         type="button"
                         className="px-1 text-muted"
                         aria-label={`${l.name} 下移`}
@@ -158,6 +165,7 @@ export function PrescribeForm({
                         ↓
                       </button>
                       <button
+                        data-bug-label="改这味药"
                         type="button"
                         className="px-1 text-sm underline"
                         onClick={() => {
@@ -168,6 +176,7 @@ export function PrescribeForm({
                         改
                       </button>
                       <button
+                        data-bug-label="删这味药"
                         type="button"
                         className="px-1 text-sm text-cinnabar underline"
                         onClick={() => setLines((ls) => removeLine(ls, l.herbId))}
@@ -282,7 +291,7 @@ export function PrescribeForm({
       </section>
 
       {state.error && <p className="text-sm text-cinnabar">{state.error}</p>}
-      <button disabled={!canSave} className="btn-primary w-full py-3">
+      <button data-bug-label="保存处方" disabled={!canSave} className="btn-primary w-full py-3">
         {pending
           ? "保存中…"
           : !patient
@@ -333,7 +342,7 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
           <div className="font-serif text-lg font-bold">{patient.name || "（没填名字）"}</div>
           <div className="text-sm text-muted">{patient.phone ?? "没填电话"}</div>
         </div>
-        <button type="button" onClick={() => onChange(null)} className="btn-ghost">
+        <button data-bug-label="换一个病人" type="button" onClick={() => onChange(null)} className="btn-ghost">
           换一个
         </button>
       </section>
@@ -356,6 +365,7 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
             {results.map((p) => (
               <li key={p.id}>
                 <button
+                  data-bug-label="选病人"
                   type="button"
                   onClick={() => select(p)}
                   className="flex w-full justify-between p-3 text-left text-sm hover:bg-paper"
@@ -368,6 +378,7 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
             ))}
           </ul>
           <button
+            data-bug-label="＋ 新病人"
             type="button"
             onClick={() => {
               setCreating(true);
@@ -408,13 +419,14 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
             <p className="col-span-2 text-sm text-cinnabar">
               {error}
               {existing && (
-                <button type="button" className="ml-2 underline" onClick={() => select(existing)}>
+                <button data-bug-label="就用这个病人" type="button" className="ml-2 underline" onClick={() => select(existing)}>
                   就用这个病人
                 </button>
               )}
             </p>
           )}
           <button
+            data-bug-label="保存病人"
             type="button"
             disabled={busy}
             className="btn-primary"
@@ -430,6 +442,7 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
             保存病人
           </button>
           <button
+            data-bug-label="取消新病人"
             type="button"
             onClick={() => {
               setCreating(false);
@@ -477,6 +490,7 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
       <div className="flex flex-wrap gap-1" role="toolbar" aria-label="拼音首字母">
         {index.letters.map((l) => (
           <button
+            data-bug-label="按字母选药"
             key={l}
             type="button"
             onClick={() => {
@@ -512,6 +526,7 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
           <div className="flex flex-wrap gap-2">
             {list.map((e) => (
               <button
+                data-bug-label="选药材"
                 key={e.id}
                 type="button"
                 onClick={() => choose(e)}
@@ -525,6 +540,7 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
             ))}
             {canAddHerb(q, list) && (
               <button
+                data-bug-label="＋ 新增药材"
                 type="button"
                 disabled={adding}
                 onClick={() =>
@@ -553,6 +569,7 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
           <div className="mb-1 text-xs text-muted">{variantsOf.name} 有炮制品，选一个：</div>
           <div className="flex flex-wrap gap-2">
             <button
+              data-bug-label="选原药材"
               type="button"
               onClick={() => pick({ entry: variantsOf, choice: null })}
               data-testid={`variant-${variantsOf.name}`}
@@ -562,6 +579,7 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
             </button>
             {variantsOf.variants.map((v) => (
               <button
+                data-bug-label="选炮制品"
                 key={v.id}
                 type="button"
                 onClick={() => pick({ entry: variantsOf, choice: v })}
@@ -611,6 +629,7 @@ function LineEditor({
       <div className="flex flex-wrap gap-1">
         {COMMON_GRAMS.map((c) => (
           <button
+            data-bug-label="常用克数"
             key={c}
             type="button"
             onClick={() => setGrams(String(c))}
@@ -654,10 +673,10 @@ function LineEditor({
         />
       </div>
       <div className="flex gap-2">
-        <button type="button" disabled={!ok} onClick={done} className="btn-primary">
+        <button data-bug-label="加入处方 / 更新" type="button" disabled={!ok} onClick={done} className="btn-primary">
           {existing ? "更新" : "加入处方"}
         </button>
-        <button type="button" onClick={onCancel} className="btn-ghost">
+        <button data-bug-label="取消这味药" type="button" onClick={onCancel} className="btn-ghost">
           取消
         </button>
       </div>

@@ -2,10 +2,12 @@
 // POST /api/v1/chat/completions → 返回 next（可以用 POST /__next 改）
 // POST /__next {fail: true} → 所有模型都失败；{failModels: ["a"]} → 只有这些模型失败（测 fallback）
 // GET  /__requests  → 收到过的请求（测试里检查有没有带图片）
+// POST /slack-webhook → 假的 Slack Incoming Webhook（Bug 反馈的通知，docs/design/0014 §6）；GET /__slack → 收到过的消息
 import http from "node:http";
 
 const PORT = Number(process.env.MOCK_OPENROUTER_PORT ?? 54400);
 const requests = [];
+const slack = [];
 let next = {
   issued_on: "2026-10-20",
   dose_count: 5,
@@ -37,6 +39,11 @@ http
       res.end(JSON.stringify(body));
     };
     if (req.method === "GET" && req.url === "/__requests") return send(200, requests);
+    if (req.method === "GET" && req.url === "/__slack") return send(200, slack);
+    if (req.method === "POST" && req.url === "/slack-webhook") {
+      slack.push(JSON.parse(await read(req)));
+      return send(200, { ok: true });
+    }
     if (req.method === "POST" && req.url === "/__reset") {
       failAll = false;
       failModels = [];
