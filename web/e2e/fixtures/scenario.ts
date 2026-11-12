@@ -359,3 +359,129 @@ export function expectedPrices() {
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// 管理员看板（PLAT-4，docs/design/0015）：某个月里的处方，和从它们独立算出来的看板数字。
+// 月份在测试运行时挑一个没有任何处方的月份，下面的函数按「这个月的第几天」算，不读 App 的结果。
+// ---------------------------------------------------------------------------
+
+/** 谁建的：doctor = 诊所账号（patient 是诊所里的第几个病人）；home = 病人账号；admin = 管理员（也是病人账号） */
+export type AdminRx = {
+  who: "doctor" | "home" | "admin";
+  patient?: number;
+  day: number | "last" | "prevLast";
+  time?: string;
+  herbs: string[];
+};
+
+/** 小样本门槛：至少 5 个不同病人（诊所按病人，家庭按整个药柜） */
+export const ADMIN_MIN_SUBJECTS = 5;
+
+export const ADMIN_RX: AdminRx[] = [
+  { who: "doctor", patient: 1, day: 3, herbs: ["黄芪", "甘草", "白术"] },
+  { who: "doctor", patient: 2, day: 3, herbs: ["黄芪", "甘草", "当归"] },
+  { who: "doctor", patient: 3, day: 5, herbs: ["黄芪", "甘草", "茯苓"] },
+  { who: "doctor", patient: 4, day: 10, herbs: ["黄芪", "甘草", "白术"] },
+  { who: "doctor", patient: 5, day: 10, herbs: ["黄芪", "甘草", "党参"] },
+  { who: "doctor", patient: 1, day: 17, herbs: ["黄芪", "白术"] },
+  { who: "doctor", patient: 6, day: 17, herbs: ["川芎", "当归"] },
+  { who: "doctor", patient: 1, day: 24, herbs: ["黄芪", "白术"] },
+  { who: "doctor", patient: 1, day: 26, herbs: ["白术"] }, // 白术 6 张，但只有 3 个病人 → 不显示
+  { who: "admin", day: 20, herbs: ["黄芪", "甘草"] },
+  { who: "admin", day: 20, herbs: ["黄芪", "白术"] },
+  { who: "home", day: 25, herbs: ["当归", "茯苓"] },
+  // 多伦多时间这个月最后一天 23:30（UTC 已经是下个月）：算这个月
+  { who: "home", day: "last", time: "23:30", herbs: ["当归"] },
+  // 多伦多时间上个月最后一天 23:30（UTC 已经是这个月）：不算这个月
+  { who: "home", day: "prevLast", time: "23:30", herbs: ["黄芪"] },
+];
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const daysIn = (y: number, m: number) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+
+/** 这张处方在多伦多时间的日期 YYYY-MM-DD（month = "YYYY-MM"） */
+export function adminRxDate(month: string, rx: AdminRx): string {
+  const [y, m] = month.split("-").map(Number);
+  if (rx.day === "prevLast") {
+    const py = m === 1 ? y - 1 : y;
+    const pm = m === 1 ? 12 : m - 1;
+    return `${py}-${pad2(pm)}-${pad2(daysIn(py, pm))}`;
+  }
+  return `${month}-${pad2(rx.day === "last" ? daysIn(y, m) : rx.day)}`;
+}
+
+const inMonth = (month: string) => ADMIN_RX.filter((r) => adminRxDate(month, r).startsWith(month));
+const subjectOf = (r: AdminRx) => (r.who === "doctor" ? `p${r.patient}` : r.who);
+
+function ranked(groups: Map<string, { rx: number; subjects: Set<string> }>) {
+  const shown = [...groups]
+    .filter(([, g]) => g.subjects.size >= ADMIN_MIN_SUBJECTS)
+    .map(([name, g]) => ({ name, count: g.rx }))
+    .sort((a, b) => b.count - a.count);
+  return { shown, other: groups.size - shown.length };
+}
+
+/** 常用药材：每味药出现在几张处方里；不到门槛的只数有几味 */
+export function expectedAdminHerbs(month: string) {
+  const g = new Map<string, { rx: number; subjects: Set<string> }>();
+  for (const r of inMonth(month))
+    for (const h of new Set(r.herbs)) {
+      const e = g.get(h) ?? { rx: 0, subjects: new Set<string>() };
+      e.rx += 1;
+      e.subjects.add(subjectOf(r));
+      g.set(h, e);
+    }
+  return ranked(g);
+}
+
+/** 常见组合：同一张处方里的每两味药（名字排好序后拼起来当 key） */
+export function expectedAdminPairs(month: string) {
+  const g = new Map<string, { rx: number; subjects: Set<string> }>();
+  for (const r of inMonth(month)) {
+    const hs = [...new Set(r.herbs)].sort();
+    for (let i = 0; i < hs.length; i++)
+      for (let j = i + 1; j < hs.length; j++) {
+        const key = `${hs[i]}|${hs[j]}`;
+        const e = g.get(key) ?? { rx: 0, subjects: new Set<string>() };
+        e.rx += 1;
+        e.subjects.add(subjectOf(r));
+        g.set(key, e);
+      }
+  }
+  return ranked(g);
+}
+
+/** 每个账号：处方数、用过几种药、最后一次的日期 */
+export function expectedAdminUsers(month: string) {
+  const out = new Map<AdminRx["who"], { rx: number; herbs: Set<string>; last: string }>();
+  for (const r of inMonth(month)) {
+    const e = out.get(r.who) ?? { rx: 0, herbs: new Set<string>(), last: "" };
+    e.rx += 1;
+    r.herbs.forEach((h) => e.herbs.add(h));
+    const d = adminRxDate(month, r);
+    if (d > e.last) e.last = d;
+    out.set(r.who, e);
+  }
+  return new Map([...out].map(([who, e]) => [who, { rx: e.rx, herbs: e.herbs.size, last: e.last }]));
+}
+
+/** 这个月每天的处方数（每一天都有，没有的是 0） */
+export function expectedAdminDays(month: string): Map<string, number> {
+  const [y, m] = month.split("-").map(Number);
+  const out = new Map<string, number>();
+  for (let d = 1; d <= daysIn(y, m); d++) out.set(`${month}-${pad2(d)}`, 0);
+  for (const r of inMonth(month)) out.set(adminRxDate(month, r), out.get(adminRxDate(month, r))! + 1);
+  return out;
+}
+
+/** 和这个月重叠的每一周（周一开始）里，这个月的处方数 */
+export function expectedAdminWeeks(month: string): Map<string, number> {
+  const mondayOf = (date: string) => {
+    const t = new Date(`${date}T00:00:00Z`);
+    t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7));
+    return t.toISOString().slice(0, 10);
+  };
+  const out = new Map<string, number>();
+  for (const [d, n] of expectedAdminDays(month)) out.set(mondayOf(d), (out.get(mondayOf(d)) ?? 0) + n);
+  return out;
+}

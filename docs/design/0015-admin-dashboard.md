@@ -1,0 +1,161 @@
+# 0015 · 平台管理员数据看板（IDEA-4 第一版）
+
+- 状态：已实现（第一版）
+- 日期：2026-11-12
+- 作者：Hao、Claude
+- 需求：`docs/ideas.md` IDEA-4；功能编号 PLAT-4
+
+## 1. 目标和范围
+
+平台 Owner / Developer（现在只有 Hao）想知道整个平台用得怎么样：有多少账号和药柜、处方建得多不多、谁在用、哪些药材和药材组合最常用。
+
+前提（IDEA-4 的硬性要求）：
+- 只有预先配置的管理员能看，**后端**验证，不是只把入口藏起来
+- 管理员**不能**因此读到任何一个药柜的原始数据：RLS 不开后门
+- 只给汇总数字；病人只出现在计数里；不能从数字反推出某个病人
+
+第一版做：
+- 管理员名单 `platform_admins`（§3）
+- 5 个只返回汇总数字的统计函数（§4）
+- 看板页 `/admin`（§6），可以按月份看
+
+不做（§8 有完整的列表）：Bug 反馈列表、异常检测、导出、App 里管理管理员。
+
+## 2. 威胁模型：防的是什么
+
+| 防 | 不防 |
+|---|---|
+| 普通账号（病人、医生）打开看板、直接调统计函数 | Hao 本人在 Supabase 后台直接查库（他本来就有超级用户权限，看板不改变这一点） |
+| 管理员账号被盗 / 看板截图被转发：拿到的只有汇总数字，没有病人姓名、电话、处方原文、备注 | 管理员长期每天截图、用「今天 − 昨天」的差去猜某一天的处方（§5.3） |
+| 管理员通过「看板」这个合法入口拿到某个病人的用药 | |
+| 管理员账号直接查 `prescriptions`、`patients` 等表（RLS 照常，只能看到自己药柜的） | |
+
+所以看板的隐私设计目标是：**这个入口本身**不比「只看汇总报表」泄露更多。
+
+## 3. 权限模型
+
+### 3.1 `platform_admins`
+
+```sql
+create table public.platform_admins (
+  user_id    uuid primary key references auth.users(id) on delete cascade,
+  note       text check (char_length(note) <= 100),
+  created_at timestamptz not null default now()
+);
+```
+
+- 和 `monograph_reviewers`（0010 §3.2）一样：**只能用 SQL 加人**；migration 里不写任何账号；App 里没有任何入口能改
+- 比 `monograph_reviewers` 更严：开 RLS 但**一条 policy 都没有**，并且收回 `anon`、`authenticated` 的全部权限（读也不行）。客户端只能通过 `is_platform_admin()` 知道「自己是不是」，不能列出有谁
+- 账号删了，管理员身份跟着删（`on delete cascade`）
+
+线上加管理员（Hao 在 Supabase 后台 SQL Editor 执行，邮箱换成自己的管理员账号）：
+
+```sql
+insert into public.platform_admins (user_id, note)
+select id, '平台管理员' from auth.users where email = '<管理员账号的邮箱>';
+```
+
+去掉：`delete from public.platform_admins where user_id = (select id from auth.users where email = '<邮箱>');`
+
+管理员就是一个普通的病人或医生账号，**额外**在这张表里；账号类型仍然只有病人和医生两种（0008）。
+
+### 3.2 统计函数的检查
+
+每个统计函数都是 `security definer`（以函数所有者身份执行，才能跨药柜汇总），第一行先调 `admin_require()`：
+
+```sql
+if not exists (select 1 from public.platform_admins where user_id = auth.uid()) then
+  raise exception '没有权限' using errcode = '42501';
+end if;
+```
+
+- 不是管理员：报错，**一行都不返回**
+- 未登录（`anon`）：连 `execute` 权限都没有
+- `admin_require()`、`admin_window()` 这些内部函数谁都不能直接调用（收回 `execute`；`security definer` 函数里调用时用的是所有者的权限）
+
+### 3.3 RLS 不开后门
+
+不改任何已有表的 policy，也不在 `is_member()` 里加「管理员例外」。管理员账号直接 `select * from prescriptions` 只看到自己药柜的（SQL 测试覆盖）。
+
+### 3.4 页面
+
+`/admin` 的 layout 在服务器端调 `is_platform_admin()`，不是 `true` 就 `notFound()`（和核对页 `/review` 一样）。Next 的 layout 和 page 是同时渲染的，所以页面在调统计函数之前**再查一次**，非管理员根本不会去调。所以：
+- 没登录 → 跳登录页（`proxy.ts`，所有内部页面都一样，不暴露 `/admin` 存在不存在）
+- 登录了但不是管理员 → 和不存在的地址一样的 404
+- 就算页面的检查被绕过，统计函数自己还会拒绝（两层）
+
+导航里不放入口，管理员自己记住地址。
+
+## 4. 统计函数
+
+时间都按 **处方的 `created_at`**（录进系统的时间 = 平台的使用情况），按 **多伦多时间（America/Toronto）** 算日期，和 App 里的「今天」一致（李医生在多伦多）。
+
+所有函数都接受 `p_month date`：`null` = 全部时间；否则必须是某个月的 1 号（`2026-11-01`），只统计这个月。**不接受任意的起止日期**（§5.3）。
+
+| 函数 | 返回 | 说明 |
+|---|---|---|
+| `is_platform_admin()` | `boolean` | 只说「我是不是」，页面用 |
+| `admin_overview(p_month)` | 一行：`users_total`、`users_household`、`users_clinic`、`users_unset`；`workspaces_household`、`workspaces_clinic`；`patients_total`；`prescriptions_total`；`prescriptions_in_window`、`active_users_in_window` | 账号按 `user_settings.account_kind`（`unset` = 还没选的旧账号）；药柜按 `workspaces.kind`（包括搬走以后隐藏的）。账号、药柜、病人档案是**当前总数**，不按月份；`*_in_window` 按月份 |
+| `admin_prescription_trend(p_bucket, p_month)` | `(bucket_start date, prescriptions int)` | `p_bucket` = `day` / `week`（周一开始）。没给月份：最近 30 天 / 最近 12 周；给了月份：这个月的每一天 / 和这个月重叠的每一周（只数这个月里的处方）。没有处方的日子也返回一行 0 |
+| `admin_user_activity(p_month)` | `(user_no int, email text, account_kind text, prescriptions int, herbs int, last_on date, is_me boolean)` | 每个**这段时间建过处方**的账号一行（按 `prescriptions.created_by`）。`user_no` 是账号编号（按第一次加入药柜的时间排）；`email` **只有医生账号才有**，病人账号和没选类型的是 `null`，页面显示「病人 #编号」。`herbs` = 用过几种药材，`last_on` = 最后一次建处方的日期 |
+| `admin_top_herbs(p_month, p_limit)` | `(herb_name text, prescriptions int, other_herbs int)` | 用得最多的药材（出现在几张处方里），最多 `p_limit` 行（默认 20，最多 50）。达不到小样本门槛的药材不单独列出，合成最后一行「其他」：`herb_name`、`prescriptions` 为 `null`，`other_herbs` = 合进去了几味 |
+| `admin_top_pairs(p_month, p_limit)` | `(herb_a text, herb_b text, prescriptions int, other_pairs int)` | 同一张处方里成对出现的两味药，同样的门槛和「其他」行 |
+
+**任何函数都不返回**：病人姓名、电话、病人备注、处方标题、`patient_label`、医嘱 / 煎服法、处方备注、每味药的备注、克数、照片、药柜名称、病人或处方的 id。
+
+## 5. 防止反推
+
+### 5.1 「病人单位」
+
+一张处方属于哪个病人：
+- 诊所处方：`patient_id`
+- 家庭处方，或者诊所里没挂病人的处方：整个药柜算一个病人（家庭药柜里一家人算一个；保守：算得越少，门槛越难达到）
+
+### 5.2 门槛：K = 5 个病人
+
+一味药（或一对药）**至少出现在 5 个不同病人的处方里**，才单独显示它的处方数；否则合进「其他」，只说合进去了几味 / 几对。
+
+- 数的是**病人**，不是处方：同一个病人开了 6 次白术，还是只有 1 个病人，不显示（测试里有这种情况）
+- 为什么是 5：统计发布里常用的「小格子」门槛是 5～11（比如不少统计机构用 5，美国 CMS 用 11）。现在平台上只有李医生一个真实医生、病人几十个；门槛太高看板就什么都没有，太低（1、2）就等于把某个病人的用药列出来。5 是能看出规律的最低保守值。以后病人多了可以提高，只改一个常量（`admin_min_subjects()`）
+- 只显示数量，不显示是哪几个病人、哪个药柜
+
+### 5.3 不能用很窄的时间段
+
+如果能查「11 月 10 日 14:00–14:30」这种时间段，就能把一个病人单独框出来。所以统计函数**只接受整月**（或者全部时间），在数据库里检查，绕过页面直接调也一样。
+
+剩下的风险（写清楚，不假装没有）：管理员每天记下「全部时间」的数字，用今天减昨天，能知道昨天新增处方的用药（但每味药的数字仍然要过门槛，而且看不到是哪个病人）。真正解决要用差分隐私加噪声，第一版不值得。缓解：看板账号只有 Hao；以后如果开放给更多人，再考虑加噪声或者只给「上个月以前」的数据。
+
+### 5.4 其他数字为什么不设门槛
+
+- **处方趋势**（每天 / 每周几张）：只有数量，不带任何内容，看不出是谁、开了什么
+- **每个账号的处方数**：这是账号（医生、病人自己）的使用量，不是病人档案的内容；病人账号不显示邮箱，只显示编号
+- **病人档案总数**：一个数字
+
+这几项如果以后觉得也要保护，可以改成小于 5 显示「<5」。**需要 Hao 决定**（见 PR）。
+
+## 6. 页面 `/admin`
+
+- 顶部：月份选择（全部 / 最近 12 个月，`?month=2026-11`），不合法的月份当成「全部」
+- 概况：账号数、药柜数（按类型）、病人档案、处方总数和这段时间的处方数
+- 趋势：按天、按周两张柱状图（CSS 画的，不加图表库）
+- 账号：这段时间建过处方的每个账号一行（「医生 #编号 · 邮箱」或「病人 #编号」、处方数、药材种数、最近一次）。自己的账号标「（你）」。用列表不用表格，手机上能换行
+- 常用药材、常见组合：表格 + 横条；「其他 N 味（每味不到 5 位病人）」
+- 页面上写明「只有汇总数字；不到 5 位病人的药材和组合合并显示」
+- 不加图表库：柱状图是 CSS 的 `div`，每根柱子带 `data-count` 和读屏用的 `aria-label`
+- 手机 390px：整页不横向溢出（E2E 检查）
+
+## 7. 数据库和上线
+
+- migration `20261110000021_admin_dashboard.sql`：只加一张新表和几个新函数，不改任何已有的表、policy、函数 → 线上的旧代码不受影响
+- 新表 `platform_admins` 是空的，上线后看板对所有人都是 404，直到 Hao 用 §3.1 的 SQL 加自己
+- 升级测试：在有数据的库上执行，检查数据一条不少、管理员拿到的数字和库里的一致、非管理员拿不到
+
+## 8. 不做（第一版）
+
+- **Bug 反馈列表**：写这份设计时 IDEA-5（#28）刚合并。后续：看板加反馈列表和状态处理（新 / 处理中 / 已修 / 不修），走同样的 `security definer` + `admin_require()`；列表**不显示描述原文**以外的东西要再想（描述里可能有病人名字）
+- 异常操作、潜在 bug 的自动发现（接 IDEA-5 的错误记录）
+- 导出、下载
+- App 里增删管理员（只能用 SQL）
+- 管理员访问日志（谁在什么时候看了看板）：0009 §6 的「访问日志」一起做
+- 按药柜、按医生分开的药材统计（一个医生的药材统计 = 他的病人的统计，样本更小）
+- 炮制品合并到原药材统计（现在「炙甘草」和「甘草」分开算）

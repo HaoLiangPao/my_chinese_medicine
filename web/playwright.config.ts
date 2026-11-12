@@ -52,6 +52,7 @@ export default defineConfig({
     { name: "herb-picker", testMatch: /herb-picker\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "clinic-templates", testMatch: /clinic-templates\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "bug-report", testMatch: /bug-report\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "admin-dashboard", testMatch: /admin-dashboard\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {
