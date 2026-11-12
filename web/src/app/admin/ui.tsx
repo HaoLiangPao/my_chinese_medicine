@@ -89,8 +89,8 @@ export type TrendRow = { bucket_start: string; prescriptions: number | null; buc
 export function TrendChart({ rows }: { rows: TrendRow[] }) {
   const bucket = rows[0]?.bucket ?? "day";
   const masked = rows.some((r) => r.prescriptions === null);
-  // 「<5」的柱子按 4 画（浅色），刻度要容得下
-  const ticks = niceTicks(Math.max(0, ...rows.map((r) => r.prescriptions ?? 4)));
+  // 「<5」的柱子按 4 画（浅色）；纵轴至少画到 5，看得出它在 5 的下面，不会被当成正好 4 张
+  const ticks = niceTicks(Math.max(masked ? 5 : 0, ...rows.map((r) => r.prescriptions ?? 0)));
   const top = ticks[ticks.length - 1];
   const total = rows.reduce((s, r) => s + (r.prescriptions ?? 0), 0);
   const mid = rows[Math.floor((rows.length - 1) / 2)];

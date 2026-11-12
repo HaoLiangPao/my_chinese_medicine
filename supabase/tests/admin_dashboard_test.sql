@@ -310,6 +310,26 @@ select assert_eq((select string_agg(prescriptions::text, ',' order by bucket_sta
   '0,9,5,0,6,3', '一个医生的趋势只数他的诊所');
 reset role;
 
+-- ---- 排序按遮过以后的数：编号小的 hao 2 张、编号大的 stranger 3 张，都是「<5」→ 按编号排（按真实的数会是 stranger 在前）（2026-07）----
+select pg_temp.rx(:'wh', :'H', null, '2026-07-02 12:00', '黄芪') from generate_series(1, 2);
+select pg_temp.rx(:'ws', :'S', null, '2026-07-03 12:00', '黄芪') from generate_series(1, 3);
+-- ---- 另一个医生只有 2 个病人档案：总数、新建都是「<5」----
+insert into auth.users values ('00000000-0000-0000-0000-0000000000e3', 'doc2@example.com');
+set role authenticated; set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000e3';
+select choose_account_kind('clinic', '第二诊所') as w2 \gset
+reset role;
+insert into patients (workspace_id, name, created_by) select :'w2', '第二诊所病人' || g, '00000000-0000-0000-0000-0000000000e3' from generate_series(1, 2) g;
+:as_hao;
+select assert_eq((select string_agg(is_me::text, ',') from admin_user_activity('2026-07-01', '2026-07-31')), 'true,false',
+  '账号列表：两个「<5」按编号排，不按真实的 2 张 / 3 张');
+select assert_eq((select string_agg(is_me::text, ',') from admin_patient_accounts('2026-07-01', '2026-07-31')), 'true,false',
+  '病人账号列表：两个「<5」按编号排');
+select assert_eq(
+  (select coalesce(patients_total::text, '<5') || '/' || coalesce(patients_new::text, '<5') || '/' || patients_seen
+   from admin_doctors(null, null, '00000000-0000-0000-0000-0000000000e3')),
+  '<5/<5/0', '只有 2 个病人档案的医生：总数、新建是「<5」，没看过是 0');
+reset role;
+
 -- ---- 去掉管理员身份：马上拿不到 ----
 delete from platform_admins;
 :as_hao;
