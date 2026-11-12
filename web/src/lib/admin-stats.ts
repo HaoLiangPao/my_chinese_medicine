@@ -116,15 +116,33 @@ export function barPercent(value: number, max: number): number {
 
 /** 趋势图下面的日期：每天 `02-03`，每周 `02-02 起`，每月 `2026-02` */
 export function bucketLabel(date: string, bucket: string): string {
+  if (bucket === "year") return date.slice(0, 4);
   if (bucket === "month") return date.slice(0, 7);
   return bucket === "week" ? `${date.slice(5)} 起` : date.slice(5);
 }
 
-export const BUCKET_NAMES: Record<string, string> = { day: "每天", week: "每周", month: "每月" };
+export const BUCKET_NAMES: Record<string, string> = { day: "每天", week: "每周", month: "每月", year: "每年" };
 
 /** 克数：1000 以上换成千克 */
 export function weight(g: number | string | null): string {
   const n = Number(g ?? 0);
   if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)} kg`;
   return `${Number.isInteger(n) ? n : n.toFixed(1)} g`;
+}
+
+const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
+const objects = (v: unknown): Record<string, unknown>[] =>
+  Array.isArray(v) ? v.filter((x): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x)) : [];
+
+/**
+ * Bug 反馈里的「最近操作」：用户可以绕过 App 直接写这一列（数据库只检查是数组、条数、总长度），
+ * 显示前只留下格式对的：对象，label 是字符串。格式不对的跳过，不能让一条反馈把整个列表弄挂
+ */
+export function bugActions(v: unknown): { kind: string; label: string }[] {
+  return objects(v).flatMap((a) => (str(a.label) === null ? [] : [{ kind: str(a.kind) ?? "", label: str(a.label)! }]));
+}
+
+/** Bug 反馈里的「前端错误」：同上，message 是字符串才显示，stack 不是字符串就不显示 */
+export function bugErrors(v: unknown): { message: string; stack: string | null }[] {
+  return objects(v).flatMap((e) => (str(e.message) === null ? [] : [{ message: str(e.message)!, stack: str(e.stack) }]));
 }

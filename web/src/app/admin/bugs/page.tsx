@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Loading } from "@/components/ui";
+import { bugActions, bugErrors } from "@/lib/admin-stats";
 import { requireAdmin, rows, formatTime } from "../admin";
 import { setBugStatus } from "./actions";
 
@@ -25,8 +26,8 @@ type Bug = {
   user_agent: string | null;
   viewport: string | null;
   app_version: string | null;
-  recent_actions: { t: string; kind: string; label: string }[];
-  recent_errors: { t: string; message: string; stack?: string }[];
+  recent_actions: unknown; // 用户能直接写这一列：显示前用 bugActions / bugErrors 过滤
+  recent_errors: unknown;
 };
 
 /** IDEA-5 的反馈（docs/design/0014）：按状态看、改状态。描述是用户自己写的，原样显示 */
@@ -64,7 +65,7 @@ async function List({ searchParams }: { searchParams: Promise<Record<string, str
     supabase.rpc("admin_bug_reports", { p_status: filter, p_limit: 100 }),
   ]);
   const counts = rows<Bug>(all).reduce<Record<string, number>>((m, b) => ({ ...m, [b.status]: (m[b.status] ?? 0) + 1 }), {});
-  const bugs = rows<Bug>(shown);
+  const bugs = rows<Bug>(shown).map((b) => ({ ...b, actions: bugActions(b.recent_actions), errors: bugErrors(b.recent_errors) }));
 
   return (
     <div className="space-y-4">
@@ -118,9 +119,9 @@ async function List({ searchParams }: { searchParams: Promise<Record<string, str
                   <dd className="break-all">{b.user_agent ?? "—"}</dd>
                   <dt className="text-muted">最近操作</dt>
                   <dd>
-                    {b.recent_actions.length ? (
+                    {b.actions.length ? (
                       <ol className="list-decimal pl-5">
-                        {b.recent_actions.map((a, i) => (
+                        {b.actions.map((a, i) => (
                           <li key={i} className="break-all">
                             {a.kind === "nav" ? "打开" : "点了"} {a.label}
                           </li>
@@ -132,9 +133,9 @@ async function List({ searchParams }: { searchParams: Promise<Record<string, str
                   </dd>
                   <dt className="text-muted">前端错误</dt>
                   <dd>
-                    {b.recent_errors.length ? (
+                    {b.errors.length ? (
                       <ul className="space-y-1">
-                        {b.recent_errors.map((e, i) => (
+                        {b.errors.map((e, i) => (
                           <li key={i} className="break-all">
                             <code>{e.message}</code>
                             {e.stack && <pre className="mt-1 overflow-x-auto text-xs whitespace-pre-wrap">{e.stack}</pre>}

@@ -110,7 +110,10 @@ export function TrendChart({ rows }: { rows: TrendRow[] }) {
           {ticks.slice(1).map((t) => (
             <div key={t} className="absolute inset-x-0 border-t border-dashed border-line" style={{ bottom: `${(t / top) * 100}%` }} />
           ))}
-          <ol className="absolute inset-0 flex items-end gap-px" aria-label={`处方趋势（${BUCKET_NAMES[bucket] ?? bucket}）`}>
+          <ol
+            className={`absolute inset-0 flex items-end ${rows.length > 60 ? "" : "gap-px"}`}
+            aria-label={`处方趋势（${BUCKET_NAMES[bucket] ?? bucket}）`}
+          >
             {rows.map((r) => (
               <li
                 key={r.bucket_start}

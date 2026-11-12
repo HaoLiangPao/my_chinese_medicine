@@ -246,11 +246,14 @@ select assert_raises($$select * from admin_overview('2026-02-10', '2026-02-01')$
 select assert_raises($$select * from admin_overview('1980-01-01', null)$$, '超出范围', '太早');
 select assert_raises($$select * from admin_top_herbs(null, 'infinity')$$, '超出范围', '不接受 infinity');
 select assert_raises($$select * from admin_prescription_trend('day', '-infinity')$$, '超出范围', '不接受 -infinity');
-select assert_raises($$select * from admin_prescription_trend('hour')$$, 'day、week、month 或 auto', '没有按小时');
+select assert_raises($$select * from admin_prescription_trend('hour')$$, 'day、week、month、year 或 auto', '没有按小时');
 -- auto：62 天以内按天，两年以内按周，再长按月
 select assert_eq((select string_agg(distinct bucket, ',') || ':' || count(*) from admin_prescription_trend('auto', '2026-02-01', '2026-02-28')), 'day:28', 'auto：一个月按天');
 select assert_eq((select string_agg(distinct bucket, ',') || ':' || count(*) from admin_prescription_trend('auto', '2026-01-01', '2026-06-30')), 'week:27', 'auto：半年按周');
 select assert_eq((select string_agg(distinct bucket, ',') || ':' || count(*) from admin_prescription_trend('auto', '2020-01-01', '2026-06-30')), 'month:78', 'auto：几年按月');
+-- 表单允许的最长范围（1990 到 2100）：按月会超过 400 个点，auto 退到按年，不报错
+select assert_eq((select string_agg(distinct bucket, ',') || ':' || count(*) from admin_prescription_trend('auto', '1990-01-01', '2026-06-30')), 'year:37', 'auto：几十年按年');
+select assert_eq((select count(*) from admin_prescription_trend('auto', '1990-01-01', '2100-01-01')), 111::bigint, 'auto：最长的范围也不超过上限');
 reset role;
 
 -- ---- 门槛正好 5 位病人：显示；4 位：合并（2026-03）----

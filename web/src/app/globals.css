@@ -71,3 +71,8 @@ body {
     @apply border-b border-line py-2 pr-3 align-top whitespace-nowrap;
   }
 }
+
+/* 管理员看板（docs/design/0015 §6）有自己的导航：只有通过管理员检查的页面里才有 data-admin-root */
+body:has([data-admin-root]) [data-app-header] {
+  display: none;
+}

@@ -160,7 +160,8 @@ $$;
 
 -- 处方趋势：每天 / 每周（周一开始）/ 每月几张，没有处方的也有一行 0。
 -- 不限开始日期时从第一张处方开始，不限结束日期时到今天。最多 400 个点。
--- p_bucket = 'auto'：62 天以内按天，两年以内按周，再长按月；返回的 bucket 列说明用的是哪种
+-- p_bucket = 'auto'：62 天以内按天，两年以内按周，400 个月以内按月，再长按年（1990–2100 最多 111 个点，不会超过上限）；
+-- 返回的 bucket 列说明用的是哪种
 -- p_user：只数这个账号自己的药柜（医生、病人账号的详情页用）
 create or replace function public.admin_prescription_trend(p_bucket text, p_from date default null, p_to date default null, p_user uuid default null)
 returns table (bucket_start date, prescriptions integer, bucket text)
@@ -176,13 +177,14 @@ declare
 begin
   perform public.admin_require();
   w := public.admin_window(p_from, p_to);
-  if b is null or b not in ('day', 'week', 'month', 'auto') then
-    raise exception 'p_bucket 只能是 day、week、month 或 auto' using errcode = '22023';
+  if b is null or b not in ('day', 'week', 'month', 'year', 'auto') then
+    raise exception 'p_bucket 只能是 day、week、month、year 或 auto' using errcode = '22023';
   end if;
   lo := coalesce(p_from, (select min((created_at at time zone 'America/Toronto')::date) from public.prescriptions), today);
   hi := greatest(coalesce(p_to, today), lo);
   if b = 'auto' then
-    b := case when hi - lo <= 62 then 'day' when hi - lo <= 730 then 'week' else 'month' end;
+    b := case when hi - lo <= 62 then 'day' when hi - lo <= 730 then 'week'
+              when (extract(year from age(hi, lo)) * 12 + extract(month from age(hi, lo))) < 400 then 'month' else 'year' end;
   end if;
   step := ('1 ' || b)::interval;
   lo := date_trunc(b, lo)::date;

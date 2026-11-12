@@ -30,6 +30,7 @@ const CLINIC = "看板测试诊所";
 // 病人姓名、电话、备注、处方标题、医嘱：都不能出现在看板上
 const SECRET = { name: "看板秘密病人", phone: "416-555-07", notes: "看板秘密备注", title: "看板秘密标题", instructions: "看板秘密医嘱" };
 const BUG = `看板测试反馈 ${RUN}`;
+const BAD_BUG = `看板格式不对的反馈 ${RUN}`;
 const g = (n: number) => `${n} g`; // fixture 里的克数都在 1000 以下
 
 let dp: Page; // 医生
@@ -120,6 +121,12 @@ test.beforeAll(async ({ browser }) => {
     ws.home,
     BUG,
   ]);
+  // 绕过 App 直接写进来的怪数据（数据库只检查是数组）：不能把整个列表弄挂
+  await sql(
+    `insert into bug_reports (reporter_id, page_path, description, recent_actions, recent_errors)
+     values ($1, '/', $2, '[null, {"label": {}}, {"kind": "click", "label": "保存处方"}]', '[{"message": {}}, "x"]')`,
+    [ids.home, BAD_BUG],
+  );
 });
 test.afterAll(async () => {
   await dp.close();
@@ -342,6 +349,10 @@ test("Bugs：看到反馈，改状态", { tag: ["@PLAT-4"] }, async () => {
   await expect(card.getByTestId("admin-bug-status")).toHaveText("新");
   await expect(card.getByTestId("admin-bug-path")).toHaveText("/prescriptions/new");
   await expect(card).toContainText(/提交人：病人 #\d+/);
+  // 格式不对的那条也显示出来，诊断信息里只留下格式对的
+  const bad = ap.getByTestId("admin-bug").filter({ hasText: BAD_BUG });
+  await bad.getByText("诊断信息").click();
+  await expect(bad).toContainText("点了 保存处方");
   expect(await card.innerText()).not.toContain(home.email);
   await ap.screenshot({ path: `${SHOTS}/管理员看板-Bugs.png`, fullPage: true });
   await card.getByLabel("状态").selectOption("fixed");
@@ -352,6 +363,21 @@ test("Bugs：看到反馈，改状态", { tag: ["@PLAT-4"] }, async () => {
   await expect(ap.getByTestId("admin-bug").filter({ hasText: BUG })).toHaveCount(1);
   await ap.getByTestId("admin-bug-filter").getByRole("link", { name: /^新/ }).click();
   await expect(ap.getByTestId("admin-bug").filter({ hasText: BUG })).toHaveCount(0);
+});
+
+test("离开看板以后 App 的导航回来了（客户端跳转，不刷新整页）", { tag: ["@PLAT-4"] }, async () => {
+  await ap.goto("/admin");
+  await expect(ap.getByTestId("nav")).toBeHidden();
+  // 看板里跳到一个不存在的账号 → 「找不到这个页面」→ 点「回到总览」：全程是 Next 的客户端跳转
+  await ap.evaluate(() =>
+    (window as unknown as { next: { router: { push: (u: string) => void } } }).next.router.push(
+      "/admin/doctors/00000000-0000-0000-0000-000000000000",
+    ),
+  );
+  await expect(ap.getByText("找不到这个页面")).toBeVisible();
+  await ap.getByRole("link", { name: "回到总览" }).click();
+  await expect(ap.getByRole("heading", { name: "最近的药方" })).toBeVisible();
+  await expect(ap.getByTestId("nav")).toBeVisible();
 });
 
 test("医生和病人账号仍然 404", { tag: ["@PLAT-4"] }, async () => {

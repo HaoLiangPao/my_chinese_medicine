@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   barPercent,
+  bugActions,
+  bugErrors,
   bucketLabel,
   niceTicks,
   parseDate,
@@ -124,5 +126,18 @@ describe("bucketLabel / weight", () => {
     expect(weight("12.5")).toBe("12.5 g");
     expect(weight(1500)).toBe("1.5 kg");
     expect(weight(25000)).toBe("25 kg");
+  });
+});
+
+describe("bugActions / bugErrors", () => {
+  it("格式对的原样留下", () => {
+    expect(bugActions([{ t: "x", kind: "nav", label: "/prescriptions" }])).toEqual([{ kind: "nav", label: "/prescriptions" }]);
+    expect(bugErrors([{ message: "boom", stack: "at x" }])).toEqual([{ message: "boom", stack: "at x" }]);
+  });
+  it("绕过 App 写进来的怪数据：跳过，不抛错", () => {
+    expect(bugActions([null, 1, "x", [], { label: {} }, { label: "保存", kind: 5 }])).toEqual([{ kind: "", label: "保存" }]);
+    expect(bugErrors([null, { message: { a: 1 } }, { message: "ok", stack: ["x"] }])).toEqual([{ message: "ok", stack: null }]);
+    expect(bugActions({ a: 1 })).toEqual([]);
+    expect(bugErrors(null)).toEqual([]);
   });
 });

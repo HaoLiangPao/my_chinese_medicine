@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Loading } from "@/components/ui";
-import { MIN_SUBJECTS, parseRange, parseSort, parseTop, rangeLabel, rangeQuery, userLabel, weight } from "@/lib/admin-stats";
+import { MIN_SUBJECTS, parseRange, parseSort, parseTop, rangeQuery, userLabel, weight } from "@/lib/admin-stats";
 import { requireAdmin, rows, torontoToday } from "./admin";
 import { RangePicker, Ranking, Tile, TopPicker, TrendChart, type TrendRow } from "./ui";
 
