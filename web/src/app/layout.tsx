@@ -16,7 +16,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full">
-        <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur" data-app-header>
           {/* 不用 Suspense：流式渲染时占位导航和真实导航会短暂同时存在 */}
           <Nav />
         </header>
