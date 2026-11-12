@@ -72,7 +72,8 @@ body {
   }
 }
 
-/* 管理员看板（docs/design/0015 §6）有自己的导航：只有通过管理员检查的页面里才有 data-admin-root */
+/* 管理员看板（docs/design/0015 §6）有自己的导航：只有通过管理员检查的页面里才有 data-admin-root。
+   依赖 Cache Components 关闭：打开后离开的页面会用 <Activity hidden> 留在 DOM 里，标记还在，导航会一直藏着（E2E「离开看板以后 App 的导航回来了」能抓到） */
 body:has([data-admin-root]) [data-app-header] {
   display: none;
 }

@@ -254,6 +254,9 @@ select assert_eq((select string_agg(distinct bucket, ',') || ':' || count(*) fro
 -- 表单允许的最长范围（1990 到 2100）：按月会超过 400 个点，auto 退到按年，不报错
 select assert_eq((select string_agg(distinct bucket, ',') || ':' || count(*) from admin_prescription_trend('auto', '1990-01-01', '2026-06-30')), 'year:37', 'auto：几十年按年');
 select assert_eq((select count(*) from admin_prescription_trend('auto', '1990-01-01', '2100-01-01')), 111::bigint, 'auto：最长的范围也不超过上限');
+-- 边界：按月正好 400 个点 → 按月；401 个点（虽然只差 399 个整月）→ 按年，不报错
+select assert_eq((select string_agg(distinct bucket, ',') || ':' || count(*) from admin_prescription_trend('auto', '1990-01-15', '2023-04-01')), 'month:400', 'auto：正好 400 个月按月');
+select assert_eq((select string_agg(distinct bucket, ',') || ':' || count(*) from admin_prescription_trend('auto', '1990-01-31', '2023-05-01')), 'year:34', 'auto：401 个月的点退到按年');
 reset role;
 
 -- ---- 门槛正好 5 位病人：显示；4 位：合并（2026-03）----

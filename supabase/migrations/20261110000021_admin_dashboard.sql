@@ -184,7 +184,9 @@ begin
   hi := greatest(coalesce(p_to, today), lo);
   if b = 'auto' then
     b := case when hi - lo <= 62 then 'day' when hi - lo <= 730 then 'week'
-              when (extract(year from age(hi, lo)) * 12 + extract(month from age(hi, lo))) < 400 then 'month' else 'year' end;
+              -- 按截到月初以后的点数算（用 age() 会少算：1990-01-31 到 2023-05-01 是 399 个整月，却有 401 个点）
+              when (extract(year from hi) - extract(year from lo)) * 12 + extract(month from hi) - extract(month from lo) + 1 <= 400 then 'month'
+              else 'year' end;
   end if;
   step := ('1 ' || b)::interval;
   lo := date_trunc(b, lo)::date;
