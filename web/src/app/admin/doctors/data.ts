@@ -3,9 +3,10 @@ export type Doctor = {
   user_id: string;
   user_no: number;
   email: string;
-  patients_total: number;
-  patients_new: number;
-  patients_seen: number;
+  /** 病人数：1–4 是 null（显示「<5」） */
+  patients_total: number | null;
+  patients_new: number | null;
+  patients_seen: number | null;
   prescriptions: number;
   prescriptions_total: number;
   decoctions: number;

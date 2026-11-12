@@ -82,20 +82,23 @@ export function Tile({ label, value, sub, testId }: { label: string; value: stri
   );
 }
 
-export type TrendRow = { bucket_start: string; prescriptions: number; bucket: string };
+/** prescriptions 为 null：病人账号的趋势里 1–4 张（数据库遮掉了），显示「<5」 */
+export type TrendRow = { bucket_start: string; prescriptions: number | null; bucket: string };
 
 /** 处方趋势柱状图：纵轴是张数（刻度和网格线），横轴是日期。CSS 画的，每根柱子带 data-count，读屏念「日期：几张」 */
 export function TrendChart({ rows }: { rows: TrendRow[] }) {
   const bucket = rows[0]?.bucket ?? "day";
-  const ticks = niceTicks(Math.max(0, ...rows.map((r) => r.prescriptions)));
+  const masked = rows.some((r) => r.prescriptions === null);
+  // 「<5」的柱子按 4 画（浅色），刻度要容得下
+  const ticks = niceTicks(Math.max(0, ...rows.map((r) => r.prescriptions ?? 4)));
   const top = ticks[ticks.length - 1];
-  const total = rows.reduce((s, r) => s + r.prescriptions, 0);
+  const total = rows.reduce((s, r) => s + (r.prescriptions ?? 0), 0);
   const mid = rows[Math.floor((rows.length - 1) / 2)];
   return (
     <figure className="card" data-testid="admin-trend" data-bucket-kind={bucket}>
       <figcaption className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-serif text-lg font-bold">处方趋势（{BUCKET_NAMES[bucket] ?? bucket}）</span>
-        <span className="text-sm text-muted">共 {total} 张</span>
+        <span className="text-sm text-muted">{masked ? "1–4 张显示「<5」（浅色）" : `共 ${total} 张`}</span>
       </figcaption>
       <div className="mt-7 flex gap-2">
         <div className="relative w-7 shrink-0 text-right text-xs text-muted" aria-hidden="true" data-testid="admin-trend-yaxis">
@@ -119,11 +122,14 @@ export function TrendChart({ rows }: { rows: TrendRow[] }) {
                 key={r.bucket_start}
                 className="flex h-full min-w-0 flex-1 items-end"
                 data-bucket={r.bucket_start}
-                data-count={r.prescriptions}
-                title={`${bucketLabel(r.bucket_start, bucket)}：${r.prescriptions} 张`}
-                aria-label={`${bucketLabel(r.bucket_start, bucket)}：${r.prescriptions} 张`}
+                data-count={r.prescriptions ?? "<5"}
+                title={`${bucketLabel(r.bucket_start, bucket)}：${r.prescriptions ?? "<5"} 张`}
+                aria-label={`${bucketLabel(r.bucket_start, bucket)}：${r.prescriptions ?? "少于 5"} 张`}
               >
-                <span className="block w-full rounded-t-sm bg-cinnabar/80" style={{ height: `${barPercent(r.prescriptions, top)}%` }} />
+                <span
+                  className={`block w-full rounded-t-sm ${r.prescriptions === null ? "bg-cinnabar/30" : "bg-cinnabar/80"}`}
+                  style={{ height: `${barPercent(r.prescriptions ?? 4, top)}%` }}
+                />
               </li>
             ))}
           </ol>

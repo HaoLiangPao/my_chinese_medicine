@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Loading } from "@/components/ui";
-import { parseRange, rangeQuery, weight } from "@/lib/admin-stats";
+import { parseRange, rangeQuery, small, weight } from "@/lib/admin-stats";
 import { requireAdmin, rows, torontoToday } from "../admin";
 import { RangePicker } from "../ui";
 import type { Doctor } from "./data";
@@ -40,7 +40,8 @@ async function List({ searchParams }: { searchParams: Promise<Record<string, str
                     医生 #{d.user_no} · {d.email}
                   </span>
                   <span className="shrink-0 text-sm text-muted">
-                    病人 {d.patients_total} · 这段时间处方 {d.prescriptions} 张 · 消耗 {weight(d.consumed_grams)} · 最近 {d.last_on ?? "—"}
+                    病人 {small(d.patients_total)} · 这段时间处方 {d.prescriptions} 张 · 消耗 {weight(d.consumed_grams)} · 最近{" "}
+                    {d.last_on ?? "—"}
                   </span>
                 </Link>
               </li>

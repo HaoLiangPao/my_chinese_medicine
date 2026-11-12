@@ -19,9 +19,9 @@ set role authenticated; set request.jwt.claim.sub = '00000000-0000-0000-0000-000
 select assert_eq(
   (select row(users_total, users_household + users_clinic + users_unset, workspaces_household, workspaces_clinic,
               patients_total, prescriptions_total, prescriptions_in_window, active_users_in_window)::text from admin_overview()),
-  '(8,8,5,2,3,8,8,4)', '概况和 fixture 一致');
-select assert_eq((select string_agg(prescriptions::text, ',' order by prescriptions desc) from admin_user_activity()), '2,2,2,2',
-  '每个账号的处方数：u1、u3、u4 各 2 张；u2 自己家 1 张 + 帮 u1 录的 1 张（算录的人）');
+  '(8,8,5,2,,8,8,4)', '概况和 fixture 一致（病人档案 3 个 → 「<5」，是 null）');
+select assert_eq((select string_agg(coalesce(prescriptions::text, '<5'), ',') from admin_user_activity()), '<5,<5,<5,<5',
+  '每个账号的处方数：u1–u4 各 2 张，都没选账号类型 → 按病人的数字处理，显示「<5」');
 -- 样本都很小：这个月（fixture 是刚才建的）没有单独显示的药材和组合
 select assert_eq((select count(*) from admin_top_herbs(null, null, 50) where herb_name is not null), 0::bigint, '没有药材过门槛');
 select assert_eq((select other_herbs from admin_top_herbs(null, null, 50) where herb_name is null) > 0, true, '药材都合并进「其他」');

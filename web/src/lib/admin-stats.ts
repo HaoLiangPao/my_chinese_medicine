@@ -3,6 +3,9 @@
 /** 和数据库里的 admin_min_subjects() 一致，只用来写说明文字 */
 export const MIN_SUBJECTS = 5;
 
+/** 病人的数字：数据库把 1–4 返回成 null（admin_small），这里显示成「<5」；0 和 5 以上照常 */
+export const small = (n: number | null): string => (n === null ? "<5" : String(n));
+
 export const TOP_CHOICES = [10, 20, 30, 40] as const;
 export type TopN = (typeof TOP_CHOICES)[number];
 export type HerbSort = "grams" | "rx";

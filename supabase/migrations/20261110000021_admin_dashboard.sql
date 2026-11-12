@@ -53,6 +53,12 @@ returns integer
 language sql immutable set search_path = public, pg_temp
 as $$ select 5 $$;
 
+-- 病人的数字（病人账号的数字、医生的病人数、病人档案总数）：1–4 返回 null，页面显示「<5」；0 和 5 以上照常（0015 §5.4，Hao 2026-11-12 定）
+create or replace function public.admin_small(n integer)
+returns integer
+language sql immutable set search_path = public, pg_temp
+as $$ select case when n between 1 and 4 then null else n end $$;
+
 -- 时间段：起止日期都包含在内，按多伦多时间；null = 不限。1990 年以前、2100 年以后、infinity 都不接受
 create or replace function public.admin_window(p_from date, p_to date, out from_ts timestamptz, out to_ts timestamptz)
 language plpgsql stable set search_path = public, pg_temp
@@ -151,7 +157,7 @@ begin
     (select count(*)::int from auth.users u left join public.user_settings s on s.user_id = u.id where s.account_kind is null),
     (select count(*)::int from public.workspaces where kind = 'household'),
     (select count(*)::int from public.workspaces where kind = 'clinic'),
-    (select count(*)::int from public.patients),
+    public.admin_small((select count(*)::int from public.patients)),
     (select count(*)::int from public.prescriptions),
     (select count(*)::int from public.prescriptions where created_at >= w.from_ts and created_at < w.to_ts),
     (select count(distinct created_by)::int from public.prescriptions where created_at >= w.from_ts and created_at < w.to_ts);
@@ -174,6 +180,9 @@ declare
   hi date;
   b text := p_bucket;
   step interval;
+  -- 病人账号（和没选类型的）的趋势是病人的数字：每个点 1–4 张都显示「<5」
+  mask boolean := p_user is not null
+    and coalesce((select s.account_kind from public.user_settings s where s.user_id = p_user), '') <> 'clinic';
 begin
   perform public.admin_require();
   w := public.admin_window(p_from, p_to);
@@ -202,8 +211,9 @@ begin
     where p.created_at >= w.from_ts and p.created_at < w.to_ts
       and (p_user is null or p.workspace_id in (select public.admin_account_workspaces(p_user)))
   )
-  select bk.s, (select count(*)::int from rx where rx.d >= bk.s and rx.d < (bk.s + step)::date), b
-  from bk order by bk.s;
+  select x.s, case when mask then public.admin_small(x.n) else x.n end, b
+  from (select bk.s, (select count(*)::int from rx where rx.d >= bk.s and rx.d < (bk.s + step)::date) as n from bk) x
+  order by x.s;
 end;
 $$;
 
@@ -218,27 +228,39 @@ declare w record;
 begin
   perform public.admin_require();
   w := public.admin_window(p_from, p_to);
+  -- 病人账号（和没选类型的）的处方数、药材种数 1–4 显示「<5」；医生的照常。排序也按遮过的数，不泄露 1–4 之间的大小
   return query
   with rx as (
     select p.id, p.created_by, p.created_at
     from public.prescriptions p
     where p.created_at >= w.from_ts and p.created_at < w.to_ts and p.created_by is not null
+  ),
+  raw as (
+    select rx.created_by as uid,
+           n.user_no as no,
+           case when s.account_kind = 'clinic' then u.email::text end as email,  -- Supabase 里 email 是 varchar
+           s.account_kind as kind,
+           count(distinct rx.id)::int as n_rx,
+           count(distinct i.herb_id)::int as n_herbs,
+           max((rx.created_at at time zone 'America/Toronto')::date) as last_on,
+           rx.created_by = auth.uid() as me
+    from rx
+    join auth.users u on u.id = rx.created_by
+    join public.admin_user_numbers() n on n.user_id = rx.created_by
+    left join public.user_settings s on s.user_id = rx.created_by
+    left join public.prescription_items i on i.prescription_id = rx.id
+    group by rx.created_by, n.user_no, u.email, s.account_kind
+  ),
+  masked as (
+    select r.uid, r.no, r.email, r.kind,
+           case when r.kind = 'clinic' then r.n_rx else public.admin_small(r.n_rx) end as m_rx,
+           case when r.kind = 'clinic' then r.n_herbs else public.admin_small(r.n_herbs) end as m_herbs,
+           r.last_on, r.me
+    from raw r
   )
-  select rx.created_by,
-         n.user_no,
-         case when s.account_kind = 'clinic' then u.email::text end,  -- Supabase 里 email 是 varchar
-         s.account_kind,
-         count(distinct rx.id)::int,
-         count(distinct i.herb_id)::int,
-         max((rx.created_at at time zone 'America/Toronto')::date),
-         rx.created_by = auth.uid()
-  from rx
-  join auth.users u on u.id = rx.created_by
-  join public.admin_user_numbers() n on n.user_id = rx.created_by
-  left join public.user_settings s on s.user_id = rx.created_by
-  left join public.prescription_items i on i.prescription_id = rx.id
-  group by rx.created_by, n.user_no, u.email, s.account_kind
-  order by 5 desc, 2;
+  select m.uid, m.no, m.email, m.kind, m.m_rx, m.m_herbs, m.last_on, m.me
+  from masked m
+  order by coalesce(m.m_rx::numeric, 2.5) desc, m.no;
 end;
 $$;
 
@@ -312,11 +334,12 @@ begin
   ),
   ws as (select d.uid, x.ws from doc d cross join lateral public.admin_account_workspaces(d.uid) as x(ws))
   select d.uid, n.user_no, u.email::text,
-    (select count(*)::int from public.patients pt where pt.workspace_id in (select ws.ws from ws where ws.uid = d.uid)),
-    (select count(*)::int from public.patients pt where pt.workspace_id in (select ws.ws from ws where ws.uid = d.uid)
-       and pt.created_at >= w.from_ts and pt.created_at < w.to_ts),
-    (select count(distinct p.patient_id)::int from public.prescriptions p where p.workspace_id in (select ws.ws from ws where ws.uid = d.uid)
-       and p.created_at >= w.from_ts and p.created_at < w.to_ts),
+    -- 病人数 1–4 显示「<5」（处方、配药是医生自己的数字，照常）
+    public.admin_small((select count(*)::int from public.patients pt where pt.workspace_id in (select ws.ws from ws where ws.uid = d.uid))),
+    public.admin_small((select count(*)::int from public.patients pt where pt.workspace_id in (select ws.ws from ws where ws.uid = d.uid)
+       and pt.created_at >= w.from_ts and pt.created_at < w.to_ts)),
+    public.admin_small((select count(distinct p.patient_id)::int from public.prescriptions p where p.workspace_id in (select ws.ws from ws where ws.uid = d.uid)
+       and p.created_at >= w.from_ts and p.created_at < w.to_ts)),
     (select count(*)::int from public.prescriptions p where p.workspace_id in (select ws.ws from ws where ws.uid = d.uid)
        and p.created_at >= w.from_ts and p.created_at < w.to_ts),
     (select count(*)::int from public.prescriptions p where p.workspace_id in (select ws.ws from ws where ws.uid = d.uid)),
@@ -390,22 +413,27 @@ begin
     where s.account_kind = 'household' and (p_user is null or s.user_id = p_user)
   ),
   ws as (select a.uid, x.ws from acc a cross join lateral public.admin_account_workspaces(a.uid) as x(ws)),
-  rx as (select ws.uid, p.id, p.created_at from ws join public.prescriptions p on p.workspace_id = ws.ws)
-  select a.uid, n.user_no,
-    (select count(distinct m.user_id)::int from public.workspace_members m where m.workspace_id in (select ws.ws from ws where ws.uid = a.uid)),
-    (select count(*)::int from rx where rx.uid = a.uid and rx.created_at >= w.from_ts and rx.created_at < w.to_ts),
-    (select count(*)::int from rx where rx.uid = a.uid),
-    (select count(distinct i.herb_id)::int from rx join public.prescription_items i on i.prescription_id = rx.id
-       where rx.uid = a.uid and rx.created_at >= w.from_ts and rx.created_at < w.to_ts),
-    (select count(*)::int from public.decoctions dc where dc.workspace_id in (select ws.ws from ws where ws.uid = a.uid)
-       and dc.decocted_at >= w.from_ts and dc.decocted_at < w.to_ts),
-    (select count(distinct (rx.created_at at time zone 'America/Toronto')::date)::int from rx
-       where rx.uid = a.uid and rx.created_at >= w.from_ts and rx.created_at < w.to_ts),
-    (select max((rx.created_at at time zone 'America/Toronto')::date) from rx where rx.uid = a.uid),
-    a.uid = auth.uid()
-  from acc a
-  join public.admin_user_numbers() n on n.user_id = a.uid
-  order by 4 desc, 2;
+  rx as (select ws.uid, p.id, p.created_at from ws join public.prescriptions p on p.workspace_id = ws.ws),
+  -- 都是病人的数字：1–4 显示「<5」；排序也按遮过的数
+  masked as (
+    select a.uid, n.user_no as no,
+      public.admin_small((select count(distinct m.user_id)::int from public.workspace_members m where m.workspace_id in (select ws.ws from ws where ws.uid = a.uid))) as m_members,
+      public.admin_small((select count(*)::int from rx where rx.uid = a.uid and rx.created_at >= w.from_ts and rx.created_at < w.to_ts)) as m_rx,
+      public.admin_small((select count(*)::int from rx where rx.uid = a.uid)) as m_rx_total,
+      public.admin_small((select count(distinct i.herb_id)::int from rx join public.prescription_items i on i.prescription_id = rx.id
+         where rx.uid = a.uid and rx.created_at >= w.from_ts and rx.created_at < w.to_ts)) as m_herbs,
+      public.admin_small((select count(*)::int from public.decoctions dc where dc.workspace_id in (select ws.ws from ws where ws.uid = a.uid)
+         and dc.decocted_at >= w.from_ts and dc.decocted_at < w.to_ts)) as m_decoctions,
+      public.admin_small((select count(distinct (rx.created_at at time zone 'America/Toronto')::date)::int from rx
+         where rx.uid = a.uid and rx.created_at >= w.from_ts and rx.created_at < w.to_ts)) as m_days,
+      (select max((rx.created_at at time zone 'America/Toronto')::date) from rx where rx.uid = a.uid) as last_on,
+      a.uid = auth.uid() as me
+    from acc a
+    join public.admin_user_numbers() n on n.user_id = a.uid
+  )
+  select m.uid, m.no, m.m_members, m.m_rx, m.m_rx_total, m.m_herbs, m.m_decoctions, m.m_days, m.last_on, m.me
+  from masked m
+  order by coalesce(m.m_rx::numeric, 2.5) desc, m.no;
 end;
 $$;
 
@@ -461,7 +489,7 @@ declare
   rpc text[] := array['is_platform_admin', 'admin_overview', 'admin_prescription_trend', 'admin_user_activity',
                       'admin_top_herbs', 'admin_top_pairs', 'admin_doctors', 'admin_doctor_consumption',
                       'admin_patient_accounts', 'admin_bug_reports', 'admin_set_bug_status'];
-  internal text[] := array['admin_require', 'admin_window', 'admin_min_subjects', 'admin_user_numbers',
+  internal text[] := array['admin_require', 'admin_window', 'admin_min_subjects', 'admin_small', 'admin_user_numbers',
                            'admin_account_workspaces', 'admin_herb_counts', 'admin_pair_counts'];
   has_anon boolean := exists (select 1 from pg_roles where rolname = 'anon');
   has_auth boolean := exists (select 1 from pg_roles where rolname = 'authenticated');

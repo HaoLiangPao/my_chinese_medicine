@@ -113,6 +113,7 @@ select assert_raises($$select * from admin_window('2026-02-01', null)$$, 'permis
 select assert_raises($$select * from admin_herb_counts('2026-02-01', null)$$, 'permission denied', '内部函数 admin_herb_counts 不能直接调');
 select assert_raises($$select * from admin_pair_counts('2026-02-01', null)$$, 'permission denied', '内部函数 admin_pair_counts 不能直接调');
 select assert_raises($$select admin_min_subjects()$$, 'permission denied', '内部函数 admin_min_subjects 不能直接调');
+select assert_raises($$select admin_small(3)$$, 'permission denied', '内部函数 admin_small 不能直接调');
 select assert_raises($$select * from admin_user_numbers()$$, 'permission denied', '内部函数 admin_user_numbers 不能直接调');
 select assert_raises($$select * from admin_account_workspaces('00000000-0000-0000-0000-00000000000c')$$, 'permission denied', '内部函数 admin_account_workspaces 不能直接调');
 reset role;
@@ -157,13 +158,16 @@ select assert_eq(
 select assert_eq((select sum(prescriptions) from admin_prescription_trend('week')), 14::bigint, '不限时间：从第一张处方到今天，全部都在');
 select assert_raises($$select * from admin_prescription_trend('day', '2000-01-01', '2026-01-01')$$, '时间段太长', '按天最多 400 个点');
 
--- ---- 每个账号（2 月）：医生显示邮箱；病人账号只有编号；自己标出来 ----
+-- ---- 每个账号（2 月）：医生显示邮箱和数字；病人账号只有编号，1–4 的数字是 null（页面显示「<5」）；自己标出来 ----
+-- 病人账号 hao 2 张 3 种、stranger 2 张 2 种 → 都是「<5」
 select assert_eq(
-  (select string_agg(coalesce(email, '-') || '/' || coalesce(account_kind, '-') || '/' || prescriptions || '/' || herbs || '/' || last_on || '/' || is_me,
-                     ',' order by prescriptions desc, last_on)
+  (select string_agg(coalesce(email, '-') || '/' || coalesce(account_kind, '-') || '/' || coalesce(prescriptions::text, '<5') || '/'
+                     || coalesce(herbs::text, '<5') || '/' || last_on || '/' || is_me, ',' order by user_no)
    from admin_user_activity('2026-02-01', '2026-02-28')),
-  'tina@example.com/clinic/9/7/2026-02-26/false,-/household/2/3/2026-02-20/true,-/household/2/2/2026-02-28/false',
-  '每个账号的处方数、药材种数、最后一次');
+  '-/household/<5/<5/2026-02-20/true,-/household/<5/<5/2026-02-28/false,tina@example.com/clinic/9/7/2026-02-26/false',
+  '每个账号的处方数、药材种数、最后一次（病人账号 <5）');
+select assert_eq((select string_agg(coalesce(email, '-'), ',') from admin_user_activity('2026-02-01', '2026-02-28')),
+  'tina@example.com,-,-', '排序：医生 9 张在前，两个「<5」的按编号');
 select assert_eq((select count(distinct user_no) from admin_user_activity('2026-02-01', '2026-02-28')), 3::bigint, '每个账号有不同的编号');
 
 -- ---- 常用药材（2 月）----
@@ -208,13 +212,28 @@ select assert_eq((select count(*) from admin_doctor_consumption(:'H')), 0::bigin
 
 -- ---- 病人账号：只有数字 ----
 -- hao：家里 1 个人；2 月 2 张、用过 3 种药、1 天；stranger：2 月 2 张（不算 1 月 31 日那张）、2 种药、2 天，一共 3 张
+-- 都是病人的数字：1–4 是 null（「<5」），0 照常
 select assert_eq(
-  (select string_agg(members || '/' || prescriptions || '/' || prescriptions_total || '/' || herbs || '/' || decoctions || '/' || active_days || '/' || last_on || '/' || is_me,
-                     ',' order by user_no)
+  (select string_agg(concat_ws('/', coalesce(members::text, '<5'), coalesce(prescriptions::text, '<5'), coalesce(prescriptions_total::text, '<5'),
+                     coalesce(herbs::text, '<5'), coalesce(decoctions::text, '<5'), coalesce(active_days::text, '<5'), last_on, is_me), ',' order by user_no)
    from admin_patient_accounts('2026-02-01', '2026-02-28')),
-  '1/2/2/3/0/1/2026-02-20/true,1/2/3/2/0/2/2026-02-28/false', '病人账号列表');
+  '<5/<5/<5/<5/0/<5/2026-02-20/t,<5/<5/<5/<5/0/<5/2026-02-28/f', '病人账号列表：1–4 都是「<5」，0 照常');
 select assert_eq((select count(*) from admin_patient_accounts(null, null, :'T')), 0::bigint, '医生不在病人账号列表里');
-select assert_eq((select prescriptions from admin_patient_accounts(null, null, :'S')), 3, '详情页：只要一个账号');
+select assert_eq((select count(*) from admin_patient_accounts(null, null, :'S')), 1::bigint, '详情页：只要一个账号');
+select assert_eq((select is_me from admin_patient_accounts(null, null, :'S')), false, '详情页：是 stranger 不是自己');
+-- 病人账号的趋势也是病人的数字：每天 1–4 张是 null；医生的趋势照常
+select assert_eq(
+  (select string_agg(extract(day from bucket_start) || ':' || coalesce(prescriptions::text, '<5'), ',' order by bucket_start)
+   from admin_prescription_trend('day', '2026-02-18', '2026-02-21', :'H')),
+  '18:0,19:0,20:<5,21:0', '病人账号的趋势：1–4 显示「<5」，0 照常');
+select assert_eq(
+  (select string_agg(extract(day from bucket_start) || ':' || prescriptions, ',' order by bucket_start)
+   from admin_prescription_trend('day', '2026-02-16', '2026-02-17', :'T')),
+  '16:0,17:2', '医生的趋势不遮');
+-- 医生的病人数：2 月 3 日到 5 日看过 P1、P2、P3 → 3 位 → 「<5」；处方数是医生自己的数字，照常
+select assert_eq(
+  (select coalesce(patients_seen::text, '<5') || '/' || prescriptions from admin_doctors('2026-02-03', '2026-02-05', :'T')),
+  '<5/3', '医生看过 3 位病人显示「<5」，处方 3 张照常');
 
 -- ---- Bug 反馈 ----
 select assert_eq(

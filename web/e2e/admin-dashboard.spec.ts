@@ -12,6 +12,7 @@ import {
   adminGramsPerDose,
   adminMonthRange,
   adminRxDate,
+  adminSmall,
   expectedAdminDays,
   expectedAdminHerbs,
   expectedAdminPairs,
@@ -203,7 +204,7 @@ test(
     await expect(ap.getByTestId("admin-prescriptions-sub")).toHaveText(`${users.size} 个账号建过 · 一共 ${db.rx} 张`);
     await expect(ap.getByTestId("admin-users-value")).toHaveText(String(db.users));
     await expect(ap.getByTestId("admin-workspaces-sub")).toHaveText(`家庭 ${db.wh} · 诊所 ${db.wc}`);
-    await expect(ap.getByTestId("admin-patients-value")).toHaveText(String(db.patients));
+    await expect(ap.getByTestId("admin-patients-value")).toHaveText(adminSmall(db.patients));
 
     // 趋势：一个月按天；每一根柱子；纵轴最大刻度不小于最高的柱子
     const trend = ap.getByTestId("admin-trend");
@@ -228,8 +229,10 @@ test(
           ? rows.filter({ hasText: doctor.email })
           : rows.filter({ hasText: /^病人 #\d+/ }).filter(who === "admin" ? { hasText: "（你）" } : { hasNotText: "（你）" });
       await expect(row, who).toHaveCount(1);
-      await expect(row.getByTestId("admin-user-rx")).toHaveText(String(e.rx));
-      await expect(row.getByTestId("admin-user-herbs")).toHaveText(String(e.herbs));
+      // 病人账号的数字 1–4 显示「<5」，医生的照常
+      const show = (n: number) => (who === "doctor" ? String(n) : adminSmall(n));
+      await expect(row.getByTestId("admin-user-rx")).toHaveText(show(e.rx));
+      await expect(row.getByTestId("admin-user-herbs")).toHaveText(show(e.herbs));
       await expect(row.getByTestId("admin-user-last")).toHaveText(e.last);
     }
 
@@ -301,8 +304,8 @@ test("医生详情：从总览点进去；病人只有数量；库存消耗过�
   await expect(ap.getByTestId("admin-doctor-name")).toContainText(doctor.email);
   const e = expectedAdminUsers(month).get("doctor")!;
   const used = expectedDoctorConsumption(month);
-  await expect(ap.getByTestId("admin-doc-patients-value")).toHaveText("6");
-  await expect(ap.getByTestId("admin-doc-patients-sub")).toHaveText(`这段时间新建 0 · 看过 ${e.patients}`); // 病人档案是今天建的
+  await expect(ap.getByTestId("admin-doc-patients-value")).toHaveText(adminSmall(6));
+  await expect(ap.getByTestId("admin-doc-patients-sub")).toHaveText(`这段时间新建 ${adminSmall(0)} · 看过 ${adminSmall(e.patients)}`); // 病人档案是今天建的
   await expect(ap.getByTestId("admin-doc-rx-value")).toHaveText(String(e.rx));
   await expect(ap.getByTestId("admin-doc-decoctions-value")).toHaveText(String(ADMIN_DOCTOR_DECOCTIONS));
   await expect(ap.getByTestId("admin-doc-consumed-value")).toHaveText(g(used.total));
@@ -328,16 +331,31 @@ test("病人账号详情：只有数字，没有邮箱和药名", { tag: ["@PLAT
   await expect(ap).toHaveURL(new RegExp(`/admin/patients/${ids.admin}\\?`));
   const e = expectedAdminUsers(month).get("admin")!;
   await expect(ap.getByTestId("admin-patient-name")).toContainText(/病人 #\d+/);
-  await expect(ap.getByTestId("admin-pa-rx-value")).toHaveText(String(e.rx));
-  await expect(ap.getByTestId("admin-pa-herbs-value")).toHaveText(String(e.herbs));
-  await expect(ap.getByTestId("admin-pa-days-value")).toHaveText(String(e.days));
+  // 都是病人的数字：1–4 显示「<5」
+  await expect(ap.getByTestId("admin-pa-rx-value")).toHaveText(adminSmall(e.rx));
+  await expect(ap.getByTestId("admin-pa-herbs-value")).toHaveText(adminSmall(e.herbs));
+  await expect(ap.getByTestId("admin-pa-days-value")).toHaveText(adminSmall(e.days));
+  // 病人账号的趋势也一样：每天 1–4 张是「<5」
+  const bars = await ap
+    .getByTestId("admin-trend")
+    .locator("li[data-bucket]")
+    .evaluateAll((els) => els.map((x) => [x.getAttribute("data-bucket"), x.getAttribute("data-count")]));
+  expect(new Map(bars as [string, string][])).toEqual(new Map([...expectedAdminDays(month, "admin")].map(([d, n]) => [d, adminSmall(n)])));
+  expect(await ap.getByTestId("admin-trend").innerText()).toContain("1–4 张显示「<5」");
+  await ap.screenshot({ path: `${SHOTS}/管理员看板-病人详情.png`, fullPage: true });
   const text = await ap.locator("main").innerText();
   for (const s of [admin.email, ...new Set(ADMIN_RX.flatMap((r) => r.herbs))]) expect(text, s).not.toContain(s);
 
   // 病人列表：另一个病人账号也在，数字一致，没有邮箱
   await ap.goto(`/admin/patients${q}`);
   const h = expectedAdminUsers(month).get("home")!;
-  await expect(ap.getByTestId("admin-patient").filter({ hasText: `这段时间处方 ${h.rx} 张 · 药材 ${h.herbs} 种` })).toHaveCount(1);
+  // 自己的那行也是「<5」，数字上已经分不出来，所以按「（你）」排除
+  await expect(
+    ap
+      .getByTestId("admin-patient")
+      .filter({ hasNotText: "（你）" })
+      .filter({ hasText: `这段时间处方 ${adminSmall(h.rx)} 张 · 药材 ${adminSmall(h.herbs)} 种` }),
+  ).toHaveCount(1);
   expect(await ap.locator("main").innerText()).not.toContain(home.email);
   await ap.screenshot({ path: `${SHOTS}/管理员看板-病人.png`, fullPage: true });
 });

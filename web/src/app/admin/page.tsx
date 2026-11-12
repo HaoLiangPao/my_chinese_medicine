@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Loading } from "@/components/ui";
-import { MIN_SUBJECTS, parseRange, parseSort, parseTop, rangeQuery, userLabel, weight } from "@/lib/admin-stats";
+import { MIN_SUBJECTS, parseRange, parseSort, parseTop, rangeQuery, small, userLabel, weight } from "@/lib/admin-stats";
 import { requireAdmin, rows, torontoToday } from "./admin";
 import { RangePicker, Ranking, Tile, TopPicker, TrendChart, type TrendRow } from "./ui";
 
@@ -12,7 +12,7 @@ type Overview = {
   users_unset: number;
   workspaces_household: number;
   workspaces_clinic: number;
-  patients_total: number;
+  patients_total: number | null; // 1–4 是 null（显示「<5」）
   prescriptions_total: number;
   prescriptions_in_window: number;
   active_users_in_window: number;
@@ -22,8 +22,8 @@ type Activity = {
   user_no: number;
   email: string | null;
   account_kind: string | null;
-  prescriptions: number;
-  herbs: number;
+  prescriptions: number | null; // 病人账号的 1–4 是 null
+  herbs: number | null;
   last_on: string;
   is_me: boolean;
 };
@@ -78,7 +78,7 @@ async function Overview({ searchParams }: { searchParams: Promise<Record<string,
           testId="workspaces"
           sub={`家庭 ${o.workspaces_household} · 诊所 ${o.workspaces_clinic}`}
         />
-        <Tile label="病人档案" value={o.patients_total} testId="patients" sub="诊所里建的，只有数量" />
+        <Tile label="病人档案" value={small(o.patients_total)} testId="patients" sub="诊所里建的，只有数量" />
         <Tile
           label="处方（这段时间）"
           value={o.prescriptions_in_window}
@@ -117,11 +117,11 @@ async function Overview({ searchParams }: { searchParams: Promise<Record<string,
                   <span className="shrink-0 text-sm text-muted">
                     处方{" "}
                     <b className="text-ink" data-testid="admin-user-rx">
-                      {u.prescriptions}
+                      {small(u.prescriptions)}
                     </b>{" "}
                     张 · 药材{" "}
                     <b className="text-ink" data-testid="admin-user-herbs">
-                      {u.herbs}
+                      {small(u.herbs)}
                     </b>{" "}
                     种 · 最近 <span data-testid="admin-user-last">{u.last_on}</span>
                   </span>

@@ -502,5 +502,8 @@ export function expectedAdminDays(month: string, who?: AdminRx["who"]): Map<stri
   return out;
 }
 
+/** 病人的数字（病人账号的数字、医生的病人数、病人档案总数）：1–4 显示「<5」，0 和 5 以上照常（0015 §5.4） */
+export const adminSmall = (n: number) => (n >= 1 && n <= 4 ? "<5" : String(n));
+
 /** 纵轴的最大刻度要不小于最大的柱子 */
 export const maxOf = (m: Map<string, number>) => Math.max(...m.values());

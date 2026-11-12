@@ -13,6 +13,7 @@ import {
   rangeLabel,
   rangePresets,
   rangeQuery,
+  small,
   userLabel,
   weight,
 } from "./admin-stats";
@@ -139,5 +140,13 @@ describe("bugActions / bugErrors", () => {
     expect(bugErrors([null, { message: { a: 1 } }, { message: "ok", stack: ["x"] }])).toEqual([{ message: "ok", stack: null }]);
     expect(bugActions({ a: 1 })).toEqual([]);
     expect(bugErrors(null)).toEqual([]);
+  });
+});
+
+describe("small", () => {
+  it("null（1–4）显示「<5」，别的照常", () => {
+    expect(small(null)).toBe("<5");
+    expect(small(0)).toBe("0");
+    expect(small(5)).toBe("5");
   });
 });

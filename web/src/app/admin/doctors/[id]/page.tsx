@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Loading } from "@/components/ui";
-import { MIN_SUBJECTS, parseRange, parseTop, rangeLabel, rangeQuery, parseUuid, weight } from "@/lib/admin-stats";
+import { MIN_SUBJECTS, parseRange, parseTop, rangeLabel, rangeQuery, parseUuid, small, weight } from "@/lib/admin-stats";
 import { requireAdmin, rows, torontoToday } from "../../admin";
 import { RangePicker, Ranking, Tile, TopPicker, TrendChart, type TrendRow } from "../../ui";
 import type { Doctor } from "../data";
@@ -61,9 +61,9 @@ async function Detail({
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="admin-doctor-tiles">
         <Tile
           label="病人档案"
-          value={d.patients_total}
+          value={small(d.patients_total)}
           testId="doc-patients"
-          sub={`这段时间新建 ${d.patients_new} · 看过 ${d.patients_seen}`}
+          sub={`这段时间新建 ${small(d.patients_new)} · 看过 ${small(d.patients_seen)}`}
         />
         <Tile label="处方（这段时间）" value={d.prescriptions} testId="doc-rx" sub={`一共 ${d.prescriptions_total} 张`} />
         <Tile label="配药（这段时间）" value={d.decoctions} testId="doc-decoctions" sub="次" />
