@@ -5,3 +5,6 @@ supabase/.temp/
 
 # 生产数据库的本地备份（scripts/backup-prod.sh），有病人信息，不能提交
 backups/
+
+# 本地私有记录（测试账号、线上项目信息等），不能提交
+.env.private

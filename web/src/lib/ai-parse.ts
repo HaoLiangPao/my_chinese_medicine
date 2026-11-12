@@ -18,9 +18,10 @@ export const Parsed = z.object({
 });
 export type Parsed = z.infer<typeof Parsed>;
 
-export const DEFAULT_MODELS = ["nvidia/nemotron-3.5-super-vl:free", "deepseek/deepseek-v4.1-flash"];
+// 只用付费模型：药方照片上可能有病人姓名，免费模型的服务商可能记录输入或拿去训练（docs/design/0001 §4）
+export const DEFAULT_MODELS = ["anthropic/claude-haiku-5.5", "deepseek/deepseek-v4.1-flash"];
 
-/** OPENROUTER_MODELS="a,b" → ["a","b"]；没配置就用默认（免费模型在前，DeepSeek 兜底） */
+/** OPENROUTER_MODELS="a,b" → ["a","b"]；没配置就用默认（Claude Haiku 在前，DeepSeek 兜底） */
 export function modelList(env: string | undefined): string[] {
   const list = (env ?? "")
     .split(",")
@@ -89,7 +90,8 @@ export function buildRequest(model: string, mediaType: string, base64: string) {
       },
     ],
     response_format: { type: "json_schema", json_schema: { name: "prescription", strict: true, schema: jsonSchema } },
-    provider: { require_parameters: true },
+    // data_collection: "deny" → 不路由到会保存输入或拿去训练的服务商（不等于零留存，那是 zdr）；没有符合条件的服务商时请求失败，换下一个模型
+    provider: { require_parameters: true, data_collection: "deny" },
   };
 }
 

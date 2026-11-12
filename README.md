@@ -84,5 +84,5 @@ E2E 的完整场景：10 张常用药方、5 家药行不同价格的采购、9 
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase → Project Settings → API |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | 同上（publishable / anon key，不是 service_role） |
 | `OPENROUTER_API_KEY` | 拍照识别要用 | 设成 Sensitive |
-| `OPENROUTER_MODELS` | 可选 | 逗号分隔，按顺序尝试；默认 `nvidia/nemotron-3.5-super-vl:free,deepseek/deepseek-v4.1-flash`（免费模型优先，失败再用 DeepSeek）。免费模型的服务商可能记录输入，诊所正式用前建议只留付费模型，见 [0001 §4](docs/design/0001-mvp1.md#4-照片识别) |
+| `OPENROUTER_MODELS` | 可选 | 逗号分隔，按顺序尝试；默认 `anthropic/claude-haiku-5.5,deepseek/deepseek-v4.1-flash`（都是付费模型）。不要配免费模型：照片上可能有病人姓名，见 [0001 §4](docs/design/0001-mvp1.md#4-照片识别) |
 | `PARSE_DAILY_LIMIT` | 可选 | 每人每天识别次数上限 |

@@ -3,7 +3,7 @@
 下一个会话从这里接着做。先读 `CLAUDE.md`、本文件，再看 §4「待办」。
 
 - 线上：https://mychinesemedicine.vercel.app（Vercel 项目 `my_chinese_medicine`，Supabase 项目 ref `sktmqyahvhzyxpyyaojb`，区域 us-east-1）
-- 只有一个环境（生产）。测试账号：**病人 / 家庭 = hao-test@gmail.com**，**诊所 = tina-test@gmail.com**（GitHub Actions 的 `SMOKE_PATIENT_*` / `SMOKE_CLINIC_*`）
+- 只有一个环境（生产）。两个测试账号（病人 / 家庭一个、诊所一个）的邮箱从这里去掉了（git 历史里仍然能看到，Hao 知道并接受）：在 GitHub Actions 的 `SMOKE_PATIENT_*` / `SMOKE_CLINIC_*`，本地记在 `.env.private`（已 gitignore）
 - 上线方式：合并到 `main` → GitHub Actions：测试 → `supabase db push` → `vercel deploy --prod` → 线上冒烟测试
 
 ## 1. 做完的
