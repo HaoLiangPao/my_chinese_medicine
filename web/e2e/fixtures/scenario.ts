@@ -374,7 +374,10 @@ export type AdminRx = {
   herbs: string[];
 };
 
-/** 小样本门槛：至少 5 个不同病人（诊所按病人，家庭按整个药柜） */
+/**
+ * 小样本门槛：至少 5 个不同病人。诊所按病人数，家庭按药柜数（一家算一个），两组取较大的，不相加
+ * （同一个人可能既是诊所的病人、又在自己家录了同一张方）
+ */
 export const ADMIN_MIN_SUBJECTS = 5;
 
 export const ADMIN_RX: AdminRx[] = [
@@ -411,11 +414,15 @@ export function adminRxDate(month: string, rx: AdminRx): string {
 }
 
 const inMonth = (month: string) => ADMIN_RX.filter((r) => adminRxDate(month, r).startsWith(month));
-const subjectOf = (r: AdminRx) => (r.who === "doctor" ? `p${r.patient}` : r.who);
+const subjectOf = (r: AdminRx) => (r.who === "doctor" ? `clinic:${r.patient}` : `home:${r.who}`);
+const peopleCount = (subjects: Set<string>) => {
+  const clinic = [...subjects].filter((s) => s.startsWith("clinic:")).length;
+  return Math.max(clinic, subjects.size - clinic);
+};
 
 function ranked(groups: Map<string, { rx: number; subjects: Set<string> }>) {
   const shown = [...groups]
-    .filter(([, g]) => g.subjects.size >= ADMIN_MIN_SUBJECTS)
+    .filter(([, g]) => peopleCount(g.subjects) >= ADMIN_MIN_SUBJECTS)
     .map(([name, g]) => ({ name, count: g.rx }))
     .sort((a, b) => b.count - a.count);
   return { shown, other: groups.size - shown.length };

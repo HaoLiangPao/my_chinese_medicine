@@ -62,7 +62,8 @@ insert into fns values
   ('select * from admin_prescription_trend(''day'')'), ('select * from admin_prescription_trend(''week'', ''2026-02-01'')'),
   ('select * from admin_user_activity()'), ('select * from admin_user_activity(''2026-02-01'')'),
   ('select * from admin_top_herbs()'), ('select * from admin_top_herbs(''2026-02-01'', 50)'),
-  ('select * from admin_top_pairs()'), ('select * from admin_top_pairs(''2026-02-01'', 50)');
+  ('select * from admin_top_pairs()'), ('select * from admin_top_pairs(''2026-02-01'', 50)'),
+  ('select * from admin_prescription_trend(''day'', ''infinity'')');
 grant select on fns to authenticated, anon;
 
 do $$ declare f text; begin
@@ -158,8 +159,8 @@ select assert_eq(
   (select count(*) from (
      select row(o.*)::text t from admin_overview() o
      union all select row(x.*)::text from admin_user_activity() x
-     union all select row(x.*)::text from admin_top_herbs(null, 50) x
-     union all select row(x.*)::text from admin_top_pairs(null, 50) x
+     union all select row(x.*)::text from admin_top_herbs('2026-02-01', 50) x
+     union all select row(x.*)::text from admin_top_pairs('2026-02-01', 50) x
      union all select row(x.*)::text from admin_prescription_trend('week') x) a
    where t like '%秘密%' or t like '%416%' or t like '%测试诊所%' or t like '%我们家%'),
   0::bigint, '输出里没有病人和药柜的信息');
@@ -168,6 +169,11 @@ select assert_eq(
 select assert_raises($$select * from admin_top_herbs('2026-02-15')$$, '1 号', '不接受任意日期');
 select assert_raises($$select * from admin_overview('2026-02-02')$$, '1 号', '概况也只接受整月');
 select assert_raises($$select * from admin_prescription_trend('hour')$$, 'day 或 week', '没有按小时');
+select assert_raises($$select * from admin_prescription_trend('day', 'infinity')$$, '1 号', '不接受 infinity（否则会一直生成日期）');
+select assert_raises($$select * from admin_prescription_trend('week', '-infinity')$$, '1 号', '不接受 -infinity');
+-- 药材和组合只能按月看：全部时间和单月重叠，相减就能算出被门槛隐藏的那个月（0015 §5.3）
+select assert_raises($$select * from admin_top_herbs()$$, '只能按月看', '常用药材不给全部时间');
+select assert_raises($$select * from admin_top_pairs(null, 50)$$, '只能按月看', '常见组合不给全部时间');
 reset role;
 
 -- ---- 门槛正好 5 位病人：显示；4 位：合并（2026-03）----
@@ -177,6 +183,12 @@ select pg_temp.rx(:'wt', :'T', 5, '2026-03-02 12:00', '茯苓');
 select pg_temp.rx(:'wh', :'H', null, '2026-04-02 12:00', '黄芪') from generate_series(1, 6);
 -- ---- 诊所里没挂病人的处方按药柜算一位（2026-05）----
 select pg_temp.rx(:'wt', :'T', null, '2026-05-02 12:00', '黄芪') from generate_series(1, 6);
+-- ---- 诊所病人和家庭不相加（同一个人可能两边都有）：3 位病人 + 3 个家庭 = 只算 3（2026-06）----
+insert into auth.users values ('00000000-0000-0000-0000-0000000000e1', 'h1@example.com'), ('00000000-0000-0000-0000-0000000000e2', 'h2@example.com');
+insert into workspaces (id, name, kind) values ('00000000-0000-0000-0000-0000000000f1', '家1', 'household'), ('00000000-0000-0000-0000-0000000000f2', '家2', 'household');
+select pg_temp.rx(:'wt', :'T', g, '2026-06-02 12:00', '麦冬') from generate_series(1, 3) g;
+select pg_temp.rx(w::uuid, :'H', null, '2026-06-03 12:00', '麦冬')
+  from unnest(array[:'wh', '00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000f2']) w;
 :as_hao;
 select assert_eq((select string_agg(coalesce(herb_name, '其他') || ':' || coalesce(prescriptions, other_herbs), ',') from admin_top_herbs('2026-03-01')),
   '茯苓:5,其他:1', '正好 5 位显示，4 位合并');
@@ -187,6 +199,8 @@ select assert_eq((select string_agg(coalesce(herb_name, '其他') || ':' || coal
 select assert_eq((select string_agg(coalesce(herb_name, '其他') || ':' || coalesce(prescriptions, other_herbs), ',') from admin_top_herbs('2026-05-01')),
   '其他:1', '诊所没挂病人的处方按药柜算 1 位');
 select assert_eq((select count(*) from admin_top_pairs('2026-04-01')), 0::bigint, '没有组合时一行都没有');
+select assert_eq((select string_agg(coalesce(herb_name, '其他') || ':' || coalesce(prescriptions, other_herbs), ',') from admin_top_herbs('2026-06-01')),
+  '其他:1', '3 位诊所病人 + 3 个家庭不相加，不到 5 位');
 reset role;
 
 -- ---- 去掉管理员身份：马上拿不到 ----

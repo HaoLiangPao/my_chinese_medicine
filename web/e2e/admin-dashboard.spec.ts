@@ -191,11 +191,15 @@ test("管理员：这个月的数字和独立算的一致；没有病人信息",
   await ap.setViewportSize({ width: 1280, height: 720 });
 });
 
-test("管理员：全部时间也能打开；医生和病人账号仍然 404", { tag: ["@PLAT-4"] }, async () => {
+test("管理员：全部时间也能打开，但不给药材和组合；医生和病人账号仍然 404", { tag: ["@PLAT-4"] }, async () => {
   const res = await ap.goto("/admin?month=bad");
   expect(res?.status()).toBe(200);
   await expect(ap.getByTestId("admin-months").getByRole("link", { name: "全部" })).toHaveAttribute("aria-current", "page");
   await expect(ap.getByTestId("admin-trend-day").locator("li[data-bucket]")).toHaveCount(30);
   await expect(ap.getByTestId("admin-trend-week").locator("li[data-bucket]")).toHaveCount(12);
+  // 药材和组合只能按月看：全部时间不显示（和某个月相减能算出被隐藏的数）
+  await expect(ap.getByTestId("admin-rank-hint")).toContainText("只能按月看");
+  await expect(ap.getByTestId("admin-herbs")).toHaveCount(0);
+  await expect(ap.getByTestId("admin-pairs")).toHaveCount(0);
   for (const p of [dp, hp]) expect((await p.goto("/admin"))?.status()).toBe(404);
 });

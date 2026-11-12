@@ -56,8 +56,9 @@ async function Dashboard({ searchParams }: { searchParams: Promise<Record<string
     supabase.rpc("admin_prescription_trend", { ...args, p_bucket: "day" }),
     supabase.rpc("admin_prescription_trend", { ...args, p_bucket: "week" }),
     supabase.rpc("admin_user_activity", args),
-    supabase.rpc("admin_top_herbs", { ...args, p_limit: 20 }),
-    supabase.rpc("admin_top_pairs", { ...args, p_limit: 20 }),
+    // 药材和组合只能按月看（0015 §5.3）
+    pMonth ? supabase.rpc("admin_top_herbs", { ...args, p_limit: 20 }) : { data: [], error: null },
+    pMonth ? supabase.rpc("admin_top_pairs", { ...args, p_limit: 20 }) : { data: [], error: null },
   ]);
   for (const r of [overview, days, weeks, users, herbs, pairs]) if (r.error) throw new Error(r.error.message);
   const o = (overview.data as Overview[])[0];
@@ -148,20 +149,26 @@ async function Dashboard({ searchParams }: { searchParams: Promise<Record<string
         )}
       </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Ranking
-          title="常用药材"
-          testId="admin-herbs"
-          unit="味"
-          rows={herbRows.map((h) => ({ name: h.herb_name, count: h.prescriptions, other: h.other_herbs }))}
-        />
-        <Ranking
-          title="常见组合（同一张处方里）"
-          testId="admin-pairs"
-          unit="对"
-          rows={pairRows.map((p) => ({ name: p.herb_a && `${p.herb_a} + ${p.herb_b}`, count: p.prescriptions, other: p.other_pairs }))}
-        />
-      </div>
+      {pMonth ? (
+        <div className="grid gap-6 md:grid-cols-2">
+          <Ranking
+            title="常用药材"
+            testId="admin-herbs"
+            unit="味"
+            rows={herbRows.map((h) => ({ name: h.herb_name, count: h.prescriptions, other: h.other_herbs }))}
+          />
+          <Ranking
+            title="常见组合（同一张处方里）"
+            testId="admin-pairs"
+            unit="对"
+            rows={pairRows.map((p) => ({ name: p.herb_a && `${p.herb_a} + ${p.herb_b}`, count: p.prescriptions, other: p.other_pairs }))}
+          />
+        </div>
+      ) : (
+        <p className="card text-sm text-muted" data-testid="admin-rank-hint">
+          常用药材和常见组合只能按月看：上面选一个月份。（全部时间和某个月的数字相减，能算出被隐藏的那部分，所以不同时给。）
+        </p>
+      )}
     </div>
   );
 }

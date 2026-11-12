@@ -44,7 +44,7 @@ $$;
 -- 小样本门槛：一味药 / 一对药至少出现在这么多个不同病人的处方里才单独显示（0015 §5.2）
 create or replace function public.admin_min_subjects()
 returns integer
-language sql immutable
+language sql immutable set search_path = public, pg_temp
 as $$ select 5 $$;
 
 -- 统计的时间段：null = 全部；否则只能是某个月的 1 号（不接受任意起止时间，0015 §5.3）。按多伦多时间
@@ -56,7 +56,7 @@ begin
     from_ts := '-infinity'; to_ts := 'infinity';
     return;
   end if;
-  if p_month <> date_trunc('month', p_month)::date then
+  if not isfinite(p_month) or p_month <> date_trunc('month', p_month)::date then
     raise exception '月份要写成这个月的 1 号' using errcode = '22023';
   end if;
   from_ts := p_month::timestamp at time zone 'America/Toronto';
@@ -148,7 +148,7 @@ begin
   perform public.admin_require();
   w := public.admin_window(p_month);
   return query
-  with numbered as (  -- 账号编号：按第一次加入药柜的时间排（新账号排在后面，老账号的编号不变）
+  with numbered as (  -- 账号编号：按第一次加入药柜的时间排（新账号一般排在后面；有人退出药柜等情况下别人的编号可能会变）
     select u.id, row_number() over (order by min(m.created_at) nulls last, u.id)::int as n
     from auth.users u left join public.workspace_members m on m.user_id = u.id
     group by u.id
@@ -176,14 +176,16 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 常用药材 / 常见组合。病人单位 = 诊所处方的病人，没有病人的按药柜算（0015 §5.1）。
+-- 常用药材 / 常见组合，只能按月看（0015 §5.3：全部时间和单月重叠，相减能算出被隐藏的数）。
+-- 病人数 = 「诊所里的病人」和「没挂病人的药柜（家庭）」两组里较大的那个，不相加：
+-- 同一个人可能既是诊所的病人、又在自己家里录了同一张方（0015 §5.1）。
 -- 不到门槛的不单独列出，合成最后一行「其他」：名字和处方数为 null，other_* = 合进去了几个
 -- ---------------------------------------------------------------------------
 create or replace function public.admin_herb_counts(p_month date)
 returns table (herb_id uuid, n_rx integer, n_subj integer)
 language sql stable security definer set search_path = public, pg_temp
 as $$
-  select i.herb_id, count(distinct p.id)::int, count(distinct coalesce(p.patient_id, p.workspace_id))::int
+  select i.herb_id, count(distinct p.id)::int, greatest(count(distinct p.patient_id), count(distinct case when p.patient_id is null then p.workspace_id end))::int
   from public.prescriptions p
   join public.prescription_items i on i.prescription_id = p.id
   cross join public.admin_window(p_month) w
@@ -200,6 +202,9 @@ declare
   lim integer := greatest(1, least(coalesce(p_limit, 20), 50));
 begin
   perform public.admin_require();
+  if p_month is null then
+    raise exception '药材统计只能按月看' using errcode = '22023';
+  end if;
   return query
   select h.name_zh, c.n_rx, null::int
   from public.admin_herb_counts(p_month) c join public.herbs h on h.id = c.herb_id
@@ -216,7 +221,7 @@ create or replace function public.admin_pair_counts(p_month date)
 returns table (herb_a text, herb_b text, n_rx integer, n_subj integer)
 language sql stable security definer set search_path = public, pg_temp
 as $$
-  select ha.name_zh, hb.name_zh, count(distinct p.id)::int, count(distinct coalesce(p.patient_id, p.workspace_id))::int
+  select ha.name_zh, hb.name_zh, count(distinct p.id)::int, greatest(count(distinct p.patient_id), count(distinct case when p.patient_id is null then p.workspace_id end))::int
   from public.prescriptions p
   join public.prescription_items ia on ia.prescription_id = p.id
   join public.prescription_items ib on ib.prescription_id = p.id
@@ -237,6 +242,9 @@ declare
   lim integer := greatest(1, least(coalesce(p_limit, 20), 50));
 begin
   perform public.admin_require();
+  if p_month is null then
+    raise exception '药材统计只能按月看' using errcode = '22023';
+  end if;
   return query
   select c.herb_a, c.herb_b, c.n_rx, null::int
   from public.admin_pair_counts(p_month) c
