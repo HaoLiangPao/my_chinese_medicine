@@ -89,7 +89,7 @@ test("开方：……", { tag: ["@CLN-3"] }, async ({ page }) => { … });
 | 编号 | 功能 | 页面 | E2E | 其他测试 | 冒烟 |
 |---|---|---|---|---|---|
 | CLN-1 | 创建诊所，导航切换成诊所模式 | 总览 | ✅ clinic 1 | SQL `clinic_test` | ✅ clinic |
-| CLN-2 | 病人：新建（名字或电话至少一个）、按名字或电话后几位搜、电话去重（只比数字） | `/clinic/prescribe`、`/clinic/patients` | ✅ clinic 3、6 | SQL `clinic_test` | |
+| CLN-2 | 病人：新建（名字或电话至少一个）、按名字或电话后几位搜、电话去重（只比数字） | `/clinic/prescribe`、`/clinic/patients` | ✅ clinic 3、6、9 | SQL `clinic_test` | |
 | CLN-3 | 选药：首字母按钮、炮制品归在原药材下、汉字/全拼/首字母搜索、新增药材（只收汉字）；克数、脚注、备注；改、删、排序 | `/clinic/prescribe` | ✅ clinic 3、8 | 单元 `herb-index`、`rx-lines` | ✅ clinic |
 | CLN-4 | 实时成本（只有医生看得到） | 同上 | ✅ clinic 3 | 单元 `pricing` | |
 | CLN-5 | 保存 → 微信消息：全文和独立拼出来的一致、不含价格、一键复制 | `/prescriptions/[id]` | ✅ clinic 4 | 单元 `rx-message.test.ts` | ✅ clinic |

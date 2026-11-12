@@ -317,7 +317,9 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
   const [form, setForm] = useState({ name: "", phone: "", notes: "" });
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<Patient | null>(null);
-  const [busy, startTransition] = useTransition();
+  // 搜索和保存各用各的 pending：共用的话，后台搜索一开始「保存病人」就被 disabled，这时的点击会被浏览器吞掉
+  const [searching, startSearch] = useTransition();
+  const [saving, startSaving] = useTransition();
   // 选定病人时把搜索/新建的状态都清掉，下次「换一个」从搜索开始
   const select = (p: Patient) => {
     setCreating(false);
@@ -329,10 +331,10 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
   };
 
   useEffect(() => {
-    if (patient) return;
-    const t = setTimeout(() => startTransition(async () => setResults(await searchPatients(q))), 200);
+    if (patient || creating) return;
+    const t = setTimeout(() => startSearch(async () => setResults(await searchPatients(q))), 200);
     return () => clearTimeout(t);
-  }, [q, patient]);
+  }, [q, patient, creating]);
 
   if (patient)
     return (
@@ -361,7 +363,7 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
             className="input"
           />
           <ul className="divide-y divide-line rounded-lg border border-line" data-testid="patient-results">
-            {results.length === 0 && <li className="p-3 text-sm text-muted">{busy ? "搜索中…" : q ? "没找到" : "还没有病人"}</li>}
+            {results.length === 0 && <li className="p-3 text-sm text-muted">{searching ? "搜索中…" : q ? "没找到" : "还没有病人"}</li>}
             {results.map((p) => (
               <li key={p.id}>
                 <button
@@ -428,10 +430,10 @@ function PatientPicker({ patient, onChange }: { patient: Patient | null; onChang
           <button
             data-bug-label="保存病人"
             type="button"
-            disabled={busy}
+            disabled={saving}
             className="btn-primary"
             onClick={() =>
-              startTransition(async () => {
+              startSaving(async () => {
                 const r = await createPatient(form);
                 setError(r.error ?? null);
                 setExisting(r.existing ?? null);

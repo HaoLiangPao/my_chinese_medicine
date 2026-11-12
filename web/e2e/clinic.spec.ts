@@ -327,3 +327,36 @@ test("8. 手机上：开方页、病人页、处方页不横向溢出，首字�
   await expect(m.getByTestId("letter-panel").getByTestId("herb-黄芪")).toBeVisible();
   await m.close();
 });
+
+test("9. 新病人：搜病人的请求还没回来时点「保存病人」，也要保存成功", { tag: ["@CLN-2"] }, async () => {
+  // 回归：搜病人和保存病人共用一个 pending 状态，搜索一开始「保存病人」就变成 disabled，这时的点击被浏览器吞掉
+  // （CI run 42378664941、43245315397）。这里把搜索请求扣住，让点击一定落在搜索进行中。
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
+  let searching!: () => void;
+  const searchSent = new Promise<void>((r) => (searching = r));
+  await page.route("**/clinic/prescribe", async (route) => {
+    const req = route.request();
+    // searchPatients(q) 的请求体是 ["q"]；createPatient(form) 是 [{...}]
+    if (req.method() === "POST" && req.headers()["next-action"] && /^\["/.test(req.postData() ?? "")) {
+      searching();
+      await held;
+    }
+    await route.fallback();
+  });
+  try {
+    await page.goto("/clinic/prescribe");
+    await searchSent; // 打开页面 200ms 后会搜一次空字符串
+    await page.getByRole("button", { name: "＋ 新病人" }).click();
+    await page.getByLabel("病人姓名").fill("快手王");
+    await page.getByLabel("病人电话").fill("(416) 555-0199");
+    // 用户不会等按钮变成可点，直接点；用鼠标点坐标，不让 Playwright 先等 enabled
+    const box = (await page.getByRole("button", { name: "保存病人" }).boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    release(); // 放行搜索；保存排在它后面（Next 的 server action 是串行的）
+    await expect(page.getByTestId("selected-patient")).toContainText("快手王");
+  } finally {
+    release();
+    await page.unrouteAll();
+  }
+});
