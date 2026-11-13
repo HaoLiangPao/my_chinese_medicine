@@ -39,3 +39,14 @@ export function HerbPhotoFigure({ photo, fromBase, baseName }: { photo: HerbPhot
     </figure>
   );
 }
+
+/** 本罐照片：用户自己拍的，私有（签名链接一小时有效），只有本药柜的人看得到 */
+export function JarPhotoFigure({ url }: { url: string }) {
+  return (
+    <figure className="overflow-hidden rounded-lg border border-line bg-paper" data-testid="jar-photo">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="本罐照片" className="mx-auto max-h-80 w-auto max-w-full object-contain" />
+      <figcaption className="border-t border-line px-3 py-2 text-xs text-muted">本罐照片 · 只有本药柜的人看得到</figcaption>
+    </figure>
+  );
+}
