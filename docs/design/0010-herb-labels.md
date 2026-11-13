@@ -1,6 +1,6 @@
 # 0010 · 药材资料、药材标签、批次标签
 
-- 状态：药材资料 + 核对页（LBL-1、LBL-7，§8）、批次 + 批次标签（LBL-2、LBL-3，§9）已实现；药材标签、公开页、照片还没做。药材资料草稿已写（`supabase/data/herb-monographs.json`，AI 整理，**全部未核对**），等和李医生逐味审核
+- 状态：药材资料 + 核对页（LBL-1、LBL-7，§8）、批次 + 批次标签（LBL-2、LBL-3，§9）已实现；照片（LBL-6，§3.5）在做；药材标签、公开页还没做。药材资料草稿已写（`supabase/data/herb-monographs.json`，AI 整理，**全部未核对**），等和李医生逐味审核
 - 日期：2026-11-07
 - 作者：Hao、Claude
 - 设计稿：https://claude.ai/artifact/67XnFF14imWQcRtH8wBjhP（药材标签 4×6 英寸、批次标签 4×2 英寸、麦冬详情页）
@@ -134,17 +134,62 @@ alter table public.purchase_items
 
 
 
-### 3.5 照片（最后一个 PR）
+### 3.5 照片（LBL-6）
+
+> 2026-11-12：Hao 把照片提前（LBL-4 药材标签、LBL-5 公开页仍然不做）。下面是实现时的做法，和 2026-11-07 的原稿不同的地方写了理由。
 
 两种照片：
 
 | | 默认照片 | 本罐照片 |
 |---|---|---|
-| 谁提供 | 我们找的，全站一份 | 用户自己拍、上传 |
-| 存在哪里 | 公开的 storage bucket；`herb_monographs` 加 `photo_path`、`photo_credit`（作者）、`photo_license`、`photo_source_url` | 私有 storage（按药柜隔离），`pantry_settings` 加 `photo_path` |
-| 在哪里显示 | 公开介绍页；药材标签和详情页在没有本罐照片时用它 | 只在自己药柜的详情页和自己打印的标签上 |
+| 谁提供 | 我们找的，全站一份，Hao 逐张核对 | 用户自己拍、上传 |
+| 图片文件 | 仓库里的 `web/public/herb-photos/<拼音>.webp`（随网站部署） | 私有 storage（按药柜隔离），`pantry_settings` 加 `photo_path`（PR 2） |
+| 元数据 | 新表 `herb_photos`：文件名、类型（饮片 / 药材 / 植物）、作者、授权、授权链接、来源网址、核对人和日期 | — |
+| 在哪里显示 | 药材详情页（没有本罐照片时）；以后的公开介绍页和药材标签 | 只在自己药柜的详情页和自己打印的标签上 |
 
-默认照片**必须能合法使用**：只用公有领域或 CC BY / CC BY-SA 授权的图（比如 Wikimedia Commons），记下作者、授权和来源网址。公开页在照片下面写出处；标签上空间小，写「图：作者 / 授权」一行小字。没有合适授权的照片就先不放，用文字占位。
+**为什么图片放仓库、不放公开的 storage bucket**（原稿写的是 bucket）：
+
+- 不依赖别人的网站（不盗链 Wikimedia），也不依赖线上的 storage：图片和代码一起版本化、一起部署，换图能在 git 里看到
+- 往 storage 上传要线上的 service key，要么放进 CI，要么在本机用；放仓库不需要
+- 总大小可控：每张长边 800px、WebP、控制在 150KB 内，100 多张一共几 MB
+- 代价：换图要发一个 PR（反正换图也要核对和记授权，本来就要走流程）
+
+**为什么元数据是新表 `herb_photos`、不加在 `herb_monographs` 上**（原稿是加列）：
+
+- 用户自己加的药材没有 `herb_monographs` 这一行，以后要给它们配图（或者资料没导入的药）也能用
+- 两件事的审核人不同：资料由李医生审核，照片由 Hao 核对；`herb_monographs` 的列权限（`anon` 只开放部分列）和审核函数都不用动
+- 只放核对过的照片：表里每行都有 `reviewed_by`、`reviewed_at`（不能空），没核对的不进数据库
+
+```sql
+create table public.herb_photos (
+  herb_id     uuid primary key references public.herbs(id) on delete cascade,
+  file        text not null,   -- web/public/herb-photos/ 下的文件名，如 dang-shen.webp
+  kind        text not null,   -- 饮片 / 药材 / 植物
+  author      text,            -- 作者（公有领域可以空）
+  license     text not null,   -- 如 CC BY-SA 4.0
+  license_url text,
+  source_url  text not null,   -- Wikimedia Commons 的文件页
+  width int, height int,
+  reviewed_by text not null, reviewed_at date not null
+);
+```
+
+- RLS：谁都能读（包括 `anon`，以后公开页用），谁都不能写；只由 migration 写入
+- 炮制品没有自己的照片时用原药材的，图下注明「图为原药材某某」（和资料的回退一样）
+- 按药名对应：线上和本地的 `herbs.id` 不一样，生成的 migration 用 `name_zh` 找药
+
+**来源和授权**：默认照片**必须能合法使用**。只用 Wikimedia Commons，用它的 API（`imageinfo` + `extmetadata`）逐张读授权代码，只留公有领域、CC0、CC BY、CC BY-SA；不按页面文字判断，不用百度、电商、个人博客这类没有明确授权的图。要署名的图没有作者就不用。CC BY-SA 的图原样展示（只缩放、转成 WebP），在照片下面写「图：作者 · 授权 · Wikimedia Commons」（链接到来源页和授权），另有一个汇总页 `/herbs/photo-credits` 列出全部照片的出处和「已缩放、转为 WebP」。没有合适授权的先不放，**不占位**。
+
+**选什么样的图**：优先饮片（药房里卖的切片 / 干品），其次药材原形，最后才是植物。Commons 上饮片的图不多，很多药只能找到植物照片；图下写明是「饮片」还是「原植物」，免得把植物照片当成药材的样子。
+
+**流程**（`scripts/fetch-herb-photos.mjs`，可以重跑）：
+
+1. `search`：每味药按中文名（简、繁）、药材拉丁名（新旧两种写法）、拼音、基原植物学名在 Commons 上找候选，核对授权，下载到 `.local/herb-photos/raw/`（不可信数据，单独目录），用 sharp 确认确实是 JPEG / PNG / WebP，**重新编码**成 WebP（不带 EXIF），长边 800px、每张 150KB 内；另生成 96px 的小图给列表用。生成一个本地核对页（联系表：药名、候选图、作者、授权、来源链接）
+2. **Hao 逐张核对**（药材认错了会误导人，比如麦冬和山麦冬）。核对页上选好以后生成一行回复：`麦冬=2 黄芪=1 当归=none`
+3. `choose … --by Hao`：把选中的图放进 `web/public/herb-photos/`，写进 `supabase/data/herb-photos.json`（`reviewed: true`，记作者、授权、来源）
+4. `migration <文件>`：把已核对的照片生成一个新的 migration（已有的覆盖：换图时再生成一个）
+
+**本罐照片**（PR 2）的细节在实现时补在这里。
 
 ## 4. 页面
 
