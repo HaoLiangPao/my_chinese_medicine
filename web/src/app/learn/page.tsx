@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { DailyQuiz } from "./quiz/daily-quiz";
 
 export const metadata: Metadata = { title: "学习路径 · 药柜学堂" };
 
@@ -47,6 +48,7 @@ export default function LearnPage() {
         <h1 className="font-serif text-2xl font-bold">药柜学堂</h1>
         <p className="mt-1 text-sm text-muted">从零开始的中医入门路径。这部分不用登录，可以直接分享给朋友。</p>
       </div>
+      <DailyQuiz />
       <ol className="space-y-4" data-testid="learn-path">
         {STAGES.map((s) => (
           <li key={s.n} className="card">

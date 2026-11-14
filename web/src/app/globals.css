@@ -77,3 +77,18 @@ body {
 body:has([data-admin-root]) [data-app-header] {
   display: none;
 }
+
+/* 学堂答对时的小动效（docs/design/0020 §6）；系统设置了减少动态效果时不播（motion-safe:） */
+@keyframes quiz-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
