@@ -132,6 +132,8 @@ alter table public.purchase_items
 
 线上部署只执行 migration、**不跑 seed.sql**（线上的目录是上线时手动导入的），所以目录的改动也写在 migration 里：`scripts/gen-herb-monographs.mjs` 生成的 migration 先改名，再补齐 seed.sql 里的全部药材和别名（已有的不动），最后导入资料。改名只在「沙参」存在、「南沙参」不存在时做；用户自己加过同名药（比如「铁皮石斛」）的，不会重复建，资料挂在用户加的那味上（升级测试覆盖）。
 
+> 2026-11-13：目录从 119 味扩到 507 味（430 味原药材 + 77 个炮制品），名单的来源和取舍规则、新药暂时没有资料草稿的做法见 `docs/design/0017-herb-catalog-expansion.md`。
+
 
 
 ### 3.5 照片（最后一个 PR）

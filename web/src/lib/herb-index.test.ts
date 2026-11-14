@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHerbIndex, canAddHerb, initialsOf, letterOf, searchHerbs, type HerbEntry, type HerbRow } from "./herb-index";
+import { aliasHit, buildHerbIndex, canAddHerb, initialsOf, letterOf, searchHerbs, type HerbEntry, type HerbRow } from "./herb-index";
 
 const rows: HerbRow[] = [
   { id: "gc", name_zh: "甘草", pinyin: "gan cao", base_herb_id: null },
@@ -86,6 +86,47 @@ describe("searchHerbs", () => {
   });
 });
 
+describe("别名（2026-11-13 目录扩到 400 多味，别名 200 多个）", () => {
+  const idx = buildHerbIndex(rows, fallback, { 北芪: "黄芪", 炙芪: "炙黄芪", 川连: "黄连", 国老: "甘草", 不在目录: "没有这味药" });
+  const names = (q: string) => searchHerbs(idx, q).map((e) => e.name);
+
+  it("别名挂在原药材那一条上；指向炮制品的也挂在原药材上，记着指的是哪一个", () => {
+    const hq = idx.entries.find((e) => e.name === "黄芪")!;
+    expect(hq.aliases).toEqual([
+      { alias: "北芪", id: "hq", name: "黄芪" },
+      { alias: "炙芪", id: "zhq", name: "炙黄芪" },
+    ]);
+    expect(idx.entries.flatMap((e) => e.aliases.map((a) => a.alias))).not.toContain("不在目录");
+  });
+  it("别名完全一样排在药名包含前面、拼音前面", () => {
+    expect(names("北芪")).toEqual(["黄芪"]);
+    expect(names("川连")).toEqual(["黄连"]);
+    expect(names("国")).toEqual(["甘草"]); // 别名包含
+  });
+  it("药名完全一样仍然排最前：搜「黄连」不会因为别名「川连」排序变化", () => {
+    expect(names("黄连")[0]).toBe("黄连");
+  });
+  it("aliasHit：通过别名搜到的才返回别名；药名本身就含搜索词时返回 null", () => {
+    const hq = idx.entries.find((e) => e.name === "黄芪")!;
+    expect(aliasHit(hq, " 炙芪 ")).toEqual({ alias: "炙芪", id: "zhq", name: "炙黄芪" });
+    expect(aliasHit(hq, "芪")).toBeNull(); // 「黄芪」本身含「芪」
+    expect(aliasHit(hq, "北")).toEqual({ alias: "北芪", id: "hq", name: "黄芪" });
+    expect(aliasHit(hq, "")).toBeNull();
+  });
+  it("aliasHit：别名完全一样时，即使某个炮制品的名字含它也算（炒枳壳 → 麸炒枳壳）", () => {
+    const zk = buildHerbIndex(
+      [
+        { id: "zk", name_zh: "枳壳", pinyin: "zhi ke", base_herb_id: null },
+        { id: "fczk", name_zh: "麸炒枳壳", pinyin: "fu chao zhi ke", base_herb_id: "zk" },
+      ],
+      undefined,
+      { 炒枳壳: "麸炒枳壳" },
+    ).entries[0];
+    expect(aliasHit(zk, "炒枳壳")).toEqual({ alias: "炒枳壳", id: "fczk", name: "麸炒枳壳" });
+    expect(aliasHit(zk, "枳壳")).toBeNull(); // 药名本身
+  });
+});
+
 describe("canAddHerb", () => {
   const banxia: HerbEntry = {
     id: "1",
@@ -96,6 +137,7 @@ describe("canAddHerb", () => {
       { id: "2", name: "法半夏" },
       { id: "3", name: "姜半夏" },
     ],
+    aliases: [{ alias: "生半夏", id: "1", name: "半夏" }],
   };
   it("拼音 / 首字母 / 夹字母的搜索不提示新增（线上：搜 bx 提示「新增『bx』」）", () => {
     expect(canAddHerb("bx", [banxia])).toBe(false);
@@ -105,6 +147,9 @@ describe("canAddHerb", () => {
   it("已有同名药材或同名炮制品 → 不提示（否则会建出重复的「法半夏」）", () => {
     expect(canAddHerb("半夏", [banxia])).toBe(false);
     expect(canAddHerb(" 法半夏 ", [banxia])).toBe(false);
+  });
+  it("搜的正好是别名 → 不提示（「＋ 新增『生半夏』」点了其实选的是半夏）", () => {
+    expect(canAddHerb("生半夏", [banxia])).toBe(false);
   });
   it("汉字药名、结果里没有 → 提示", () => {
     expect(canAddHerb("鸡血藤", [])).toBe(true);

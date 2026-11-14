@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { SPECIAL_PREPS, money } from "@/lib/format";
-import { canAddHerb, searchHerbs, type HerbChoice, type HerbEntry, type HerbIndex } from "@/lib/herb-index";
+import { aliasHit, canAddHerb, searchHerbs, type HerbChoice, type HerbEntry, type HerbIndex } from "@/lib/herb-index";
 import { COMMON_GRAMS, lineCosts, moveLine, removeLine, upsertLine, validateLines, type RxLine } from "@/lib/rx-lines";
 import { summarizeCost } from "@/lib/pricing";
 import { patientLabel } from "@/lib/rx-message";
@@ -526,20 +526,25 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
             {q.trim() ? `搜「${q.trim()}」` : `${letter} 开头`}：{list.length} 味
           </div>
           <div className="flex flex-wrap gap-2">
-            {list.map((e) => (
-              <button
-                data-bug-label="选药材"
-                key={e.id}
-                type="button"
-                onClick={() => choose(e)}
-                data-testid={`herb-${e.name}`}
-                className={`rounded-full border px-3 py-1 text-sm ${variantsOf?.id === e.id ? "border-cinnabar text-cinnabar" : used(e) ? "border-jade text-jade" : "border-line hover:border-cinnabar"}`}
-                title={e.pinyin}
-              >
-                {e.name}
-                {e.variants.length > 0 && <span className="ml-1 text-xs text-muted">+{e.variants.length}</span>}
-              </button>
-            ))}
+            {list.map((e) => {
+              // 通过别名搜到的显示「元胡 → 延胡索」；别名指的是炮制品（「炙麻黄」→ 蜜麻黄）就直接选那个炮制品
+              const via = q.trim() ? aliasHit(e, q) : null;
+              const variant = via?.alias === q.trim() ? e.variants.find((v) => v.id === via.id) : undefined;
+              return (
+                <button
+                  data-bug-label="选药材"
+                  key={e.id}
+                  type="button"
+                  onClick={() => (variant ? pick({ entry: e, choice: variant }) : choose(e))}
+                  data-testid={`herb-${e.name}`}
+                  className={`rounded-full border px-3 py-1 text-sm ${variantsOf?.id === e.id ? "border-cinnabar text-cinnabar" : used(e) ? "border-jade text-jade" : "border-line hover:border-cinnabar"}`}
+                  title={e.pinyin}
+                >
+                  {via ? `${via.alias} → ${via.name}` : e.name}
+                  {!variant && e.variants.length > 0 && <span className="ml-1 text-xs text-muted">+{e.variants.length}</span>}
+                </button>
+              );
+            })}
             {canAddHerb(q, list) && (
               <button
                 data-bug-label="＋ 新增药材"
@@ -550,7 +555,7 @@ function HerbPicker({ index, onPick, chosenIds }: { index: HerbIndex; onPick: (p
                     const r = await addHerb(q);
                     setAddErr(r.error ?? null);
                     if (r.id) {
-                      const e: HerbEntry = { id: r.id, name: r.name!, pinyin: "", initials: "", variants: [] };
+                      const e: HerbEntry = { id: r.id, name: r.name!, pinyin: "", initials: "", variants: [], aliases: [] };
                       setExtra((xs) => [...xs, e]);
                       choose(e);
                     }

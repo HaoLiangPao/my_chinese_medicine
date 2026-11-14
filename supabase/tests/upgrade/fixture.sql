@@ -84,6 +84,10 @@ insert into prescription_items (prescription_id, herb_id, grams_per_dose) values
 select record_decoction(:'rx4', 7);
 -- 医生自己在开方时新增过一味目录里还没有的药（以后目录也加了同名的）
 insert into herbs (name_zh) values ('铁皮石斛') on conflict (name_zh) do nothing; -- main 上已经有了就跳过（fixture 总是跑在最新的 main 上）
+-- 2026-11-13 扩目录（docs/design/0017）之前，医生自己加过「延胡索」并开进了处方；以后目录也加了同名的药和它的炮制品「醋延胡索」、别名「元胡」
+insert into herbs (name_zh) values ('延胡索') on conflict (name_zh) do nothing;
+insert into prescription_items (prescription_id, herb_id, grams_per_dose, sort_order)
+select :'rx4', id, 10, 3 from herbs where name_zh = '延胡索';
 
 -- ---- u4 两种都有数据 ----
 :as_u4;
@@ -95,9 +99,21 @@ insert into patients (workspace_id, name) values (:'w4', '王五') returning id 
 insert into prescriptions (workspace_id, title, dose_count, patient_id, source) values (:'w4', '两种都有：诊所的', 2, :'pt3', 'clinic');
 insert into inventory_txns (workspace_id, herb_id, delta_grams, kind) values (:'w4', :'huangqi', 300, 'adjust');
 
+-- 家庭用户录方时写了「云苓」（目录里还没有这个别名，就新建成了一味药）；扩目录以后「云苓」是茯苓的别名
+:as_u4;
+insert into herbs (name_zh) values ('云苓'), ('红参') on conflict (name_zh) do nothing; -- 红参：以后目录里是人参的炮制品
+insert into prescriptions (workspace_id, title, dose_count) values (:'w4home', '写了云苓的方', 2) returning id as rx6 \gset
+insert into prescription_items (prescription_id, herb_id, grams_per_dose, raw_name)
+select :'rx6', id, 12, name_zh from herbs where name_zh in ('云苓', '红参');
+
 -- ---- u5 只登录过一次 ----
 :as_u5;
 select ensure_default_workspace();
 
 reset role;
 insert into parse_usage (user_id, day, count) values (:'u1', '2026-10-30', 3);
+-- 管理员在 SQL Editor 里手工加过的别名（用户不能加别名）：一个和以后的新药同名（龙齿），一个以后目录里也有但指向不同（川军）
+insert into herb_aliases (alias, herb_id)
+select '龙齿', :'huangqi' where not exists (select 1 from herbs where name_zh = '龙齿')
+on conflict (alias) do nothing;
+insert into herb_aliases (alias, herb_id) values ('川军', :'gancao') on conflict (alias) do nothing;

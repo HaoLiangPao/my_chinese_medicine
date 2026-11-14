@@ -18,7 +18,7 @@ let next = {
     { name: "党参", grams: 12, special_prep: null },
     { name: "麦门冬", grams: 9, special_prep: null },
     { name: "砂仁", grams: 3, special_prep: "后下" },
-    { name: "鸡血藤", grams: 15, special_prep: null },
+    { name: "鸡矢藤", grams: 15, special_prep: null },
   ],
   notes: "第 5 味字迹潦草，请核对",
 };

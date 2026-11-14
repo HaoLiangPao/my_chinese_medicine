@@ -43,10 +43,11 @@ test("字母条：点 H 跳到 H 组；按住从第一个字母滑到 Z 跳到 Z
   await expect(header("H")).not.toBeInViewport();
   await page.getByRole("button", { name: "跳到 H" }).click();
   await expect(header("H")).toBeInViewport();
-  await expect(page.getByTestId("az-herb-黄芪")).toBeInViewport();
+  // H 组 2026-11-13 起有 36 味，黄芪不一定在第一屏：看 H 组的第一味
+  await expect(page.getByTestId("az-group-H").locator('[data-testid^="az-herb-"]').first()).toBeInViewport();
 
-  // 按住字母条从第一个字母（目录里没有 A 开头的药，第一个是 B）滑到 Z
-  await expect(page.getByTestId("az-letter-bar").getByRole("button").first()).toHaveAccessibleName("跳到 B");
+  // 按住字母条从第一个字母滑到 Z（2026-11-13 目录扩充后有 A 开头的药：艾叶、矮地茶，第一个是 A）
+  await expect(page.getByTestId("az-letter-bar").getByRole("button").first()).toHaveAccessibleName("跳到 A");
   const a = (await page.getByTestId("az-letter-bar").getByRole("button").first().boundingBox())!;
   const z = (await page.getByRole("button", { name: "跳到 Z" }).boundingBox())!;
   await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
