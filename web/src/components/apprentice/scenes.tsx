@@ -98,7 +98,7 @@ function Weighing() {
   );
 }
 
-/** 翻药柜：伸手拉开一个抽屉看看，再推回去 */
+/** 翻药斗：伸手拉开百子柜的一个抽屉看看，再推回去 */
 function SearchingDrawers() {
   const cab = { x: 84, y: 14, cell: 12 };
   const target = drawerAt(cab.x, cab.y, cab.cell, 0, 3);

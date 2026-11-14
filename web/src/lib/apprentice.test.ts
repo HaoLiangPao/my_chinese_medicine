@@ -9,7 +9,9 @@ import {
   APPRENTICE_ACTIONS,
   DISCLAIMER,
   FORBIDDEN,
+  allowedTerms,
   catalogLines,
+  composeHerbLines,
   forbiddenWords,
   herbLines,
   pickAction,
@@ -69,7 +71,7 @@ describe("随机", () => {
 
   it("五个动作都可能出现，而且大致一样多（1000 个种子，每个 120–280 次）", () => {
     expect(APPRENTICE_ACTIONS.map((a) => a.id)).toEqual(["read", "pound", "weigh", "drawer", "needle"]);
-    expect(APPRENTICE_ACTIONS.map((a) => a.label)).toEqual(["读书", "捣药", "称药", "翻药柜", "练针灸"]);
+    expect(APPRENTICE_ACTIONS.map((a) => a.label)).toEqual(["读书", "捣药", "称药", "翻药斗", "练针灸"]);
     const count = new Map<string, number>();
     for (let s = 0; s < 1000; s++) count.set(pickAction(s), (count.get(pickAction(s)) ?? 0) + 1);
     expect([...count.keys()].sort()).toEqual(["drawer", "needle", "pound", "read", "weigh"]);
@@ -148,6 +150,11 @@ describe("一味药的台词", () => {
     expect(herbLines(fuling).join("")).not.toContain("慎用");
   });
 
+  it("已审核、但审核人标了「有问题」的资料也不用", () => {
+    const lines = herbLines({ ...fuling, monograph: { data: mono({ flag_note: "产区要再查" }), fromBase: false } });
+    expect(lines.join("")).not.toMatch(/利水渗湿，健脾|多孔菌|云南|甘、淡/);
+  });
+
   it("草稿资料一句都不用", () => {
     const lines = herbLines({ ...fuling, monograph: { data: mono({ status: "draft" }), fromBase: false } });
     expect(lines.join("")).not.toMatch(/利水渗湿，健脾|多孔菌|云南|甘、淡/);
@@ -166,7 +173,7 @@ describe("一味药的台词", () => {
       monograph: { data: mono({ toxicity: "minor", source: null, regions: null, quality: null, storage: null }), fromBase: false },
     });
     expect(lines).toContain("大黄还有酒大黄、熟大黄、大黄炭这些炮制品。师父说炮制不同，用法也不同，抓药时要看清。");
-    expect(lines).toContain("书上写大黄小毒，抓药、保存都要格外仔细核对。");
+    expect(lines).toContain("书上写大黄有小毒，抓药、保存都要格外仔细核对。");
     expect(lines.some((l) => l.startsWith("我在背"))).toBe(false); // 没有同类的药就不说
   });
 
@@ -226,7 +233,7 @@ describe("一味药的台词", () => {
   });
 
   it("目录页：第一句带目录的味数，后面是通用台词", () => {
-    expect(catalogLines(507)[0]).toBe("药柜里有 507 味药，我一天认几味，慢慢来。");
+    expect(catalogLines(507)[0]).toBe("目录里有 507 味药，我一天认几味，慢慢来。"); // 不说「药柜」：家庭账号的药柜是自己的库存
     expect(catalogLines(507).slice(1)).toEqual([...GENERIC_LINES]);
   });
 
@@ -267,10 +274,11 @@ describe("整个目录跑一遍（seed.sql 的名单 + 资料草稿 JSON 当作�
     ...processed.map(([name, pinyin, b]) => ({ name, pinyin, category: categoryOf.get(b) ?? null, base: b as string | null })),
   ];
 
-  it(`${base.length} + ${processed.length} 味，每一句都没有禁用字眼（去掉药名、拼音、别名以后），每味至少 3 句`, () => {
+  it(`${base.length} + ${processed.length} 味：拼出来的台词（过滤以前）只有半夏的炮制一句有禁用字眼；过滤后每味至少 3 句`, () => {
     expect(all.length).toBeGreaterThan(500);
     let withMonograph = 0;
     const linesOf = new Map<string, string[]>();
+    const dropped: string[] = [];
     for (const h of all) {
       const own = monographs.get(h.name);
       const fromBase = !own && h.base ? monographs.get(h.base) : undefined;
@@ -285,9 +293,11 @@ describe("整个目录跑一遍（seed.sql 的名单 + 资料草稿 JSON 当作�
       const lines = herbLines(facts);
       linesOf.set(h.name, lines);
       expect(lines.length, h.name).toBeGreaterThanOrEqual(3);
-      const allowed = [h.name, h.pinyin, h.base ?? "", ...facts.aliases, ...facts.variants, ...facts.sameCategory];
-      for (const l of lines) expect(forbiddenWords(l, allowed), l).toEqual([]);
+      // 检查过滤以前的：模板本身写了禁用字眼的话，每味药都会出现在这里
+      dropped.push(...composeHerbLines(facts).filter((l) => forbiddenWords(l, allowedTerms(facts)).length > 0));
     }
+    // 半夏自己，加上用半夏资料的炮制品，说的是同一句
+    expect([...new Set(dropped)]).toEqual([`半夏的炮制：${raw.find((r) => r.name === "半夏")!.processing}。`]);
     expect(withMonograph).toBeGreaterThan(100); // 真的跑到了资料那几句
     // 资料草稿里只有半夏的炮制写了「内服」，那一句不说；别的药的炮制照常说
     expect(linesOf.get("半夏")!.some((l) => l.startsWith("半夏的炮制"))).toBe(false);

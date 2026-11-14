@@ -10,7 +10,7 @@ import { RUN, signUp, sql, workspaceOf } from "./helpers";
 test.describe.configure({ mode: "serial" });
 const SHOTS = path.resolve(__dirname, "../../.local/screenshots");
 const PHONE = { width: 390, height: 844 };
-const ACTIONS = { read: "读书", pound: "捣药", weigh: "称药", drawer: "翻药柜", needle: "练针灸" } as const;
+const ACTIONS = { read: "读书", pound: "捣药", weigh: "称药", drawer: "翻药斗", needle: "练针灸" } as const;
 const DISCLAIMER = "小学徒在学习，仅为中药知识，不作用药建议";
 const user = { email: `apprentice+${RUN}@example.com`, password: "secret-apprentice-123" };
 const doctor = { email: `apprentice-doc+${RUN}@example.com`, password: "secret-apprentice-123" };
@@ -79,7 +79,7 @@ test("目录页：小学徒随机做五个动作之一；「随便翻一味」�
   // 目录页的台词：第一句是目录的味数（seed.sql 里原药材 + 炮制品），其余是通用的
   const catalogSize = Number((await sql<{ n: string }>("select count(*) n from herbs where category is not null"))[0].n);
   const lines = await collectLines(page, 25);
-  expect(lines).toContain(`药柜里有 ${catalogSize} 味药，我一天认几味，慢慢来。`);
+  expect(lines).toContain(`目录里有 ${catalogSize} 味药，我一天认几味，慢慢来。`);
   expect(lines.length).toBeGreaterThanOrEqual(15);
   // 药柜是空的：「只翻我药柜里有的」点不了
   await expect(corner.getByTestId("random-herb-mine")).toBeDisabled();
@@ -103,23 +103,33 @@ test("目录页：小学徒随机做五个动作之一；「随便翻一味」�
   await page.waitForURL((u) => u.pathname !== before && /^\/herbs\/[0-9a-f-]{36}$/.test(u.pathname));
 });
 
-test("只翻我药柜里有的：药柜里只有茯苓和猪苓 → 从茯苓「再翻一味」一定是猪苓", { tag: ["@APR-1"] }, async ({ page }) => {
-  await signUp(page, { ...user, email: `apprentice-mine+${RUN}@example.com` });
-  const ws = await workspaceOf(`apprentice-mine+${RUN}@example.com`);
-  const [fuling, zhuling] = [await herbId("茯苓"), await herbId("猪苓")];
-  for (const h of [fuling, zhuling])
-    await sql("insert into inventory_txns (workspace_id, herb_id, delta_grams, kind) values ($1, $2, 100, 'adjust')", [ws, h]);
-  await page.goto("/herbs");
-  await page.getByTestId("random-herb-mine").check();
-  await page.getByTestId("random-herb").click();
-  await page.waitForURL(/\?flip=mine$/);
-  const first = new URL(page.url()).pathname.split("/")[2];
-  expect([fuling, zhuling]).toContain(first);
-  const other = first === fuling ? zhuling : fuling;
-  await expect(page.getByTestId("random-herb")).toHaveText("🎲 再翻一味（药柜里的）");
-  await page.getByTestId("random-herb").click();
-  await page.waitForURL(`**/herbs/${other}?flip=mine`);
-});
+test(
+  "只翻我药柜里有的：药柜里只有茯苓和猪苓 → 从一味「再翻一味」一定是另一味；只剩正在看的这味 → 退回全站目录",
+  { tag: ["@APR-1"] },
+  async ({ page }) => {
+    await signUp(page, { ...user, email: `apprentice-mine+${RUN}@example.com` });
+    const ws = await workspaceOf(`apprentice-mine+${RUN}@example.com`);
+    const [fuling, zhuling] = [await herbId("茯苓"), await herbId("猪苓")];
+    for (const h of [fuling, zhuling])
+      await sql("insert into inventory_txns (workspace_id, herb_id, delta_grams, kind) values ($1, $2, 100, 'adjust')", [ws, h]);
+    await page.goto("/herbs");
+    await page.getByTestId("random-herb-mine").check();
+    await page.getByTestId("random-herb").click();
+    await page.waitForURL(/\?flip=mine$/);
+    const first = new URL(page.url()).pathname.split("/")[2];
+    expect([fuling, zhuling]).toContain(first);
+    const other = first === fuling ? zhuling : fuling;
+    await expect(page.getByTestId("random-herb")).toHaveText("🎲 再翻一味（药柜里的）");
+    await page.getByTestId("random-herb").click();
+    await page.waitForURL(`**/herbs/${other}?flip=mine`);
+    // 另一味用完了：药柜里只剩正在看的这味 → 翻全站目录（地址和按钮都写实际的范围），也不会翻回这味
+    await sql("insert into inventory_txns (workspace_id, herb_id, delta_grams, kind) values ($1, $2, -100, 'adjust')", [ws, first]);
+    await page.getByTestId("random-herb").click();
+    await page.waitForURL((u) => u.search === "?flip=all");
+    expect(new URL(page.url()).pathname).not.toBe(`/herbs/${other}`);
+    await expect(page.getByTestId("random-herb")).toHaveText("🎲 再翻一味");
+  },
+);
 
 test("详情页：说话框只说确定的数据；草稿资料不说；点一下换一句", { tag: ["@APR-1"] }, async ({ page }) => {
   await signUp(page, { ...user, email: `apprentice-detail+${RUN}@example.com` });
@@ -194,7 +204,7 @@ test("认识小学徒：五个动作和道具都在；每个动作截一张（�
     await expect(fig.getByRole("img", { name: `小学徒在${label}` })).toBeVisible();
     await fig.screenshot({ path: `${SHOTS}/小学徒-动作-${label}.png`, animations: "disabled" });
   }
-  for (const name of ["小学徒", "药柜", "书卷", "药臼和杵", "戥子", "针灸铜人和针", "鞠躬的小药童"])
+  for (const name of ["小学徒", "百子柜", "书卷", "药臼和杵", "戥子", "针灸铜人和针", "鞠躬的小药童"])
     await expect(p.getByRole("img", { name, exact: true })).toBeVisible();
   await p.screenshot({ path: `${SHOTS}/小学徒-素材库.png`, fullPage: true, animations: "disabled" });
   await p.emulateMedia({ colorScheme: "dark" });
@@ -235,5 +245,11 @@ test("开方、录方这些干活的页面没有小学徒", { tag: ["@APR-1"] },
   await expect(p.getByTestId("apprentice")).toHaveCount(1);
   await expect(p.getByTestId("random-herb-mine")).toBeDisabled();
   await expect(p.getByTestId("apprentice-corner")).toContainText("只翻库存里有的"); // 诊所用语
+  // 诊所账号不出现「药柜」（FIX-5）：台词说「目录里有……味」，动作叫「翻药斗」
+  for (let i = 0; i < 22; i++) {
+    await expect(p.getByTestId("apprentice-corner")).not.toContainText("药柜");
+    await p.getByTestId("apprentice-line").click();
+  }
+  await expect(p.getByTestId("apprentice-scene")).not.toHaveAccessibleName(/药柜/);
   await p.close();
 });

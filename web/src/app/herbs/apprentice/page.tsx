@@ -26,11 +26,11 @@ export default function ApprenticePage() {
       <Link href="/herbs" className="text-sm text-muted">
         ← 药材
       </Link>
-      <PageHeader title="认识小学徒" subtitle="住在药柜前的小学徒，每次打开药材页随机做一件事" />
+      <PageHeader title="认识小学徒" subtitle="住在百子柜前的小学徒，每次打开药材页随机做一件事" />
       <div className="space-y-6">
         <section className="card space-y-2 text-sm">
           <p>
-            小学徒正在学中药：读书、捣药、称药、翻药柜、对着铜人练针灸。打开药材页时，小学徒会随机做一件事，顺便说一句这味药的知识（拼音、分类、别名、炮制品，以及医生审核过的资料）。
+            小学徒正在学中药：读书、捣药、称药、翻药斗、对着铜人练针灸。打开药材页时，小学徒会随机做一件事，顺便说一句这味药的知识（拼音、分类、别名、炮制品，以及医生审核过的资料）。
           </p>
           <p className="text-muted">{DISCLAIMER}。</p>
         </section>
@@ -60,7 +60,7 @@ export default function ApprenticePage() {
                 <RestingSleeve x={75} y={62} />
               </StandingApprentice>
             </Prop>
-            <Prop label="药柜" viewBox="0 0 64 74">
+            <Prop label="百子柜" viewBox="0 0 64 74">
               <MedicineCabinet x={4} y={6} cols={4} rows={4} cell={13} />
             </Prop>
             <Prop label="书卷" viewBox="0 0 60 50">

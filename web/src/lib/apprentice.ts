@@ -4,7 +4,7 @@
  * 硬规则（CLAUDE.md「AI 只做转录和科普」）：台词只讲知识和学习感受，不说针对病人的用药建议，不说用量。
  * 台词只从确定的数据拼：分类、拼音、别名、炮制品和原药材、同类的药、**已审核**的药材资料；再加 apprentice-lines.ts 里手写的通用台词。
  */
-import { TOXICITY, guiJing, xingWei, type Monograph } from "./herb-monograph";
+import { guiJing, xingWei, type Monograph, type Toxicity } from "./herb-monograph";
 import { GENERIC_LINES } from "./apprentice-lines";
 
 /** 五个动作。以后加动作：这里加一行，再在 components/apprentice/scenes.tsx 里加一个场景组件（TypeScript 会提醒） */
@@ -12,7 +12,7 @@ export const APPRENTICE_ACTIONS = [
   { id: "read", label: "读书" },
   { id: "pound", label: "捣药" },
   { id: "weigh", label: "称药" },
-  { id: "drawer", label: "翻药柜" },
+  { id: "drawer", label: "翻药斗" },
   { id: "needle", label: "练针灸" },
 ] as const;
 export type ApprenticeAction = (typeof APPRENTICE_ACTIONS)[number]["id"];
@@ -109,8 +109,11 @@ export type HerbFacts = {
   monograph: { data: Monograph; fromBase: boolean } | null;
 };
 
-/** 一味药的全部台词（还没洗牌）：先按数据拼，再去掉含禁用字眼的；不到 3 句的用通用台词补到 3 句；什么都拼不出来时用全部通用台词 */
-export function herbLines(f: HerbFacts): string[] {
+/** 「书上写大黄有小毒」 */
+const TOXIC_WORDS: Record<Exclude<Toxicity, "none">, string> = { minor: "有小毒", toxic: "有毒", severe: "有大毒" };
+
+/** 按数据拼出来的台词（还没过滤禁用字眼）；单元测试用它检查模板和数据本身 */
+export function composeHerbLines(f: HerbFacts): string[] {
   const n = f.name;
   const lines: string[] = [];
   if (f.pinyin) lines.push(`${n}，拼音 ${f.pinyin}。先把字认准，抓药才不会抓错。`);
@@ -120,7 +123,8 @@ export function herbLines(f: HerbFacts): string[] {
   if (f.base) lines.push(`${n}是${f.base}的炮制品。师父说炮制不同，用法也不同，抓药时要看清。`);
   if (f.variants.length) lines.push(`${n}还有${f.variants.slice(0, 4).join("、")}这些炮制品。师父说炮制不同，用法也不同，抓药时要看清。`);
 
-  const m = f.monograph?.data.status === "reviewed" ? f.monograph : null;
+  // 已审核、而且审核人没有标「有问题」的资料才用
+  const m = f.monograph?.data.status === "reviewed" && !f.monograph.data.flag_note ? f.monograph : null;
   if (m) {
     const d = m.data;
     const who = m.fromBase && f.base ? f.base : n;
@@ -132,11 +136,20 @@ export function herbLines(f: HerbFacts): string[] {
     if (d.quality) lines.push(`挑${who}要看：${d.quality}。`);
     if (d.processing) lines.push(`${who}的炮制：${d.processing}。`);
     if (d.storage) lines.push(`${who}的保存：${d.storage}。`);
-    if (d.toxicity && d.toxicity !== "none") lines.push(`书上写${who}${TOXICITY[d.toxicity]}，抓药、保存都要格外仔细核对。`);
+    if (d.toxicity && d.toxicity !== "none") lines.push(`书上写${who}${TOXIC_WORDS[d.toxicity]}，抓药、保存都要格外仔细核对。`);
   }
 
-  const allowed = [n, f.pinyin ?? "", f.base ?? "", ...f.aliases, ...f.variants, ...f.sameCategory];
-  const safe = lines.filter((l) => forbiddenWords(l, allowed).length === 0);
+  return lines;
+}
+
+/** 药名、拼音、别名这些「允许出现禁用字」的词（金钱草、两面针、拼音里的 g） */
+export const allowedTerms = (f: HerbFacts) => [f.name, f.pinyin ?? "", f.base ?? "", ...f.aliases, ...f.variants, ...f.sameCategory];
+
+/** 一味药的全部台词（还没洗牌）：先按数据拼，再去掉含禁用字眼的；不到 3 句的用通用台词补到 3 句；什么都拼不出来时用全部通用台词 */
+export function herbLines(f: HerbFacts): string[] {
+  const n = f.name;
+  const allowed = allowedTerms(f);
+  const safe = composeHerbLines(f).filter((l) => forbiddenWords(l, allowed).length === 0);
   if (safe.length >= MIN_LINES) return safe;
   if (safe.length) return [...safe, ...GENERIC_LINES.slice(0, MIN_LINES - safe.length)];
   return [`${n}？目录里还没有它的资料，我得去问问师父。`, ...GENERIC_LINES].filter((l) => forbiddenWords(l, [n]).length === 0);
@@ -144,7 +157,8 @@ export function herbLines(f: HerbFacts): string[] {
 
 /** 药材目录页：通用台词，加一句目录有多少味 */
 export function catalogLines(catalogSize: number): string[] {
-  return [`药柜里有 ${catalogSize} 味药，我一天认几味，慢慢来。`, ...GENERIC_LINES];
+  // 不说「药柜」：家庭账号的「药柜」是自己的库存（terms.ts），会以为自己有这么多味
+  return [`目录里有 ${catalogSize} 味药，我一天认几味，慢慢来。`, ...GENERIC_LINES];
 }
 
 /** 说话框底部的小字 */
