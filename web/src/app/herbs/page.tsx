@@ -7,6 +7,7 @@ import { groupByCategory } from "@/lib/herb-categories";
 import { termsFor } from "@/lib/terms";
 import { Loading, PageHeader } from "@/components/ui";
 import { thumbSrc } from "@/lib/herb-photo";
+import { ApprenticeCorner } from "@/components/apprentice/apprentice-corner";
 
 export default function HerbsPage() {
   return (
@@ -52,6 +53,7 @@ async function Herbs() {
           <span className="text-sm text-muted">{pending ? `${pending} 味待审核 →` : "全部审核完了 →"}</span>
         </Link>
       )}
+      <ApprenticeCorner />
       <section className="card overflow-x-auto">
         <h2 className="mb-2 font-serif text-lg font-bold">用过的药材</h2>
         {!usage?.length ? (

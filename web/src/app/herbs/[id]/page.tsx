@@ -13,6 +13,7 @@ import { HerbPhotoFigure, JarPhotoFigure } from "./photo";
 import { NoPhoto } from "@/components/no-photo";
 import { JarPhotoControls } from "./jar-photo-controls";
 import { JAR_BUCKET } from "@/lib/jar-photo";
+import { HerbApprentice } from "@/components/apprentice/herb-apprentice";
 
 export default function HerbPage({ params }: PageProps<"/herbs/[id]">) {
   return (
@@ -150,6 +151,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         {monograph?.data.latin_name && <p className="text-sm italic text-muted">{monograph.data.latin_name}</p>}
         {monograph && <MonographTags m={monograph.data} />}
       </div>
+
+      <HerbApprentice herb={herb} monograph={monograph} />
 
       <div className="grid grid-cols-3 gap-3">
         <Stat label={`${t.stock}存量`} value={inv ? grams(inv.on_hand_grams) : "—"} />

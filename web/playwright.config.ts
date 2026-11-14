@@ -56,6 +56,7 @@ export default defineConfig({
     { name: "herb-photos", testMatch: /herb-photos\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "jar-photos", testMatch: /jar-photos\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "herb-catalog", testMatch: /herb-catalog\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "apprentice", testMatch: /apprentice\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {
