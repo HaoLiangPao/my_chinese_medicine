@@ -5,6 +5,7 @@ import { listHerbs } from "@/lib/herbs";
 import { grams } from "@/lib/format";
 import { termsFor } from "@/lib/terms";
 import { Loading, PageHeader } from "@/components/ui";
+import { thumbSrc } from "@/lib/herb-photo";
 
 export default function HerbsPage() {
   return (
@@ -20,11 +21,12 @@ export default function HerbsPage() {
 async function Herbs() {
   const { supabase, workspaceId, accountKind } = await getContext();
   const t = termsFor(accountKind);
-  const [{ data: usage }, { data: inv }, all, { data: isReviewer }] = await Promise.all([
+  const [{ data: usage }, { data: inv }, all, { data: isReviewer }, { data: photos }] = await Promise.all([
     supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).order("prescription_count", { ascending: false }),
     supabase.from("v_inventory").select("herb_id, on_hand_grams").eq("workspace_id", workspaceId),
     listHerbs(supabase),
     supabase.rpc("is_monograph_reviewer"),
+    supabase.from("herb_photos").select("herb_id, file"),
   ]);
   const { count: pending } =
     isReviewer === true
@@ -32,6 +34,14 @@ async function Herbs() {
       : { count: null };
   const onHand = new Map((inv ?? []).map((r) => [r.herb_id, Number(r.on_hand_grams)]));
   const used = new Set((usage ?? []).map((u) => u.herb_id));
+  // 小图：自己的，炮制品没有就用原药材的（docs/design/0010 §3.5）
+  const photoFile = new Map((photos ?? []).map((p) => [p.herb_id as string, p.file as string]));
+  const baseOf = new Map(all.map((h) => [h.id, h.base_herb_id]));
+  const thumbOf = (id: string) => {
+    const file = photoFile.get(id) ?? photoFile.get(baseOf.get(id) ?? "");
+    return file ? thumbSrc(file) : null;
+  };
+  const anyThumb = (usage ?? []).some((u) => thumbOf(u.herb_id));
 
   return (
     <div className="space-y-6">
@@ -61,7 +71,21 @@ async function Herbs() {
               {usage.map((u) => (
                 <tr key={u.herb_id}>
                   <td>
-                    <Link href={`/herbs/${u.herb_id}`} className="font-medium hover:text-cinnabar">
+                    <Link href={`/herbs/${u.herb_id}`} className="flex items-center gap-2 font-medium hover:text-cinnabar">
+                      {thumbOf(u.herb_id) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={thumbOf(u.herb_id)!}
+                          alt=""
+                          width={28}
+                          height={28}
+                          loading="lazy"
+                          className="h-7 w-7 shrink-0 rounded object-cover"
+                          data-testid="herb-thumb"
+                        />
+                      ) : (
+                        anyThumb && <span className="h-7 w-7 shrink-0" aria-hidden />
+                      )}
                       {u.name_zh}
                     </Link>
                   </td>

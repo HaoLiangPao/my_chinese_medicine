@@ -52,8 +52,16 @@ async function storage(req, res) {
     if (u.searchParams.get("token") !== sign(key)) return json(res, 400, { message: "bad token" });
     const file = path.join(STORAGE_DIR, key);
     if (!fs.existsSync(file)) return json(res, 404, { message: "not found" });
-    res.writeHead(200, { "content-type": "image/jpeg" });
+    res.writeHead(200, { "content-type": file.endsWith(".webp") ? "image/webp" : "image/jpeg" });
     return fs.createReadStream(file).pipe(res);
+  }
+  // 列出文件夹里的文件（本罐照片换照片后清理旧文件用）。只列文件，不列子文件夹
+  if ((m = p.match(/^\/object\/list\/([^/]+)$/)) && req.method === "POST") {
+    const { prefix = "" } = JSON.parse((await readBody(req)).toString() || "{}");
+    const dir = path.join(STORAGE_DIR, m[1], prefix);
+    if (!path.resolve(dir).startsWith(path.resolve(STORAGE_DIR, m[1]))) return json(res, 400, { message: "bad prefix" });
+    const names = fs.existsSync(dir) ? fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isFile()).map((e) => e.name) : [];
+    return json(res, 200, names.map((name) => ({ name, id: name })));
   }
   if ((m = p.match(/^\/object\/([^/]+)$/)) && req.method === "DELETE") {
     const { prefixes = [] } = JSON.parse((await readBody(req)).toString() || "{}");
