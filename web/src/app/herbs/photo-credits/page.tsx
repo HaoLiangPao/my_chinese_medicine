@@ -42,8 +42,7 @@ async function Credits() {
               <tr>
                 <th>药材</th>
                 <th>照片</th>
-                <th>作者</th>
-                <th>授权</th>
+                <th>作者 · 授权</th>
               </tr>
             </thead>
             <tbody>
@@ -59,8 +58,8 @@ async function Credits() {
                       {KIND_LABEL[r.kind]}
                     </a>
                   </td>
-                  <td className="break-all">{r.author ?? "—"}</td>
-                  <td>
+                  <td className="break-words">
+                    <span className="block">{r.author ?? "—"}</span>
                     {r.license_url ? (
                       <a href={r.license_url} target="_blank" rel="noopener noreferrer" className="underline">
                         {r.license}
