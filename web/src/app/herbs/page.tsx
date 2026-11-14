@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
-import { listHerbKinds, listHerbs, type Herb } from "@/lib/herbs";
+import { listHerbsWithKind } from "@/lib/herbs";
 import { grams } from "@/lib/format";
 import { groupByCategory } from "@/lib/herb-categories";
 import { termsFor } from "@/lib/terms";
@@ -26,13 +26,12 @@ async function Herbs({ searchParams }: { searchParams: Promise<Record<string, st
   const t = termsFor(accountKind);
   // 目录的分组方式：默认按功效（0017），?by=origin 按来源（0018 §5）
   const byOrigin = (await searchParams).by === "origin";
-  const [{ data: usage }, { data: inv }, all, { data: isReviewer }, { data: photos }, kindRows] = await Promise.all([
+  const [{ data: usage }, { data: inv }, all, { data: isReviewer }, { data: photos }] = await Promise.all([
     supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).order("prescription_count", { ascending: false }),
     supabase.from("v_inventory").select("herb_id, on_hand_grams").eq("workspace_id", workspaceId),
-    listHerbs(supabase),
+    listHerbsWithKind(supabase),
     supabase.rpc("is_monograph_reviewer"),
     supabase.from("herb_photos").select("herb_id, file"),
-    listHerbKinds(supabase),
   ]);
   const { count: pending } =
     isReviewer === true
@@ -49,8 +48,8 @@ async function Herbs({ searchParams }: { searchParams: Promise<Record<string, st
   };
   const anyThumb = (usage ?? []).some((u) => thumbOf(u.herb_id));
   // 来源和部位：自己的，空的跟原药材（docs/design/0018 §3.3）
-  const kindOf = (h: Herb): HerbKind =>
-    resolveHerbKind(kindRows.get(h.id) ?? null, h.base_herb_id ? (kindRows.get(h.base_herb_id) ?? null) : null);
+  const byId = new Map(all.map((h) => [h.id, h]));
+  const kindOf = (h: (typeof all)[number]): HerbKind => resolveHerbKind(h, h.base_herb_id ? (byId.get(h.base_herb_id) ?? null) : null);
   const groups = byOrigin
     ? groupByOrigin(all, kindOf).map((g) => ({ key: g.key, label: g.label, icon: g.key, herbs: g.herbs }))
     : groupByCategory(all).map((g) => ({ key: g.category, label: g.category, icon: null, herbs: g.herbs }));

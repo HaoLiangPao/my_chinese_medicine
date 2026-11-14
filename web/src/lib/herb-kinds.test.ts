@@ -1,7 +1,9 @@
 /**
  * 药材的来源和入药部位（docs/design/0018）：
  * 1. 数据（supabase/data/herb-kinds.json）和目录（seed.sql）对得上、取值合法；
- * 2. 生成的 migration 里每味药的值 = JSON 里的（炮制品 = 原药材的，例外单列）——这里自己算一遍，不用生成脚本；
+ * 2. 生成的 migration 里每味药的值 = JSON 里的（炮制品 = 原药材的，例外单列）——这里自己算一遍，不用生成脚本。
+ *    以后改分类（改 JSON + 新 migration，0018 §3.2）时，这一段改成读最新的那个 migration（只含改动的行就只比那几行），
+ *    20261114000026 已经上线、不再变，不用再跟 JSON 比；
  * 3. 读的时候的兜底、显示文字、按来源分组。
  */
 import { readFileSync } from "node:fs";

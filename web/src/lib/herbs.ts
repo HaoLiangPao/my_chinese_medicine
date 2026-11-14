@@ -12,13 +12,16 @@ export async function listHerbs(supabase: SupabaseClient): Promise<Herb[]> {
   return data ?? [];
 }
 
-/** 药材 id → 来源、部位（docs/design/0018）。目录页用；选药不用，所以不放进 listHerbs */
-export async function listHerbKinds(
+/** 目录页用：listHerbs 加上来源、部位（docs/design/0018）。同一个查询、同样的顺序，不会和药名列表对不上。选药不用，所以不放进 listHerbs */
+export async function listHerbsWithKind(
   supabase: SupabaseClient,
-): Promise<Map<string, { origin_kind: string | null; medicinal_part: string | null }>> {
-  const { data, error } = await supabase.from("herbs").select("id, origin_kind, medicinal_part");
+): Promise<(Herb & { origin_kind: string | null; medicinal_part: string | null })[]> {
+  const { data, error } = await supabase
+    .from("herbs")
+    .select("id, name_zh, pinyin, category, base_herb_id, origin_kind, medicinal_part")
+    .order("pinyin", { ascending: true, nullsFirst: false });
   if (error) throw new Error(error.message);
-  return new Map((data ?? []).map((r) => [r.id as string, { origin_kind: r.origin_kind, medicinal_part: r.medicinal_part }]));
+  return data ?? [];
 }
 
 /** 别名 → 标准名，例如 { 北芪: "黄芪" }（录入时在浏览器里判断能不能对上目录） */

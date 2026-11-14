@@ -63,6 +63,7 @@ alter table public.herbs add constraint herbs_medicinal_part_plant_only
 - 正式来源：`supabase/data/herb-kinds.json`，按「来源 → 部位 → 药名」列 430 味原药材；`processed_overrides` 写和原药材不一样的炮制品；`uncertain` 写每味拿不准的理由（§7）。
 - `scripts/gen-herb-kinds.mjs` 读 JSON 和 `seed.sql`，生成 migration：加列 → 加约束 → 按药名填（**只填还是空的**，可以重复执行）→ 检查名单里在库里的药都填上了。做法和 `gen-herb-monographs.mjs` 一样：生成以后不手改；以后改分类就改 JSON，生成一个新的 migration（那时要把「只填空的」换成明确的 update，写进那个 migration）。
 - 以后目录加新药（改 seed.sql），单元测试会要求 JSON 里也有它。
+- 以后改分类时：改 JSON → 生成新的 migration（把生成脚本的「只填空的」换成按名字明确 update 改动的那几味）→ `herb-kinds.test.ts` 里「生成的 migration」那一段改成检查新的 migration；`20261114000026` 已经上线，不再和 JSON 比。
 
 ### 3.3 炮制品：存，跟原药材
 

@@ -1,9 +1,11 @@
 /**
  * 药材的来源和入药部位（CAT-2，docs/design/0018）：目录按来源分组、每味药的来源小图标、详情页的「来源 · 部位」标签、手机不溢出。
  * 期望值按 supabase/data/herb-kinds.json 和 seed.sql 的名单手数（每组 = 原药材 + 跟着它的炮制品），不读 App 的结果。
- * 目录是全站共用的：同一次运行里别的测试会新增没有分类的药，所以「未分类」组只查在最后、不查味数。
+ * 目录是全站共用的：同一次运行里别的测试会新增药（没有分类的「茯神」，挂在山楂下的「测试炒山楂」——它自己没存来源，
+ * 读的时候跟原药材，所以会出现在果实种子组），所以每组只数 seed.sql 里有的药名，「未分类」组只查在最后、不查味数。
  */
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { RUN, signUp, sql } from "./helpers";
 
@@ -13,6 +15,8 @@ const SUFFIX = process.env.SHOT_SUFFIX ?? "";
 const user = { email: `kinds+${RUN}@example.com`, password: "secret-kinds-123" };
 const PHONE = { width: 390, height: 844 };
 const OWN_HERB = `自加药${RUN}`; // 用户自己加的药（App 里只能写药名）→ 未分类
+const seed = readFileSync(path.resolve(__dirname, "../../supabase/seed.sql"), "utf8");
+const catalog = new Set([...seed.slice(0, seed.indexOf("herb_aliases")).matchAll(/\('([^']+)', '[a-z ]+', '[^']+'\)/g)].map((m) => m[1]));
 
 async function noOverflow(p: Page) {
   expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
@@ -103,7 +107,9 @@ test(
     for (const [i, [key, label, count]] of ORIGIN_GROUPS.entries()) {
       const g = groups.nth(i);
       await expect(g).toHaveAttribute("data-testid", `catalog-${key}`);
-      await expect(g.locator("summary")).toHaveText(`${label}${count} 味`);
+      await expect(g.locator("summary")).toHaveText(new RegExp(`^${label}\\d+ 味$`));
+      const names = await g.locator("a").allTextContents(); // 收起时也在页面里
+      expect(names.filter((n) => catalog.has(n)).length, label).toBe(count);
       await expect(g.locator("summary svg")).toHaveAttribute("data-kind-icon", key); // 组标题带这一组的图标
     }
     // 用户自己加的药：最后一组「未分类」
