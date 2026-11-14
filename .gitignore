@@ -7,4 +7,5 @@ supabase/.temp/
 backups/
 
 # 本地私有记录（测试账号、线上项目信息等），不能提交
+/.env
 .env.private
