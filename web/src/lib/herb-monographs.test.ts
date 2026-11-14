@@ -46,10 +46,11 @@ describe("药材资料草稿", () => {
     expect(impl.DOSE.source).toBe(DOSE.source);
   });
 
-  it("种子目录里的每味药都有资料，没有多出来的", () => {
-    expect(seedNames.size).toBeGreaterThan(100);
-    expect(new Set(herbs.map((h) => h.name))).toEqual(seedNames);
-    expect(herbs.length).toBe(seedNames.size); // 没有重复
+  // 2026-11-13 目录扩到 400 多味（docs/design/0017）：新加的药资料分批补，所以只要求资料里的药都在目录里
+  it("资料里的药都在种子目录里，没有重复", () => {
+    expect(herbs.length).toBeGreaterThanOrEqual(119);
+    for (const h of herbs) expect(seedNames.has(h.name), h.name).toBe(true);
+    expect(new Set(herbs.map((h) => h.name)).size).toBe(herbs.length);
   });
 
   it("炮制品的 base 和种子目录一致；原药材有完整资料", () => {

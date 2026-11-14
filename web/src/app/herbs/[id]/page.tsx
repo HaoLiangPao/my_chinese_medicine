@@ -123,7 +123,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         <Stat label="累计用量" value={grams(usage?.total_grams ?? 0)} />
       </div>
 
-      {monograph && (
+      {monograph ? (
         <MonographSection
           m={monograph.data}
           fromBase={monograph.fromBase}
@@ -131,6 +131,13 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           baseName={herb.base?.name_zh ?? null}
           isReviewer={isReviewer === true}
         />
+      ) : (
+        // 目录里的药（有分类）资料分批补（docs/design/0017）；用户自己加的药没有资料，什么都不显示
+        herb.category && (
+          <p className="card text-sm text-muted" data-testid="monograph-missing">
+            这味药的资料（性味、归经、功效等）还在整理中，整理好、经医生审核后会显示在这里。
+          </p>
+        )
       )}
 
       <BatchesSection batches={batches} onHand={Number(inv?.on_hand_grams ?? 0)} />

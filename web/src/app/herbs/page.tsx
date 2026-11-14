@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
 import { listHerbs } from "@/lib/herbs";
 import { grams } from "@/lib/format";
+import { groupByCategory } from "@/lib/herb-categories";
 import { termsFor } from "@/lib/terms";
 import { Loading, PageHeader } from "@/components/ui";
 
@@ -83,17 +84,33 @@ async function Herbs() {
 
       <section>
         <h2 className="mb-2 font-serif text-lg font-bold">药材目录（{all.length}）</h2>
-        <div className="flex flex-wrap gap-2">
-          {all.map((h) => (
-            <Link
-              key={h.id}
-              href={`/herbs/${h.id}`}
-              className={`rounded-full border px-3 py-1 text-sm ${used.has(h.id) ? "border-cinnabar text-cinnabar" : "border-line text-muted"}`}
-              title={[h.pinyin, h.category].filter(Boolean).join(" · ")}
-            >
-              {h.name_zh}
-            </Link>
-          ))}
+        <p className="mb-2 text-sm text-muted">按功效分类，点开看每一类的药；红色的是用过的。</p>
+        <div className="space-y-2">
+          {groupByCategory(all).map(({ category, herbs }) => {
+            const usedCount = herbs.filter((h) => used.has(h.id)).length;
+            return (
+              <details key={category} className="card py-2" data-testid={`catalog-${category}`}>
+                <summary className="cursor-pointer select-none">
+                  <span className="font-medium">{category}</span>
+                  <span className="ml-2 text-sm text-muted">
+                    {herbs.length} 味{usedCount > 0 && ` · 用过 ${usedCount}`}
+                  </span>
+                </summary>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {herbs.map((h) => (
+                    <Link
+                      key={h.id}
+                      href={`/herbs/${h.id}`}
+                      className={`rounded-full border px-3 py-1 text-sm ${used.has(h.id) ? "border-cinnabar text-cinnabar" : "border-line text-muted"}`}
+                      title={[h.pinyin, h.category].filter(Boolean).join(" · ")}
+                    >
+                      {h.name_zh}
+                    </Link>
+                  ))}
+                </div>
+              </details>
+            );
+          })}
         </div>
       </section>
     </div>
