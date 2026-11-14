@@ -113,6 +113,18 @@ describe("别名（2026-11-13 目录扩到 400 多味，别名 200 多个）", (
     expect(aliasHit(hq, "北")).toEqual({ alias: "北芪", id: "hq", name: "黄芪" });
     expect(aliasHit(hq, "")).toBeNull();
   });
+  it("aliasHit：别名完全一样时，即使某个炮制品的名字含它也算（炒枳壳 → 麸炒枳壳）", () => {
+    const zk = buildHerbIndex(
+      [
+        { id: "zk", name_zh: "枳壳", pinyin: "zhi ke", base_herb_id: null },
+        { id: "fczk", name_zh: "麸炒枳壳", pinyin: "fu chao zhi ke", base_herb_id: "zk" },
+      ],
+      undefined,
+      { 炒枳壳: "麸炒枳壳" },
+    ).entries[0];
+    expect(aliasHit(zk, "炒枳壳")).toEqual({ alias: "炒枳壳", id: "fczk", name: "麸炒枳壳" });
+    expect(aliasHit(zk, "枳壳")).toBeNull(); // 药名本身
+  });
 });
 
 describe("canAddHerb", () => {

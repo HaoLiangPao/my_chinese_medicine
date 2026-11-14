@@ -95,12 +95,16 @@ export function searchHerbs(index: HerbIndex, query: string, limit = 20): HerbEn
 }
 
 /**
- * 这一条是不是通过别名搜到的（药名、炮制品名都不含搜索词）：返回那个别名（完全一样的优先），页面上显示「元胡 → 延胡索」。
+ * 这一条是不是通过别名搜到的：别名完全一样的直接算；否则药名、炮制品名都不含搜索词时找包含它的别名。页面上显示「元胡 → 延胡索」。
  */
 export function aliasHit(entry: HerbEntry, query: string): HerbAlias | null {
   const q = query.trim();
-  if (!q || [entry.name, ...entry.variants.map((v) => v.name)].some((n) => n.includes(q))) return null;
-  return entry.aliases.find((a) => a.alias === q) ?? entry.aliases.find((a) => a.alias.includes(q)) ?? null;
+  if (!q) return null;
+  // 别名完全一样的优先：「炒枳壳」是麸炒枳壳的别名，虽然「麸炒枳壳」本身也含「炒枳壳」
+  const exact = entry.aliases.find((a) => a.alias === q);
+  if (exact && entry.name !== q && !entry.variants.some((v) => v.name === q)) return exact;
+  if ([entry.name, ...entry.variants.map((v) => v.name)].some((n) => n.includes(q))) return null;
+  return entry.aliases.find((a) => a.alias.includes(q)) ?? null;
 }
 
 /**
