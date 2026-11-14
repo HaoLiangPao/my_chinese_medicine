@@ -10,6 +10,7 @@ import { MonographSection, MonographTags } from "./monograph";
 import { BatchesSection, type BatchRow } from "./batches";
 import { resolvePhoto, type HerbPhoto } from "@/lib/herb-photo";
 import { HerbPhotoFigure } from "./photo";
+import { NoPhoto } from "@/components/no-photo";
 
 export default function HerbPage({ params }: PageProps<"/herbs/[id]">) {
   return (
@@ -109,11 +110,9 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         <Link href="/herbs" className="text-sm text-muted">
           ← 药材
         </Link>
-        {photo && (
-          <div className="mt-2">
-            <HerbPhotoFigure photo={photo.photo} fromBase={photo.fromBase} baseName={herb.base?.name_zh ?? null} />
-          </div>
-        )}
+        <div className="mt-2">
+          {photo ? <HerbPhotoFigure photo={photo.photo} fromBase={photo.fromBase} baseName={herb.base?.name_zh ?? null} /> : <NoPhoto />}
+        </div>
         <h1 className="mt-1 font-serif text-3xl font-bold">{herb.name_zh}</h1>
         <p className="mt-1 text-sm text-muted">
           {[herb.pinyin, herb.category].filter(Boolean).join(" · ")}
