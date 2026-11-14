@@ -68,4 +68,26 @@ describe("herb-photos.json", () => {
     const expected = new Set(herbs.filter((h) => h.photo).flatMap((h) => [h.photo!.file, h.photo!.file.replace(/\.webp$/, ".thumb.webp")]));
     expect(files.filter((f) => !expected.has(f))).toEqual([]);
   });
+
+  it("migration 里写进数据库的每一行，都是 JSON 里核对过的那张图（不能把图挂到没核对的药上）", () => {
+    const dir = path.join(root, "supabase/migrations");
+    const rows = readdirSync(dir)
+      .filter((f) => /_herb_photos_data.*\.sql$/.test(f))
+      .sort()
+      .slice(-1) // 脚本每次生成全部核对过的照片，最新的一个就是现在的状态
+      .flatMap((f) => [
+        ...readFileSync(path.join(dir, f), "utf8").matchAll(
+          /^\s*\('([^']+)', '([^']+)', '([^']+)', (?:'(?:[^']|'')*'|null), '([^']+)', (?:'[^']*'|null), '([^']+)'/gm,
+        ),
+      ]);
+    expect(rows.length).toBeGreaterThan(0);
+    const reviewed = new Map(herbs.filter((h) => h.reviewed && h.photo).map((h) => [h.name, h.photo!]));
+    for (const [, name, file, kind, license, source] of rows) {
+      const p = reviewed.get(name);
+      expect(p, `${name} 在 migration 里，但 JSON 里没有核对过的照片`).toBeTruthy();
+      expect([file, kind, license, source], name).toEqual([p!.file, p!.kind, p!.license, p!.source_url]);
+    }
+    // 反过来：JSON 里核对过的都进了 migration
+    expect(new Set(rows.map((r) => r[1]))).toEqual(new Set(reviewed.keys()));
+  });
 });

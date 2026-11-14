@@ -30,7 +30,8 @@ async function Credits() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted">
-        所有照片都只做了缩放和格式转换（转为 WebP），没有其他修改。照片仅用于认药，不代表某个批次的实际样子。
+        详情页的照片只做了缩放和格式转换（转为 WebP），没有其他修改；药材列表里的小图另外裁成了正方形。改过的版本仍按原图的授权提供（CC
+        BY-SA 的照片同样按 CC BY-SA）。照片仅用于认药，不代表某个批次的实际样子。
       </p>
       {!rows.length ? (
         <p className="text-sm text-muted">还没有照片。</p>

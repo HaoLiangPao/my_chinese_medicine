@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { creditText, photoCaption, photoSrc, type HerbPhoto } from "@/lib/herb-photo";
 
-/** 药材照片（docs/design/0010 §3.5、§4.1）：在最上面；没有照片时整块不显示。照片下写是饮片还是原植物，以及出处 */
+/** 药材照片（docs/design/0010 §3.5、§4.1）：在最上面；没有照片时页面显示 NoPhoto 占位图。照片下写是饮片还是原植物，以及出处 */
 export function HerbPhotoFigure({ photo, fromBase, baseName }: { photo: HerbPhoto; fromBase: boolean; baseName: string | null }) {
   const src = photoSrc(photo.file);
   if (!src) return null;

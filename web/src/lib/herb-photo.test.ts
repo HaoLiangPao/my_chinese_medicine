@@ -35,7 +35,7 @@ describe("resolvePhoto", () => {
   it("炮制品没有自己的照片 → 用原药材的", () => {
     expect(resolvePhoto(null, photo({ herb_id: "base" }))).toEqual({ photo: photo({ herb_id: "base" }), fromBase: true });
   });
-  it("都没有 → null（页面不占位）", () => {
+  it("都没有 → null（页面显示占位图）", () => {
     expect(resolvePhoto(null, null)).toBeNull();
   });
   it("文件名不合法的当作没有", () => {
