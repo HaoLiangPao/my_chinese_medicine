@@ -13,7 +13,8 @@ export default async function QuizHubPage() {
   const progress = topicProgress(bank, mine?.answered ?? new Set());
   const bankIds = new Set(bank.map((q) => q.id));
   const due = mine ? dueForReview(mine.review, Infinity).filter((id) => bankIds.has(id)).length : 0;
-  const wrong = mine ? [...mine.review.values()].filter((s) => s.status !== "mastered").length : 0;
+  // 和错题本列表（/learn/quiz/mine?view=wrong）数的一样：答错过的题，包括已经掌握的，不含下架的
+  const wrong = mine ? [...mine.review.keys()].filter((id) => bankIds.has(id)).length : 0;
   const done = mine ? [...mine.answered].filter((id) => bankIds.has(id)).length : 0;
 
   return (

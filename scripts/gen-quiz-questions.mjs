@@ -5,7 +5,7 @@
 //   node scripts/gen-quiz-questions.mjs --update <还没上线的 migration>                              只替换文件里 >>> <<< 之间的题库
 //
 // 生成的 SQL 把整份 JSON 放进一个 $quiz$…$quiz$ 字面量，按 id upsert：
-// - 新题插入；已有的题内容变了就更新（JSON 是唯一来源，还没有审核页；有了审核页以后改成「已有的不覆盖」，见 0020 §8）
+// - 新题插入；已有的题内容变了就更新（JSON 是唯一来源，还没有审核页；有了审核页以后改成「已有的不覆盖」，见 0020 §9 #3）
 // - 题目不删：要下架就把 status 改成 retired（作答记录指向它）
 // 可以重复执行。单元测试（web/src/lib/quiz-bank.test.ts）检查最新的题库 migration 和 JSON 一致。
 import { readFileSync, writeFileSync, existsSync } from "node:fs";

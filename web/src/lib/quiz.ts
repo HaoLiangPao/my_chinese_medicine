@@ -19,8 +19,8 @@ export const QUIZ_TOPICS = [
 export type QuizTopic = (typeof QUIZ_TOPICS)[number]["slug"];
 
 const TOPIC_LABELS: Record<string, string> = Object.fromEntries(QUIZ_TOPICS.map((t) => [t.slug, t.label]));
-export const topicLabel = (slug: string) => TOPIC_LABELS[slug] ?? slug;
-export const isQuizTopic = (s: unknown): s is QuizTopic => typeof s === "string" && s in TOPIC_LABELS;
+export const topicLabel = (slug: string) => (Object.hasOwn(TOPIC_LABELS, slug) ? TOPIC_LABELS[slug] : slug);
+export const isQuizTopic = (s: unknown): s is QuizTopic => typeof s === "string" && QUIZ_TOPICS.some((t) => t.slug === s);
 
 /** 答错以后多少天再复习：答错 → 1 天；之后每答对一次换下一个间隔；最后一个间隔也答对 → 掌握了 */
 export const REVIEW_INTERVALS = [1, 3, 7, 14] as const;

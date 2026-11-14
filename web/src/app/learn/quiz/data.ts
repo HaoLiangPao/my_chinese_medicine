@@ -48,15 +48,23 @@ export async function loadReveals(supabase: Supabase, ids: string[]): Promise<Ma
   );
 }
 
-/** 自己的全部作答，按时间排（RLS 只给自己的） */
+/** PostgREST 一次最多返回这么多行（Supabase 默认的 Max rows，本地 scripts/local-stack.sh 也是 1000） */
+const PAGE = 1000;
+
+/** 自己的全部作答，按时间排（RLS 只给自己的）。超过一页的分页取全，不然最新的作答会读不到 */
 export async function loadMyAttempts(supabase: Supabase): Promise<AttemptRow[]> {
-  const { data, error } = await supabase
-    .from("quiz_attempts")
-    .select("question_id, chosen, correct, mode, daily_day, answered_at")
-    .order("answered_at")
-    .limit(10_000);
-  if (error) throw new Error(`读作答记录失败：${error.message}`);
-  return (data ?? []) as AttemptRow[];
+  const rows: AttemptRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("quiz_attempts")
+      .select("question_id, chosen, correct, mode, daily_day, answered_at")
+      .order("answered_at")
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`读作答记录失败：${error.message}`);
+    rows.push(...((data ?? []) as AttemptRow[]));
+    if ((data?.length ?? 0) < PAGE) return rows;
+  }
 }
 
 export const toQuizAttempts = (rows: AttemptRow[]): QuizAttempt[] =>

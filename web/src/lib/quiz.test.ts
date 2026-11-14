@@ -6,8 +6,10 @@ import {
   dailyStreak,
   daysBetween,
   dueForReview,
+  isQuizTopic,
   pickPractice,
   reviewStates,
+  topicLabel,
   topicProgress,
   torontoDay,
   type QuizAttempt,
@@ -174,6 +176,15 @@ describe("间隔复习：1 → 3 → 7 → 14 天", () => {
     const due = dueForReview(reviewStates(attempts, "2026-11-09"));
     expect(due).toEqual(["q-a", "q-b", "q-c", "q-1", "q-2"]);
     expect(dueForReview(reviewStates(attempts, "2026-11-09"), 10)).toEqual(["q-a", "q-b", "q-c", "q-1", "q-2", "q-3", "q-4"]);
+  });
+});
+
+describe("主题", () => {
+  it("只认列表里的主题，原型链上的键不算（URL 参数会传进来）", () => {
+    expect(isQuizTopic("wuxing")).toBe(true);
+    for (const s of ["__proto__", "constructor", "toString", "zhenjiu", "", null, 1]) expect(isQuizTopic(s), String(s)).toBe(false);
+    expect(topicLabel("jingluo")).toBe("经络与腧穴");
+    expect(topicLabel("__proto__")).toBe("__proto__");
   });
 });
 

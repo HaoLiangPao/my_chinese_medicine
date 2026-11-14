@@ -236,6 +236,31 @@ test("登录后：每日一题记录、打卡、主题进度、错题本、到�
   await page.screenshot({ path: path.join(SHOTS, "learn-quiz-mine-390.png"), fullPage: true });
 });
 
+test("作答超过 1000 条（PostgREST 一页的上限）：最新的记录也读得到", { tag: ["@LEARN-5"] }, async ({ page }) => {
+  const me = { email: `quiz-many+${RUN}@example.com`, password: "secret-quiz-123" };
+  const q = expectedDaily(torontoToday());
+  const old = BANK.find((x) => x.id !== q.id)!;
+  await signUp(page, me);
+  // 一个月前在练一练里答对了 1100 次（超级用户直接写；答对的不进复习）
+  await sql(
+    `insert into quiz_attempts (user_id, question_id, chosen, mode, answered_at)
+     select u.id, $2, $3, 'practice', now() - interval '30 days' + g * interval '1 second'
+     from auth.users u, generate_series(1, 1100) g where u.email = $1`,
+    [me.email, old.id, old.answer],
+  );
+  await page.goto("/learn");
+  const card = page.getByTestId("daily-quiz");
+  await answer(card, q.answer);
+  await expect(card.getByTestId("daily-streak")).toHaveText("已连续打卡 1 天");
+  // 刷新：第 1101 条（今天的每日一题）也读到了
+  await page.reload();
+  await expect(card.getByTestId("quiz-result")).toHaveAttribute("data-correct", "true");
+  await expect(card.getByTestId("daily-streak")).toHaveText("已连续打卡 1 天");
+  await page.goto("/learn/quiz");
+  await expect(page.getByTestId("stat-streak")).toContainText("1 天");
+  await expect(page.getByTestId("stat-done")).toContainText(`2 / ${BANK.length}`);
+});
+
 test("手机 390px：不登录的每日一题和练一练不横向溢出", { tag: ["@LEARN-4", "@PLAT-2"] }, async ({ browser }) => {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   for (const url of ["/learn", "/learn/quiz", "/learn/quiz/practice?topic=sizhen"]) {

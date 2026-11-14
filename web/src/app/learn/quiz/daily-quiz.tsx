@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { loadBank, loadMyAttempts, loadReveals, quizContext, summarize, todaysQuestionId } from "./data";
 import { QuestionCard } from "./question-card";
 
@@ -7,6 +8,17 @@ import { QuestionCard } from "./question-card";
  * 登录用户今天已经答过：显示他答的那一题和结果（当天题库变了也不会换题）。
  */
 export async function DailyQuiz() {
+  // 学习路径页本来不依赖数据库：每日一题读不出来时只隐藏这张卡片，不让整页挂掉
+  try {
+    return await DailyQuizCard();
+  } catch (e) {
+    unstable_rethrow(e); // Next 自己的控制流（比如动态渲染的信号）照常抛出去
+    console.error("每日一题加载失败", e);
+    return null;
+  }
+}
+
+async function DailyQuizCard() {
   const { supabase, userId, today } = await quizContext();
   const bank = await loadBank(supabase);
   const mine = userId ? summarize(await loadMyAttempts(supabase), today) : null;
