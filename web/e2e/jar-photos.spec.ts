@@ -64,6 +64,8 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => {
   await page.close();
+  // 删掉测试自己加的药材（herb_photos、pantry_settings 跟着删），免得出处页的行数影响 herb-photos.spec.ts
+  await sql("delete from herbs where name_zh in ($1, $2)", [HERB, `测试无图药${RUN}`]);
 });
 
 test("上传本罐照片：详情页显示它，默认照片不显示；存的是重新编码过的图", { tag: ["@LBL-8"] }, async () => {
