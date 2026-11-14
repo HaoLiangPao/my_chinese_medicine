@@ -8,7 +8,8 @@ const noopSubscribe = () => () => {};
 
 /** 在浏览器里缩小、重新编码（去掉 EXIF 里的拍摄位置等信息）。Safari 不能编码 WebP，就用 JPEG */
 async function shrink(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  // 新规范默认就按 EXIF 方向转正；老的 Safari 不认 "from-image" 这个值会抛 TypeError，就退回不带参数
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" }).catch(() => createImageBitmap(file));
   const { width, height } = fitWithin(bitmap.width, bitmap.height);
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -52,6 +53,7 @@ export function JarPhotoControls({
         blob = await shrink(file);
       } catch {
         setMsg("这张照片打不开，换一张试试（JPEG / PNG / WebP）");
+        if (fileRef.current) fileRef.current.value = "";
         return;
       }
       const form = new FormData();
@@ -62,7 +64,7 @@ export function JarPhotoControls({
     });
 
   const onDelete = () => {
-    if (!window.confirm("删掉本罐照片？删了以后显示默认照片。")) return;
+    if (!window.confirm("删掉本罐照片？删了以后显示默认照片（没有默认照片的显示「暂时没有照片」）。")) return;
     start(async () => {
       setMsg(null);
       const res = await deleteJarPhoto(herbId);
@@ -76,7 +78,6 @@ export function JarPhotoControls({
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         data-testid="jar-photo-input"
         disabled={!hydrated || pending}
