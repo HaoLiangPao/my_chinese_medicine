@@ -16,11 +16,14 @@ export function QuizRunner({
   mode,
   topic,
   loggedIn,
+  emptyNote = null,
 }: {
   initial: PublicQuestion[];
   mode: "practice" | "review";
   topic: QuizTopic | null;
   loggedIn: boolean;
+  /** 没有题时多显示一行（复习：下一次复习的日子） */
+  emptyNote?: string | null;
 }) {
   const [round, setRound] = useState(0);
   const [questions, setQuestions] = useState(initial);
@@ -49,9 +52,10 @@ export function QuizRunner({
     return (
       <div className="card text-center text-sm text-muted" data-testid="quiz-empty">
         {mode === "review" ? "今天没有要复习的题。" : "这个主题还没有题。"}
+        {emptyNote && <div className="mt-1">{emptyNote}</div>}
         <div className="mt-2">
           <Link href="/learn/quiz" className="text-cinnabar">
-            回到题库 →
+            {mode === "review" ? "去练一练 →" : "回到题库 →"}
           </Link>
         </div>
       </div>

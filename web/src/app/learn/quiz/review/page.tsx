@@ -46,24 +46,19 @@ export default async function ReviewPage() {
   return (
     <div className="space-y-5">
       {header}
-      {due.length > 0 ? (
-        <>
-          <p className="text-sm" data-testid="review-due">
-            今天要复习 <b className="text-cinnabar">{due.length}</b> 题
-          </p>
-          <QuizRunner initial={due.slice(0, QUIZ_BATCH).map((id) => byId.get(id)!)} mode="review" topic={null} loggedIn />
-        </>
-      ) : (
-        <div className="card text-center text-sm text-muted" data-testid="quiz-empty">
-          今天没有要复习的题。
-          {next && <div className="mt-1">下一次复习：{next.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, "$1 月 $2 日")}</div>}
-          <div className="mt-2">
-            <Link href="/learn/quiz" className="text-cinnabar">
-              去练一练 →
-            </Link>
-          </div>
-        </div>
+      {due.length > 0 && (
+        <p className="text-sm" data-testid="review-due">
+          今天要复习 <b className="text-cinnabar">{due.length}</b> 题
+        </p>
       )}
+      {/* 有没有到期的题都放同一个 QuizRunner：答完最后一题刷新页面时，它不能被换掉（换掉就看不到这一题的结果了） */}
+      <QuizRunner
+        initial={due.slice(0, QUIZ_BATCH).map((id) => byId.get(id)!)}
+        mode="review"
+        topic={null}
+        loggedIn
+        emptyNote={next ? `下一次复习：${next.replace(/^\d{4}-0?(\d+)-0?(\d+)$/, "$1 月 $2 日")}` : null}
+      />
     </div>
   );
 }
