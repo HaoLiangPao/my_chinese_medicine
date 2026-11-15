@@ -1,32 +1,36 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { getContext } from "@/lib/auth";
-import { listHerbs } from "@/lib/herbs";
+import { listHerbsWithKind } from "@/lib/herbs";
 import { grams } from "@/lib/format";
 import { groupByCategory } from "@/lib/herb-categories";
 import { termsFor } from "@/lib/terms";
 import { Loading, PageHeader } from "@/components/ui";
 import { thumbSrc } from "@/lib/herb-photo";
+import { groupByOrigin, herbKindLabel, resolveHerbKind, type HerbKind } from "@/lib/herb-kinds";
+import { HerbKindIcon } from "@/components/herb-kind-icons";
 import { ApprenticeCorner } from "@/components/apprentice/apprentice-corner";
 
-export default function HerbsPage() {
+export default function HerbsPage({ searchParams }: PageProps<"/herbs">) {
   return (
     <>
       <PageHeader title="药材" subtitle="每味药在哪些方子里出现过、一共用了多少" />
       <Suspense fallback={<Loading />}>
-        <Herbs />
+        <Herbs searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function Herbs() {
+async function Herbs({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { supabase, workspaceId, accountKind } = await getContext();
   const t = termsFor(accountKind);
+  // 目录的分组方式：默认按功效（0017），?by=origin 按来源（0018 §5）
+  const byOrigin = (await searchParams).by === "origin";
   const [{ data: usage }, { data: inv }, all, { data: isReviewer }, { data: photos }] = await Promise.all([
     supabase.from("v_herb_usage").select("*").eq("workspace_id", workspaceId).order("prescription_count", { ascending: false }),
     supabase.from("v_inventory").select("herb_id, on_hand_grams").eq("workspace_id", workspaceId),
-    listHerbs(supabase),
+    listHerbsWithKind(supabase),
     supabase.rpc("is_monograph_reviewer"),
     supabase.from("herb_photos").select("herb_id, file"),
   ]);
@@ -44,6 +48,12 @@ async function Herbs() {
     return file ? thumbSrc(file) : null;
   };
   const anyThumb = (usage ?? []).some((u) => thumbOf(u.herb_id));
+  // 来源和部位：自己的，空的跟原药材（docs/design/0018 §3.3）
+  const byId = new Map(all.map((h) => [h.id, h]));
+  const kindOf = (h: (typeof all)[number]): HerbKind => resolveHerbKind(h, h.base_herb_id ? (byId.get(h.base_herb_id) ?? null) : null);
+  const groups = byOrigin
+    ? groupByOrigin(all, kindOf).map((g) => ({ key: g.key, label: g.label, icon: g.key, herbs: g.herbs }))
+    : groupByCategory(all).map((g) => ({ key: g.category, label: g.category, icon: null, herbs: g.herbs }));
 
   return (
     <div className="space-y-6">
@@ -110,29 +120,59 @@ async function Herbs() {
 
       <section>
         <h2 className="mb-2 font-serif text-lg font-bold">药材目录（{all.length}）</h2>
-        <p className="mb-2 text-sm text-muted">按功效分类，点开看每一类的药；红色的是用过的。</p>
+        <nav className="mb-2 flex flex-wrap items-center gap-2 text-sm" aria-label="目录分组方式" data-testid="herbs-group-by">
+          <Link
+            href="/herbs"
+            scroll={false}
+            data-bug-label="目录按功效分组"
+            aria-current={byOrigin ? undefined : "page"}
+            className={`rounded-full border px-3 py-1 ${byOrigin ? "border-line text-muted" : "border-cinnabar bg-cinnabar text-white"}`}
+          >
+            按功效
+          </Link>
+          <Link
+            href="/herbs?by=origin"
+            scroll={false}
+            data-bug-label="目录按来源分组"
+            aria-current={byOrigin ? "page" : undefined}
+            className={`rounded-full border px-3 py-1 ${byOrigin ? "border-cinnabar bg-cinnabar text-white" : "border-line text-muted"}`}
+          >
+            按来源
+          </Link>
+        </nav>
+        <p className="mb-2 text-sm text-muted">
+          {byOrigin ? "按来源（植物按入药部位）分类" : "按功效分类"}，点开看每一类的药；红色的是用过的。
+        </p>
         <div className="space-y-2">
-          {groupByCategory(all).map(({ category, herbs }) => {
+          {groups.map(({ key, label, icon, herbs }) => {
             const usedCount = herbs.filter((h) => used.has(h.id)).length;
             return (
-              <details key={category} className="card py-2" data-testid={`catalog-${category}`}>
+              <details key={key} className="card py-2" data-testid={`catalog-${key}`}>
                 <summary className="cursor-pointer select-none">
-                  <span className="font-medium">{category}</span>
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    {icon && <HerbKindIcon name={icon} size={20} />}
+                    {label}
+                  </span>
                   <span className="ml-2 text-sm text-muted">
                     {herbs.length} 味{usedCount > 0 && ` · 用过 ${usedCount}`}
                   </span>
                 </summary>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {herbs.map((h) => (
-                    <Link
-                      key={h.id}
-                      href={`/herbs/${h.id}`}
-                      className={`rounded-full border px-3 py-1 text-sm ${used.has(h.id) ? "border-cinnabar text-cinnabar" : "border-line text-muted"}`}
-                      title={[h.pinyin, h.category].filter(Boolean).join(" · ")}
-                    >
-                      {h.name_zh}
-                    </Link>
-                  ))}
+                  {herbs.map((h) => {
+                    const kind = kindOf(h);
+                    return (
+                      <Link
+                        key={h.id}
+                        href={`/herbs/${h.id}`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm ${used.has(h.id) ? "border-cinnabar text-cinnabar" : "border-line text-muted"}`}
+                        title={[h.pinyin, h.category, herbKindLabel(kind)].filter(Boolean).join(" · ")}
+                      >
+                        {/* 按功效分组时每味药前放来源的小图标；按来源分组时组标题已经有了，不再重复 */}
+                        {!byOrigin && <HerbKindIcon name={kind.origin ?? "unclassified"} size={14} />}
+                        {h.name_zh}
+                      </Link>
+                    );
+                  })}
                 </div>
               </details>
             );

@@ -13,6 +13,8 @@ import { HerbPhotoFigure, JarPhotoFigure } from "./photo";
 import { NoPhoto } from "@/components/no-photo";
 import { JarPhotoControls } from "./jar-photo-controls";
 import { JAR_BUCKET } from "@/lib/jar-photo";
+import { resolveHerbKind } from "@/lib/herb-kinds";
+import { HerbKindTag } from "@/components/herb-kind-icons";
 import { HerbApprentice } from "@/components/apprentice/herb-apprentice";
 
 export default function HerbPage({ params }: PageProps<"/herbs/[id]">) {
@@ -36,7 +38,9 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
 
   const { data: herbRow } = await supabase
     .from("herbs")
-    .select("id, name_zh, pinyin, category, notes, base:base_herb_id(id, name_zh), herb_aliases(alias)")
+    .select(
+      "id, name_zh, pinyin, category, notes, origin_kind, medicinal_part, base:base_herb_id(id, name_zh, origin_kind, medicinal_part), herb_aliases(alias)",
+    )
     .eq("id", id)
     .maybeSingle();
   const herb = herbRow as unknown as {
@@ -45,7 +49,9 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
     pinyin: string | null;
     category: string | null;
     notes: string | null;
-    base: { id: string; name_zh: string } | null;
+    origin_kind: string | null;
+    medicinal_part: string | null;
+    base: { id: string; name_zh: string; origin_kind: string | null; medicinal_part: string | null } | null;
     herb_aliases: { alias: string }[];
   } | null;
   if (!herb) notFound();
@@ -111,6 +117,8 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const jarPath = (pantry?.photo_path as string | null) ?? null;
   const { data: jarSigned } = jarPath ? await supabase.storage.from(JAR_BUCKET).createSignedUrl(jarPath, 3600) : { data: null };
   const jarUrl = jarSigned?.signedUrl ?? null;
+  // 来源和部位：自己的，空的跟原药材（docs/design/0018 §3.3）
+  const kindTag = <HerbKindTag kind={resolveHerbKind(herb, herb.base)} />;
   const sortedUses = (uses ?? []).sort((a, b) => (b.prescriptions?.issued_on ?? "").localeCompare(a.prescriptions?.issued_on ?? ""));
 
   return (
@@ -149,7 +157,11 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           {herb.herb_aliases.length > 0 && ` · 别名 ${herb.herb_aliases.map((a) => a.alias).join("、")}`}
         </p>
         {monograph?.data.latin_name && <p className="text-sm italic text-muted">{monograph.data.latin_name}</p>}
-        {monograph && <MonographTags m={monograph.data} />}
+        {monograph ? (
+          <MonographTags m={monograph.data} lead={kindTag} />
+        ) : (
+          <div className="mt-2 flex flex-wrap gap-1.5 text-sm">{kindTag}</div>
+        )}
       </div>
 
       <HerbApprentice herb={herb} monograph={monograph} />
