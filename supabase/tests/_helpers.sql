@@ -6,7 +6,8 @@
 insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a', 'hao@example.com'),
   ('00000000-0000-0000-0000-00000000000b', 'stranger@example.com'),
-  ('00000000-0000-0000-0000-00000000000c', 'tina@example.com');
+  ('00000000-0000-0000-0000-00000000000c', 'tina@example.com')
+on conflict (id) do nothing; -- 升级测试里几个新 migration 的检查文件在同一个库里依次 \ir 这个文件
 
 -- assert_eq(实际, 期望, 说明)：不相等就报错，错误信息里带上两个值
 create or replace function public.assert_eq(actual anyelement, expected anyelement, label text)
