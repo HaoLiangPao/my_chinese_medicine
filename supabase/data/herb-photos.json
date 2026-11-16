@@ -1,0 +1,696 @@
+{
+  "说明": "药材默认照片（docs/design/0010 §3.5）。由 scripts/fetch-herb-photos.mjs 维护，不要手改。图片在 web/public/herb-photos/<file>，来自 Wikimedia Commons，授权用 API 核对过。reviewed = true 的才进数据库、才在 App 里显示；photo = null 表示核对过、没有合适的图。kind：饮片 / 药材 / 植物。",
+  "herbs": [
+    {
+      "name": "麻黄",
+      "photo": {
+        "file": "ma-huang.webp",
+        "kind": "饮片",
+        "commons_title": "File:Maou.jpg",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Maou.jpg",
+        "author": "Hanabishi",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "width": 479,
+        "height": 800
+      },
+      "reviewed": true,
+      "reviewed_by": "Hao",
+      "reviewed_at": "2026-11-12"
+    },
+    {
+      "name": "桂枝",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "紫苏叶",
+      "photo": {
+        "file": "zi-su-ye.webp",
+        "kind": "植物",
+        "commons_title": "File:2023-08-11 15 12 45 Purple shiso along Lochatong Road in the Mountainvifew section of Ewing Township, Mercer County, New Jersey.jpg",
+        "source_url": "https://commons.wikimedia.org/wiki/File:2023-08-11_15_12_45_Purple_shiso_along_Lochatong_Road_in_the_Mountainvifew_section_of_Ewing_Township,_Mercer_County,_New_Jersey.jpg",
+        "author": "Famartin",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "width": 800,
+        "height": 600
+      },
+      "reviewed": true,
+      "reviewed_by": "Hao",
+      "reviewed_at": "2026-11-12"
+    },
+    {
+      "name": "生姜",
+      "photo": {
+        "file": "sheng-jiang.webp",
+        "kind": "饮片",
+        "commons_title": "File:Ginger root.jpg",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Ginger_root.jpg",
+        "author": "BogTar201213",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "width": 800,
+        "height": 454
+      },
+      "reviewed": true,
+      "reviewed_by": "Hao",
+      "reviewed_at": "2026-11-12"
+    },
+    {
+      "name": "荆芥",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "防风",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "白芷",
+      "photo": {
+        "file": "bai-zhi.webp",
+        "kind": "饮片",
+        "commons_title": "File:Dried angelica dahurica slices.jpg",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Dried_angelica_dahurica_slices.jpg",
+        "author": "Fumikas Sagisavas",
+        "license": "CC0",
+        "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "width": 800,
+        "height": 800
+      },
+      "reviewed": true,
+      "reviewed_by": "Hao",
+      "reviewed_at": "2026-11-12"
+    },
+    {
+      "name": "薄荷",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "桑叶",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "菊花",
+      "photo": {
+        "file": "ju-hua.webp",
+        "kind": "饮片",
+        "commons_title": "File:Chrysanthemum tea (20240131).jpg",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Chrysanthemum_tea_(20240131).jpg",
+        "author": "Fumikas Sagisavas",
+        "license": "CC0",
+        "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+        "width": 640,
+        "height": 640
+      },
+      "reviewed": true,
+      "reviewed_by": "Hao",
+      "reviewed_at": "2026-11-12"
+    },
+    {
+      "name": "葛根",
+      "photo": {
+        "file": "ge-gen.webp",
+        "kind": "植物",
+        "commons_title": "File:Chik 2.jpg",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Chik_2.jpg",
+        "author": "측천문후",
+        "license": "CC BY 4.0",
+        "license_url": "https://creativecommons.org/licenses/by/4.0",
+        "width": 700,
+        "height": 465
+      },
+      "reviewed": true,
+      "reviewed_by": "Hao",
+      "reviewed_at": "2026-11-12"
+    },
+    {
+      "name": "柴胡",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "升麻",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "石膏",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "知母",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "栀子",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "黄芩",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "黄连",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "黄柏",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "关黄柏",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "金银花",
+      "photo": {
+        "file": "jin-yin-hua.webp",
+        "kind": "饮片",
+        "commons_title": "File:Dried honeysuckle.jpg",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Dried_honeysuckle.jpg",
+        "author": "François Nguyen",
+        "license": "CC BY 2.0",
+        "license_url": "https://creativecommons.org/licenses/by/2.0",
+        "width": 800,
+        "height": 800
+      },
+      "reviewed": true,
+      "reviewed_by": "Hao",
+      "reviewed_at": "2026-11-12"
+    },
+    {
+      "name": "连翘",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "蒲公英",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "生地黄",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "玄参",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "牡丹皮",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "赤芍",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "大黄",
+      "photo": {
+        "file": "da-huang.webp",
+        "kind": "饮片",
+        "commons_title": "File:Rhei1.JPG",
+        "source_url": "https://commons.wikimedia.org/wiki/File:Rhei1.JPG",
+        "author": "Maša Sinreih in Valentina Vivod",
+        "license": "CC BY-SA 3.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+        "width": 800,
+        "height": 600
+      },
+      "reviewed": true,
+      "reviewed_by": "Hao",
+      "reviewed_at": "2026-11-12"
+    },
+    {
+      "name": "独活",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "羌活",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "藿香",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "广藿香",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "苍术",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "厚朴",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "砂仁",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "茯苓",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "猪苓",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "泽泻",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "薏苡仁",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "车前子",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "干姜",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "肉桂",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "陈皮",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "枳壳",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "枳实",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "木香",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "香附",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "佛手",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "山楂",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "神曲",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "麦芽",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "鸡内金",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "川芎",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "丹参",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "桃仁",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "红花",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "牛膝",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "川牛膝",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "益母草",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "三七",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "半夏",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "桔梗",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "川贝母",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "浙贝母",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "苦杏仁",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "酸枣仁",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "远志",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "龙骨",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "牡蛎",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "天麻",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "钩藤",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "人参",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "西洋参",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "党参",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "太子参",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "黄芪",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "白术",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "山药",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "甘草",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "大枣",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "当归",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "熟地黄",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "白芍",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "阿胶",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "何首乌",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "龙眼肉",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "麦冬",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "天冬",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "南沙参",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "北沙参",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "玉竹",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "百合",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "石斛",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "铁皮石斛",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "枸杞子",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "女贞子",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "杜仲",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "续断",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "菟丝子",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "淫羊藿",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "五味子",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "山茱萸",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "莲子",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "芡实",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "浮小麦",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "炙黄芪",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "炙甘草",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "炒白术",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "法半夏",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "姜半夏",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "炒酸枣仁",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "焦山楂",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "炒麦芽",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "炒薏苡仁",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "酒当归",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "醋香附",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "煅龙骨",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "煅牡蛎",
+      "photo": null,
+      "reviewed": false
+    },
+    {
+      "name": "制何首乌",
+      "photo": null,
+      "reviewed": false
+    }
+  ]
+}
