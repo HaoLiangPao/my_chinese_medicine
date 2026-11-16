@@ -54,6 +54,7 @@ export default defineConfig({
     { name: "bug-report", testMatch: /bug-report\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "admin-dashboard", testMatch: /admin-dashboard\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "herb-photos", testMatch: /herb-photos\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "jar-photos", testMatch: /jar-photos\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {

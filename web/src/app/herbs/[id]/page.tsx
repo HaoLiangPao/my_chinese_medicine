@@ -9,8 +9,10 @@ import { resolveMonograph, type Monograph } from "@/lib/herb-monograph";
 import { MonographSection, MonographTags } from "./monograph";
 import { BatchesSection, type BatchRow } from "./batches";
 import { resolvePhoto, type HerbPhoto } from "@/lib/herb-photo";
-import { HerbPhotoFigure } from "./photo";
+import { HerbPhotoFigure, JarPhotoFigure } from "./photo";
 import { NoPhoto } from "@/components/no-photo";
+import { JarPhotoControls } from "./jar-photo-controls";
+import { JAR_BUCKET } from "@/lib/jar-photo";
 
 export default function HerbPage({ params }: PageProps<"/herbs/[id]">) {
   return (
@@ -57,6 +59,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
     { data: isReviewer },
     { data: batchRows },
     { data: photos },
+    { data: pantry },
   ] = await Promise.all([
     supabase
       .from("prescription_items")
@@ -91,6 +94,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
       .select("herb_id, file, kind, author, license, license_url, source_url, width, height")
       .in("herb_id", monographIds)
       .returns<HerbPhoto[]>(),
+    supabase.from("pantry_settings").select("photo_path").eq("workspace_id", workspaceId).eq("herb_id", id).maybeSingle(),
   ]);
   const batches: BatchRow[] = (batchRows ?? []).map(({ purchases: pu, ...b }) => ({
     ...b,
@@ -102,6 +106,10 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   const monograph = resolveMonograph(byHerb.get(herb.id) ?? null, herb.base ? (byHerb.get(herb.base.id) ?? null) : null);
   const photosByHerb = new Map((photos ?? []).map((p) => [p.herb_id, p]));
   const photo = resolvePhoto(photosByHerb.get(herb.id) ?? null, herb.base ? (photosByHerb.get(herb.base.id) ?? null) : null);
+  // 本罐照片（私有，只有本药柜能看）优先；没有就用默认照片（docs/design/0010 §3.5）
+  const jarPath = (pantry?.photo_path as string | null) ?? null;
+  const { data: jarSigned } = jarPath ? await supabase.storage.from(JAR_BUCKET).createSignedUrl(jarPath, 3600) : { data: null };
+  const jarUrl = jarSigned?.signedUrl ?? null;
   const sortedUses = (uses ?? []).sort((a, b) => (b.prescriptions?.issued_on ?? "").localeCompare(a.prescriptions?.issued_on ?? ""));
 
   return (
@@ -110,8 +118,20 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
         <Link href="/herbs" className="text-sm text-muted">
           ← 药材
         </Link>
-        <div className="mt-2">
-          {photo ? <HerbPhotoFigure photo={photo.photo} fromBase={photo.fromBase} baseName={herb.base?.name_zh ?? null} /> : <NoPhoto />}
+        {/* 本罐照片（只有本药柜能看）优先，其次默认照片，都没有就是占位图，占位图下面直接放「拍一张上传」 */}
+        <div className="mt-2 space-y-2">
+          {jarUrl ? (
+            <JarPhotoFigure url={jarUrl} />
+          ) : photo ? (
+            <HerbPhotoFigure photo={photo.photo} fromBase={photo.fromBase} baseName={herb.base?.name_zh ?? null} />
+          ) : null}
+          {jarUrl || photo ? (
+            <JarPhotoControls herbId={herb.id} hasJarPhoto={jarPath !== null} />
+          ) : (
+            <NoPhoto>
+              <JarPhotoControls herbId={herb.id} hasJarPhoto={jarPath !== null} emptyLabel="📷 拍一张上传" />
+            </NoPhoto>
+          )}
         </div>
         <h1 className="mt-1 font-serif text-3xl font-bold">{herb.name_zh}</h1>
         <p className="mt-1 text-sm text-muted">
