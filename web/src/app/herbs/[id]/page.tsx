@@ -16,6 +16,8 @@ import { JAR_BUCKET } from "@/lib/jar-photo";
 import { resolveHerbKind } from "@/lib/herb-kinds";
 import { HerbKindTag } from "@/components/herb-kind-icons";
 import { HerbApprentice } from "@/components/apprentice/herb-apprentice";
+import { CorrectionButton } from "@/components/content-correction";
+import { herbCorrectionFields } from "@/lib/content-correction";
 
 export default function HerbPage({ params }: PageProps<"/herbs/[id]">) {
   return (
@@ -157,11 +159,24 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           {herb.herb_aliases.length > 0 && ` · 别名 ${herb.herb_aliases.map((a) => a.alias).join("、")}`}
         </p>
         {monograph?.data.latin_name && <p className="text-sm italic text-muted">{monograph.data.latin_name}</p>}
-        {monograph ? (
-          <MonographTags m={monograph.data} lead={kindTag} />
-        ) : (
-          <div className="mt-2 flex flex-wrap gap-1.5 text-sm">{kindTag}</div>
-        )}
+        <div className="flex flex-wrap items-end justify-between gap-x-3">
+          {monograph ? (
+            <MonographTags m={monograph.data} lead={kindTag} />
+          ) : (
+            <div className="mt-2 flex flex-wrap gap-1.5 text-sm">{kindTag}</div>
+          )}
+          {/* 目录、分类、资料、照片大多是 AI 整理的：可以指出哪一项有误（docs/design/0021） */}
+          <CorrectionButton
+            subject={{
+              type: "herb",
+              id: herb.id,
+              label: herb.name_zh,
+              fields: herbCorrectionFields({ hasMonograph: !!monograph, showsDefaultPhoto: !jarUrl && !!photo }),
+            }}
+          >
+            信息有误？
+          </CorrectionButton>
+        </div>
       </div>
 
       <HerbApprentice herb={herb} monograph={monograph} />

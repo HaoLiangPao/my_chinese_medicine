@@ -106,6 +106,17 @@ insert into prescriptions (workspace_id, title, dose_count) values (:'w4home', '
 insert into prescription_items (prescription_id, herb_id, grams_per_dose, raw_name)
 select :'rx6', id, 12, name_zh from herbs where name_zh in ('云苓', '红参');
 
+-- ---- Bug 反馈（0014，已上线）：u1 带操作记录的一条、u3 一条（管理员改过状态）----
+:as_u1;
+insert into bug_reports (workspace_id, page_path, description, user_agent, viewport, app_version, recent_actions, recent_errors)
+values (:'w1', '/prescriptions/new', '升级前的反馈：保存没反应', 'Mozilla/5.0', '390x844', 'abc123',
+        '[{"t":"2026-11-10T01:00:00.000Z","kind":"nav","label":"/prescriptions/new"}]',
+        '[{"t":"2026-11-10T01:00:01.000Z","message":"TypeError","stack":""}]');
+:as_u3;
+insert into bug_reports (page_path, description) values ('/herbs', '升级前的反馈：麻黄的归经好像不对');
+reset role;
+update bug_reports set status = 'in_progress' where description = '升级前的反馈：麻黄的归经好像不对';
+
 -- ---- u5 只登录过一次 ----
 :as_u5;
 select ensure_default_workspace();

@@ -4,13 +4,21 @@
  * 描述不发：用户可能在里面写病人的姓名、电话，这些不应该离开数据库。看内容要去数据库里查这个编号。
  */
 
-export type BugNotice = { id: string; pagePath: string; createdAt: string };
+/** kind：信息纠错（docs/design/0021）多一行「类型：信息纠错」；不传就是程序问题，消息和原来一样 */
+export type BugNotice = { id: string; pagePath: string; createdAt: string; kind?: "bug" | "content" };
 
 /** Slack 的文字里 & < > 要转义，不然路径里的 <!channel> 会真的 @ 所有人 */
 const escapeSlack = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/** 消息内容：只用这三样（一个个字段取，不展开整个对象）。描述、操作记录、错误、浏览器、提交人都不发 */
+/**
+ * 消息内容：只用编号、页面、时间（一个个字段取，不展开整个对象），纠错再加一行类型。
+ * 描述、依据、哪味药 / 哪道题、操作记录、错误、浏览器、提交人都不发
+ */
 export function buildSlackMessage(n: BugNotice): { text: string } {
+  if (n.kind === "content")
+    return {
+      text: [`📝 新的信息纠错 ${n.id}`, "类型：信息纠错", `页面：${escapeSlack(n.pagePath)}`, `时间：${n.createdAt}`].join("\n"),
+    };
   return { text: [`🐞 新的问题反馈 ${n.id}`, `页面：${escapeSlack(n.pagePath)}`, `时间：${n.createdAt}`].join("\n") };
 }
 
