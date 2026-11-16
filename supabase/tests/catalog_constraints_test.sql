@@ -4,7 +4,9 @@
 -- ---- 种子数据 ----
 select assert_eq((select count(*) >= 100 from herbs), true, '种子药材 >= 100');
 select assert_eq((select b.name_zh from herbs h join herbs b on b.id = h.base_herb_id where h.name_zh = '炙黄芪'), '黄芪', '炮制品指回原药材');
-select assert_eq((select count(*) from herbs where base_herb_id is not null), 14::bigint, '14 个炮制品（2026-11-07 加了制何首乌）');
+select assert_eq((select count(*) from herbs where base_herb_id is not null), 77::bigint, '77 个炮制品（2026-11-13 扩目录，docs/design/0017）');
+select assert_eq((select count(*) from herbs where base_herb_id is null), 430::bigint, '430 味原药材（2026-11-13 扩目录）');
+select assert_eq((select count(*) from herbs where pinyin is null or category is null), 0::bigint, '目录里每味药都有拼音和分类');
 select assert_eq((select count(*) from herb_aliases a join herbs h on h.name_zh = a.alias), 0::bigint, '别名不能和标准名重名');
 
 -- ---- match_herb ----
@@ -19,6 +21,20 @@ select assert_eq((select name_zh from herbs where id = match_herb('制首乌')),
 select assert_eq((select b.name_zh from herbs h join herbs b on b.id = h.base_herb_id where h.name_zh = '制何首乌'), '何首乌', '制何首乌是何首乌的炮制品');
 select assert_eq((select count(*) from herbs where name_zh in ('关黄柏', '广藿香', '川牛膝', '北沙参', '南沙参', '铁皮石斛')), 6::bigint, '分开的药都在目录里');
 select assert_eq(match_herb(''), null::uuid, '空串 → null');
+-- 2026-11-13 扩目录：新加的别名、俗写、炮制品的别名（照片识别靠它们匹配）
+select assert_eq((select name_zh from herbs where id = match_herb('云苓')), '茯苓', '别名 云苓');
+select assert_eq((select name_zh from herbs where id = match_herb('元胡')), '延胡索', '别名 元胡');
+select assert_eq((select name_zh from herbs where id = match_herb('龟板')), '龟甲', '俗名 龟板 → 药典正名 龟甲');
+select assert_eq((select name_zh from herbs where id = match_herb('夜交藤')), '首乌藤', '别名 夜交藤');
+select assert_eq((select name_zh from herbs where id = match_herb('白芨')), '白及', '俗写 白芨');
+select assert_eq((select name_zh from herbs where id = match_herb('炙麻黄')), '蜜麻黄', '炮制品的别名 炙麻黄');
+select assert_eq((select name_zh from herbs where id = match_herb('炒枳壳')), '麸炒枳壳', '炮制品的别名 炒枳壳');
+select assert_eq((select name_zh from herbs where id = match_herb('川军')), '大黄', '别名 川军');
+select assert_eq((select name_zh from herbs where id = match_herb('生龙骨')), '龙骨', '「生」字头的写法');
+select assert_eq((select b.name_zh from herbs h join herbs b on b.id = h.base_herb_id where h.name_zh = '胆南星'), '天南星', '胆南星挂在天南星下');
+select assert_eq((select category from herbs where name_zh = '醋延胡索'), '活血化瘀药', '炮制品的分类跟原药材');
+select assert_eq(match_herb('萆薢'), null::uuid, '「萆薢」不确定是粉萆薢还是绵萆薢，不设别名');
+select assert_eq((select count(*) from herb_aliases a where not exists (select 1 from herbs h where h.id = a.herb_id)), 0::bigint, '别名都指向存在的药');
 
 :as_hao;
 select ensure_default_workspace() as ws \gset

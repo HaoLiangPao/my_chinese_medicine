@@ -131,9 +131,9 @@ select assert_eq((select count from parse_usage where user_id = '00000000-0000-0
 :as_mallory;
 select assert_raises($$insert into herb_aliases (alias, herb_id) values ('北芪2', (select id from herbs where name_zh = '附子'))$$, 'permission denied', '不能加别名');
 select assert_raises($$insert into herbs (name_zh, category, notes) values ('假药', '补气药', 'x')$$, 'permission denied', '新药材只能写名字');
-insert into herbs (name_zh) values ('鸡血藤');
-select assert_eq(match_herb('鸡血藤') is not null, true, '只写名字可以');
-select assert_raises($$delete from herbs where name_zh = '鸡血藤'$$, 'permission denied', '不能删药材');
+insert into herbs (name_zh) values ('鸡矢藤');
+select assert_eq(match_herb('鸡矢藤') is not null, true, '只写名字可以');
+select assert_raises($$delete from herbs where name_zh = '鸡矢藤'$$, 'permission denied', '不能删药材');
 select assert_raises('select current_email()', 'permission denied', '内部函数 current_email 不对外');
 
 \echo 'invitations_test: PASSED'

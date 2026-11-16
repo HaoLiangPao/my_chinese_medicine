@@ -16,7 +16,7 @@ async function prescriptionImage(page: Page): Promise<Buffer> {
   const p = await page.context().newPage();
   await p.setViewportSize({ width: 600, height: 800 });
   await p.setContent(
-    `<body style="font:28px serif;padding:40px;background:#fff">李医生 处方<br><br>北芪 15g　党参 12g<br>麦门冬 9g　砂仁 3g（后下）<br>鸡血藤 15g<br><br>× 5 剂</body>`,
+    `<body style="font:28px serif;padding:40px;background:#fff">李医生 处方<br><br>北芪 15g　党参 12g<br>麦门冬 9g　砂仁 3g（后下）<br>鸡矢藤 15g<br><br>× 5 剂</body>`,
   );
   const buf = await p.screenshot();
   await p.close();
@@ -190,13 +190,13 @@ test.describe("登录与权限", () => {
 });
 
 test(
-  "药柜按拼音排序：白术 → 川芎 → 丁香 → 甘草 → 黄芪（不按汉字编码；目录外的药也按拼音）",
+  "药柜按拼音排序：白术 → 川芎 → 冬瓜子 → 甘草 → 黄芪（不按汉字编码；目录外的药也按拼音）",
   { tag: ["@FIX-6", "@INV-1"] },
   async ({ page }) => {
     await signUp(page, fresh());
     await page.goto("/inventory");
-    // 故意不按拼音顺序录入；按 Unicode 编码排是 丁香 → 川芎 → 甘草 → 白术 → 黄芪。丁香不在目录里（录入时新建，没有拼音）
-    for (const herb of ["黄芪", "丁香", "甘草", "白术", "川芎"]) {
+    // 故意不按拼音顺序录入；按 Unicode 编码排是 冬瓜子 → 川芎 → 甘草 → 白术 → 黄芪。冬瓜子不在目录里（录入时新建，没有拼音；2026-11-13 丁香进了目录，换成冬瓜子）
+    for (const herb of ["黄芪", "冬瓜子", "甘草", "白术", "川芎"]) {
       await page.locator('input[name="herb_name"]').fill(herb);
       await page.locator('input[name="actual"]').last().fill("100");
       await page.getByRole("button", { name: "录入" }).click();
@@ -208,7 +208,7 @@ test(
     const names = await page
       .locator('[data-testid^="stock-card-"]')
       .evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("stock-card-", "")));
-    expect(names).toEqual(["白术", "川芎", "丁香", "甘草", "黄芪"]);
+    expect(names).toEqual(["白术", "川芎", "冬瓜子", "甘草", "黄芪"]);
   },
 );
 
@@ -239,7 +239,7 @@ test.describe("拍照识别", () => {
     await expect(names).toHaveCount(5);
     await expect(names.nth(0)).toHaveValue("黄芪"); // 北芪 → 黄芪
     await expect(names.nth(2)).toHaveValue("麦冬"); // 麦门冬 → 麦冬
-    await expect(names.nth(4)).toHaveValue("鸡血藤");
+    await expect(names.nth(4)).toHaveValue("鸡矢藤");
     await expect(names.nth(4)).toHaveClass(/border-cinnabar/); // 不在目录里
     await expect(names.nth(0)).not.toHaveClass(/border-cinnabar/);
     await expect(page.getByLabel("脚注").nth(3)).toHaveValue("后下");
@@ -272,7 +272,7 @@ test.describe("拍照识别", () => {
       ["党参", "党参", 12],
       ["麦冬", "麦门冬", 9],
       ["砂仁", "砂仁", 3],
-      ["鸡血藤", "鸡血藤", 12],
+      ["鸡矢藤", "鸡矢藤", 12],
     ]);
 
     // 删除药方时照片一起删

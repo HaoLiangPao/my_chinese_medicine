@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { pinyin } from "pinyin-pro";
 import { getContext } from "@/lib/auth";
-import { listHerbs } from "@/lib/herbs";
+import { listHerbAliases, listHerbs } from "@/lib/herbs";
 import { buildHerbIndex } from "@/lib/herb-index";
 import { Loading, PageHeader } from "@/components/ui";
 import { PrescribeForm } from "./prescribe-form";
@@ -29,8 +29,9 @@ async function Loader({ searchParams }: { searchParams: Promise<Record<string, s
   const patientId = uuidParam(sp.patient);
   const fromId = uuidParam(sp.from);
   const templateId = uuidParam(sp.template);
-  const [herbs, { data: prices }, { data: pre }, sources] = await Promise.all([
+  const [herbs, aliases, { data: prices }, { data: pre }, sources] = await Promise.all([
     listHerbs(supabase),
+    listHerbAliases(supabase),
     supabase.from("v_herb_price_summary").select("herb_id, min_ppg, avg_cost_per_gram").eq("workspace_id", workspaceId),
     patientId
       ? supabase.from("patients").select("id, name, phone, notes").eq("workspace_id", workspaceId).eq("id", patientId).maybeSingle()
@@ -44,7 +45,7 @@ async function Loader({ searchParams }: { searchParams: Promise<Record<string, s
     null;
 
   // 没有拼音的药材（用户新加的）在服务器端补上，不把拼音库打包到浏览器
-  const index = buildHerbIndex(herbs, (name) => pinyin(name, { toneType: "none", type: "string" }));
+  const index = buildHerbIndex(herbs, (name) => pinyin(name, { toneType: "none", type: "string" }), aliases);
   // 成本用诊所各店最低进货价；只有赠品/没进过货的药没有价格
   const ppg: Record<string, number> = {};
   for (const p of prices ?? []) {

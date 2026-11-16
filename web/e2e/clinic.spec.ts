@@ -136,14 +136,14 @@ test("3. 开方：新病人、选药（首字母、炮制品、搜索、新药�
   await expect(page.getByRole("button", { name: /＋ 新增/ })).toHaveCount(0);
 
   // 目录里没有的药：新增
-  // （药材目录是全局的：同一个本地库上重复跑测试时，鸡血藤可能已经被之前的运行加进去了）
-  await page.getByLabel("搜药材").fill("鸡血藤");
-  const addNew = page.getByRole("button", { name: "＋ 新增「鸡血藤」" });
+  // （药材目录是全局的：同一个本地库上重复跑测试时，鸡矢藤可能已经被之前的运行加进去了）
+  await page.getByLabel("搜药材").fill("鸡矢藤");
+  const addNew = page.getByRole("button", { name: "＋ 新增「鸡矢藤」" });
   if (await addNew.count()) await addNew.click();
-  else await page.getByTestId("letter-panel").getByTestId("herb-鸡血藤").click();
+  else await page.getByTestId("letter-panel").getByTestId("herb-鸡矢藤").click();
   await fillLine(15, { chip: true });
 
-  expect(await lineNames()).toEqual(["炙黄芪", "党参", "薄荷", "炙甘草", "白术", "当归", "鸡血藤"]);
+  expect(await lineNames()).toEqual(["炙黄芪", "党参", "薄荷", "炙甘草", "白术", "当归", "鸡矢藤"]);
 
   // 删除当归
   await page.getByTestId("line-当归").getByRole("button", { name: "删" }).click();
@@ -158,7 +158,7 @@ test("3. 开方：新病人、选药（首字母、炮制品、搜索、新药�
   await fillLine(6);
   // 炙甘草上移一位
   await page.getByRole("button", { name: "炙甘草 上移" }).click();
-  expect(await lineNames()).toEqual(["炙黄芪", "党参", "炙甘草", "薄荷", "白术", "鸡血藤"]);
+  expect(await lineNames()).toEqual(["炙黄芪", "党参", "炙甘草", "薄荷", "白术", "鸡矢藤"]);
   await expect(page.getByTestId("line-薄荷")).toContainText("后下；最后 5 分钟放");
 
   // 克数多打一个 0 → 拦下
@@ -169,10 +169,10 @@ test("3. 开方：新病人、选药（首字母、炮制品、搜索、新药�
   await page.getByTestId("line-党参").getByRole("button", { name: "改" }).click();
   await fillLine(15);
 
-  // 成本（独立计算）：有进货价的药加起来，白术和鸡血藤没有进货价
+  // 成本（独立计算）：有进货价的药加起来，白术和鸡矢藤没有进货价
   const perDose = 18 * ppg["炙黄芪"] + 15 * ppg["党参"] + 6 * ppg["炙甘草"] + 3 * ppg["薄荷"];
   await expect(page.getByTestId("cost-summary")).toContainText(`每剂 $${perDose.toFixed(2)} · 7 剂共 $${(perDose * 7).toFixed(2)}`);
-  await expect(page.getByTestId("cost-summary")).toContainText("不含没有进货价的：白术、鸡血藤");
+  await expect(page.getByTestId("cost-summary")).toContainText("不含没有进货价的：白术、鸡矢藤");
   await expect(page.getByTestId("line-cost-白术")).toHaveText("无进货价");
   await expect(page.getByTestId("line-cost-炙黄芪")).toHaveText(`$${(18 * ppg["炙黄芪"]).toFixed(2)}`);
 });
@@ -188,7 +188,7 @@ const EXPECTED = [
   "3. 炙甘草 6g",
   "4. 薄荷 3g（后下；最后 5 分钟放）",
   "5. 白术 9g（另包）",
-  "6. 鸡血藤 15g",
+  "6. 鸡矢藤 15g",
   "————————",
   "煎服法：水煎服，日一剂，早晚分服",
   "医嘱：忌生冷",

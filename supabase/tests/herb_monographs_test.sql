@@ -6,7 +6,10 @@ select h.id as maidong from herbs h where name_zh = '麦冬' \gset
 select h.id as zgc from herbs h where name_zh = '炙甘草' \gset
 
 -- ---- 导入：每味药都有资料，全是草稿 ----
-select assert_eq((select count(*) from herbs h where not exists (select 1 from herb_monographs m where m.herb_id = h.id)), 0::bigint, '目录里每味药都有资料');
+-- 2026-11-13 扩目录（docs/design/0017）：新加的 388 味这一版只有名字，资料分批补；原来的 119 味都有资料
+select assert_eq((select count(*) from herb_monographs), 119::bigint, '资料草稿 119 味');
+select assert_eq((select count(*) from herbs h join herb_monographs m on m.herb_id = h.id where h.name_zh in ('麦冬', '炙甘草', '南沙参', '铁皮石斛')), 4::bigint, '原来的药有资料');
+select assert_eq((select count(*) from herbs h where h.name_zh in ('延胡索', '蜜麻黄') and not exists (select 1 from herb_monographs m where m.herb_id = h.id)), 2::bigint, '新加的药还没有资料');
 select assert_eq((select count(*) from herb_monographs where status <> 'draft'), 0::bigint, '导入的全是草稿');
 select assert_eq((select nature || ':' || array_to_string(flavors, ',') || ':' || array_to_string(meridians, ',') from herb_monographs where herb_id = :'maidong'),
   '微寒:甘,微苦:心,肺,胃', '麦冬的性味归经');

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// 生成「药材目录 + 药材资料导入」的 migration（docs/design/0010 §3.2、§3.4）。
+// 生成「药材目录 + 药材资料导入」的 migration（docs/design/0010 §3.2、§3.4；名单的规则见 0017）。
 //
 //   node scripts/gen-herb-monographs.mjs supabase/migrations/<时间戳>_herb_catalog_and_monographs.sql
 //
 // 线上部署只执行 migration、不跑 seed.sql，所以目录里新加的药也要写进 migration。生成的 SQL：
 //   1. 改名（RENAMES，只在旧名存在、新名不存在时改；药材 id 不变，已有药方跟着变）
-//   2. seed.sql 里的全部药材、炮制品、别名（已有的不动）
+//   2. seed.sql 里的全部药材、炮制品、别名（已有的不动；名字已经被别名占用的药不建，免得 match_herb 换了结果）
 //   3. supabase/data/herb-monographs.json 的资料（已有资料的不覆盖：导入以后以数据库为准，审核人在核对页改）
 // 可以重复执行。生成以后不要手改，要改就改 JSON / seed.sql 再生成一个新的 migration。
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -51,7 +51,7 @@ const monoRows = monographs.map((m) => [
 const sql = `-- =============================================================================
 -- 药材目录 + 药材资料导入。由 scripts/gen-herb-monographs.mjs 生成，不要手改。
 -- 来源：supabase/seed.sql（目录）、supabase/data/herb-monographs.json（资料，${monographs.length} 味）
--- 设计：docs/design/0010-herb-labels.md §3.2、§3.4。可以重复执行。
+-- 设计：docs/design/0010-herb-labels.md §3.2、§3.4，0017（目录的名单和规则）。可以重复执行。
 -- =============================================================================
 
 -- 1. 改名：只在旧名存在、新名还没有时改（药材 id 不变，已有药方跟着显示新名）
@@ -59,14 +59,19 @@ ${RENAMES.map((r) => `update public.herbs set name_zh = ${q(r.to)}, pinyin = ${q
 where name_zh = ${q(r.from)} and not exists (select 1 from public.herbs where name_zh = ${q(r.to)});`).join("\n")}
 
 -- 2. 目录（已有的不动）
-insert into public.herbs (name_zh, pinyin, category) values
+-- 名字已经是某味药的别名（比如用户那边早就把它当别名用）时不建：match_herb 先按药名找，建了会改变这个名字找到的药
+insert into public.herbs (name_zh, pinyin, category)
+select v.name_zh, v.pinyin, v.category from (values
 ${rows(herbs.map((h) => h.map(q)))}
+) as v(name_zh, pinyin, category)
+where not exists (select 1 from public.herb_aliases a where a.alias = v.name_zh)
 on conflict (name_zh) do nothing;
 
 insert into public.herbs (name_zh, pinyin, category, base_herb_id)
 select v.name_zh, v.pinyin, b.category, b.id from (values
 ${rows(processed.map((h) => h.map(q)))}
 ) as v(name_zh, pinyin, base) join public.herbs b on b.name_zh = v.base
+where not exists (select 1 from public.herb_aliases a where a.alias = v.name_zh)
 on conflict (name_zh) do nothing;
 
 -- 别名不能和药名重复（match_herb 先按药名找）
