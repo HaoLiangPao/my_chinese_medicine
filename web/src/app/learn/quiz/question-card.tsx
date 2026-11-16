@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { topicLabel, type QuizMode } from "@/lib/quiz";
+import { QUIZ_CORRECTION_FIELDS } from "@/lib/content-correction";
+import { CorrectionButton } from "@/components/content-correction";
 import { answerQuestion } from "./actions";
 import type { PublicQuestion, Reveal } from "./data";
 
@@ -120,12 +122,18 @@ export function QuestionCard({
             出处：{result.source}
           </p>
           {note && <p className="text-xs text-amber">{note}</p>}
+          {/* 题目是 AI 整理的：答完可以指出哪里有误（docs/design/0021）。只有登录用户能提交 */}
+          {loggedIn && (
+            <CorrectionButton subject={{ type: "quiz_question", id: question.id, label: question.stem, fields: QUIZ_CORRECTION_FIELDS }}>
+              这题有误？
+            </CorrectionButton>
+          )}
           {!loggedIn && (
             <p className="text-sm" data-testid="quiz-login-hint">
               <Link href="/login" className="text-cinnabar underline">
                 登录
               </Link>
-              后可以记录和复习。
+              后可以记录和复习，也可以指出错误。
             </p>
           )}
         </div>
@@ -133,7 +141,7 @@ export function QuestionCard({
 
       {question.status === "draft" && (
         <p className="mt-3 text-xs text-muted" data-testid="quiz-disclaimer">
-          题目由 AI 整理，尚未经医生审核；发现错误请{loggedIn ? "点右下角「反馈问题」" : "登录后点右下角「反馈问题」"}。
+          题目由 AI 整理，尚未经医生审核；{loggedIn ? "发现错误请答完后点「这题有误？」" : "发现错误可以登录后指出"}。
         </p>
       )}
     </div>

@@ -4,6 +4,7 @@
 - 日期：2026-11-12
 - 作者：Hao、Claude
 - 需求：`docs/ideas.md` IDEA-4；功能编号 PLAT-4
+- 2026-11-15：Bugs 列表按类型（程序问题 / 信息纠错）筛选、按对象汇总，改用 `admin_feedback_reports`，见 0021 §3.4、§5.3
 
 ## 1. 目标和范围
 

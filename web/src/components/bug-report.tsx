@@ -2,8 +2,16 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
-import { submitBugReport } from "@/app/bug-report/actions";
+import { submitBugReport, submitCorrection } from "@/app/bug-report/actions";
 import { clickLabel, LIMITS, pushCapped, sanitizeError, sanitizePath, type BugAction, type BugError } from "@/lib/bug-report";
+import {
+  CORRECTION_EVENT,
+  CORRECTION_LIMITS,
+  fieldLabel,
+  parseCorrectionSubject,
+  SUBJECT_NOUN,
+  type CorrectionSubject,
+} from "@/lib/content-correction";
 
 /**
  * 右下角的「反馈问题」按钮和面板（docs/design/0014 §3、§4）。放在根布局里，登录后每个页面都有。
@@ -11,10 +19,15 @@ import { clickLabel, LIMITS, pushCapped, sanitizeError, sanitizePath, type BugAc
  * 顺便在内存里记最近的操作和前端错误，提交时带上。只记「去了哪个页面、点了哪个按钮」：
  * 从不读输入框的内容，也不读按钮上的字（上面可能有病人姓名）——按钮只记它的 `data-bug-label`（代码里写死的名字），
  * 没有的只记「（按钮）」；链接只记目标路径。
+ *
+ * 药材页、学堂的「信息有误？」按钮发一个浏览器事件，同一个面板换成「信息纠错」（docs/design/0021 §5.2）：
+ * 带上是哪味药 / 哪道题，选哪一项、写应该是什么和依据；不带操作记录和浏览器信息。
  */
 
 type Snapshot = { pagePath: string; userAgent: string; viewport: string; actions: BugAction[]; errors: BugError[] };
 type Result = { ok: true; id: string } | { ok: false; error: string } | null;
+type Fix = { field: string; text: string; evidence: string };
+const EMPTY_FIX: Fix = { field: "", text: "", evidence: "" };
 
 const draftKey = (userId: string) => `bug-report-draft:${userId}`;
 // sessionStorage 在隐私模式等情况下可能不能用：草稿只是保险，读写失败都不影响提交
@@ -45,6 +58,10 @@ export function BugReport({ userId }: { userId: string }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [result, setResult] = useState<Result>(null);
   const [pending, startTransition] = useTransition();
+  // null：程序问题（右下角按钮）；有值：信息纠错。纠错的内容和程序问题的草稿分开，互不覆盖
+  const [subject, setSubject] = useState<CorrectionSubject | null>(null);
+  const [fix, setFix] = useState<Fix>(EMPTY_FIX);
+  const lastSubject = useRef<CorrectionSubject | null>(null);
 
   // 去了哪个页面
   useEffect(() => {
@@ -82,8 +99,24 @@ export function BugReport({ userId }: { userId: string }) {
     };
   }, []);
 
+  // 「信息有误？」按钮：换成纠错的样子。同一个对象再点，写了一半的还在；换了对象就清空
   useEffect(() => {
-    if (open) dialogRef.current?.showModal();
+    const onCorrection = (e: Event) => {
+      const next = parseCorrectionSubject((e as CustomEvent).detail);
+      if (!next) return;
+      const prev = lastSubject.current;
+      if (prev?.type !== next.type || prev.id !== next.id) setFix(EMPTY_FIX);
+      lastSubject.current = next;
+      setSubject(next);
+      setResult(null);
+      setOpen(true);
+    };
+    window.addEventListener(CORRECTION_EVENT, onCorrection);
+    return () => window.removeEventListener(CORRECTION_EVENT, onCorrection);
+  }, []);
+
+  useEffect(() => {
+    if (open && !dialogRef.current?.open) dialogRef.current?.showModal();
   }, [open]);
 
   const show = () => {
@@ -96,6 +129,7 @@ export function BugReport({ userId }: { userId: string }) {
       errors: errors.current,
     });
     if (!description) setDescription(readDraft(userId));
+    setSubject(null);
     setResult(null);
     setOpen(true);
   };
@@ -117,7 +151,47 @@ export function BugReport({ userId }: { userId: string }) {
     });
   };
 
+  const submitFix = () => {
+    if (!subject || !fix.field || !fix.text.trim()) return;
+    startTransition(async () => {
+      setResult(null);
+      try {
+        const res = await submitCorrection({
+          subjectType: subject.type,
+          subjectId: subject.id,
+          field: fix.field,
+          description: fix.text,
+          evidence: fix.evidence,
+          pagePath: sanitizePath(window.location.pathname + window.location.search),
+        });
+        setResult(res);
+        if (res.ok) setFix(EMPTY_FIX);
+      } catch {
+        setResult({ ok: false, error: "没发出去（可能是网络问题）。写的内容还在，可以再试一次。" });
+      }
+    });
+  };
+
   const sent = result?.ok ? result : null;
+  const title = subject ? "指出信息错误" : "反馈问题";
+  const header = (
+    <div className="flex items-center justify-between">
+      <h2 className="font-serif text-lg font-bold">{title}</h2>
+      <button type="button" onClick={() => dialogRef.current?.close()} className="btn-ghost min-h-11 px-3">
+        关闭
+      </button>
+    </div>
+  );
+  const sentNote = sent && (
+    <p role="status" className="rounded-lg bg-paper p-3 text-sm" data-testid="bug-report-ok">
+      已收到，谢谢！编号 <b className="font-mono">{sent.id.slice(0, 8)}</b>
+    </p>
+  );
+  const errorNote = result && !result.ok && (
+    <p role="alert" className="rounded-lg border border-cinnabar p-3 text-sm text-cinnabar" data-testid="bug-report-error">
+      {result.error}
+    </p>
+  );
   return (
     <div data-bug-report className="print:hidden">
       <button
@@ -135,7 +209,7 @@ export function BugReport({ userId }: { userId: string }) {
       </button>
       <dialog
         ref={dialogRef}
-        aria-label="反馈问题"
+        aria-label={title}
         data-testid="bug-report-panel"
         onClose={() => setOpen(false)}
         // 点遮罩关闭：按下和松开都在遮罩上才算（在文本框里选字、拖到外面松开不关）
@@ -143,7 +217,87 @@ export function BugReport({ userId }: { userId: string }) {
         onClick={(e) => e.target === e.currentTarget && downOnBackdrop.current && dialogRef.current?.close()}
         className="fixed inset-x-0 top-auto bottom-0 mx-auto mb-0 max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-card p-0 text-ink shadow-xl backdrop:bg-black/40"
       >
-        {open && snapshot && (
+        {open && subject && (
+          <form
+            className="space-y-3 p-4"
+            data-testid="correction-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitFix();
+            }}
+          >
+            {header}
+            <p className="text-sm" data-testid="correction-subject">
+              关于{subject.type === "herb" ? "：" : "这道题："}
+              <b>{subject.label}</b>
+            </p>
+            {sent ? (
+              sentNote
+            ) : (
+              <>
+                <div>
+                  <label htmlFor="correction-field" className="label">
+                    哪一项有误？
+                  </label>
+                  <select
+                    id="correction-field"
+                    value={fix.field}
+                    onChange={(e) => setFix({ ...fix, field: e.target.value })}
+                    required
+                    className="input"
+                  >
+                    <option value="">请选择</option>
+                    {subject.fields.map((f) => (
+                      <option key={f} value={f}>
+                        {fieldLabel(subject.type, f)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="correction-text" className="label">
+                    应该是什么？
+                  </label>
+                  <textarea
+                    id="correction-text"
+                    value={fix.text}
+                    onChange={(e) => setFix({ ...fix, text: e.target.value })}
+                    maxLength={LIMITS.description}
+                    rows={4}
+                    required
+                    placeholder="比如：应该是「辛、微苦，温」。请不要写病人的姓名、电话。"
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="correction-evidence" className="label">
+                    依据（可选）
+                  </label>
+                  <input
+                    id="correction-evidence"
+                    value={fix.evidence}
+                    onChange={(e) => setFix({ ...fix, evidence: e.target.value })}
+                    maxLength={CORRECTION_LIMITS.evidence}
+                    placeholder="比如：《中国药典》2020 年版一部"
+                    className="input"
+                  />
+                </div>
+                <p className="rounded-lg bg-paper p-3 text-xs text-muted" data-testid="correction-attached">
+                  会附带：{SUBJECT_NOUN[subject.type]}、你选的那一项、当前页面的路径。不带操作记录和浏览器信息。
+                </p>
+                {errorNote}
+                <button
+                  className="btn-primary min-h-11 w-full"
+                  disabled={pending || !fix.field || !fix.text.trim()}
+                  data-bug-label="提交信息纠错"
+                >
+                  {pending ? "提交中…" : "提交"}
+                </button>
+              </>
+            )}
+          </form>
+        )}
+        {open && !subject && snapshot && (
           <form
             className="space-y-3 p-4"
             onSubmit={(e) => {
@@ -151,16 +305,9 @@ export function BugReport({ userId }: { userId: string }) {
               submit();
             }}
           >
-            <div className="flex items-center justify-between">
-              <h2 className="font-serif text-lg font-bold">反馈问题</h2>
-              <button type="button" onClick={() => dialogRef.current?.close()} className="btn-ghost min-h-11 px-3">
-                关闭
-              </button>
-            </div>
+            {header}
             {sent ? (
-              <p role="status" className="rounded-lg bg-paper p-3 text-sm" data-testid="bug-report-ok">
-                已收到，谢谢！编号 <b className="font-mono">{sent.id.slice(0, 8)}</b>
-              </p>
+              sentNote
             ) : (
               <>
                 <div>
@@ -205,11 +352,7 @@ export function BugReport({ userId }: { userId: string }) {
                     </dd>
                   </dl>
                 </details>
-                {result && !result.ok && (
-                  <p role="alert" className="rounded-lg border border-cinnabar p-3 text-sm text-cinnabar" data-testid="bug-report-error">
-                    {result.error}
-                  </p>
-                )}
+                {errorNote}
                 <button className="btn-primary min-h-11 w-full" disabled={pending || !description.trim()}>
                   {pending ? "提交中…" : "提交"}
                 </button>

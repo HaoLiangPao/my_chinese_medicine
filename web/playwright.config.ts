@@ -59,6 +59,7 @@ export default defineConfig({
     { name: "herb-kinds", testMatch: /herb-kinds\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "apprentice", testMatch: /apprentice\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
     { name: "learn-quiz", testMatch: /learn-quiz\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    { name: "content-correction", testMatch: /content-correction\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {

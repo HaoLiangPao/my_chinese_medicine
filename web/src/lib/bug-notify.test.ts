@@ -26,6 +26,15 @@ describe("buildSlackMessage", () => {
     expect(text.split("\n")).toHaveLength(3);
     for (const secret of ["张三", "4165550101", "处方", "描述"]) expect(text).not.toContain(secret);
   });
+  it("信息纠错：多一行类型，仍然没有建议、依据、药名（docs/design/0021 §4）；程序问题显式传 bug 和原来一样", () => {
+    const n = { ...notice, pagePath: "/herbs/3f2b8c1e-4a5d-4e6f-9a7b-0123456789ab", kind: "content" as const };
+    const { text } = buildSlackMessage({ ...n, description: "应该是辛温", evidence: "中国药典", subjectLabel: "麻黄" } as typeof n);
+    expect(text).toBe(
+      "📝 新的信息纠错 3f2b8c1e-4a5d-4e6f-9a7b-0123456789ab\n类型：信息纠错\n页面：/herbs/3f2b8c1e-4a5d-4e6f-9a7b-0123456789ab\n时间：2026-11-10T01:02:03.456Z",
+    );
+    for (const secret of ["辛温", "药典", "麻黄"]) expect(text).not.toContain(secret);
+    expect(buildSlackMessage({ ...notice, kind: "bug" })).toEqual(buildSlackMessage(notice));
+  });
   it("Slack 的特殊字符转义（路径里的 <!channel> 不会真的 @ 所有人）", () => {
     const { text } = buildSlackMessage({ ...notice, pagePath: "/a?<!channel>&<x>" });
     expect(text).toContain("页面：/a?&lt;!channel&gt;&amp;&lt;x&gt;");

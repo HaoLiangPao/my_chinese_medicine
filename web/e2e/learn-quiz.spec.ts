@@ -67,7 +67,7 @@ test("不登录做每日一题：答完显示对错和解析，不记录", { tag
   await expect(card.getByTestId("quiz-question")).toHaveAttribute("data-question-id", q.id);
   await expect(card.getByTestId("quiz-stem")).toHaveText(q.stem);
   for (const [i, o] of q.options.entries()) await expect(card.getByTestId(`quiz-option-${i}`)).toContainText(o);
-  await expect(card.getByTestId("quiz-disclaimer")).toHaveText("题目由 AI 整理，尚未经医生审核；发现错误请登录后点右下角「反馈问题」。");
+  await expect(card.getByTestId("quiz-disclaimer")).toHaveText("题目由 AI 整理，尚未经医生审核；发现错误可以登录后指出。");
   // 答案和解析不在页面里（答完才由服务器返回）
   expect(await page.content()).not.toContain(q.explanation);
 
@@ -79,7 +79,7 @@ test("不登录做每日一题：答完显示对错和解析，不记录", { tag
   await expect(card.getByTestId(`quiz-option-${wrongIndex(q)}`)).toHaveAttribute("data-state", "wrong");
   await expect(card.getByTestId("quiz-explanation")).toHaveText(q.explanation);
   await expect(card.getByTestId("quiz-source")).toHaveText(`出处：${q.source}`);
-  await expect(card.getByTestId("quiz-login-hint")).toHaveText("登录后可以记录和复习。");
+  await expect(card.getByTestId("quiz-login-hint")).toHaveText("登录后可以记录和复习，也可以指出错误。");
   for (let i = 0; i < q.options.length; i++) await expect(card.getByTestId(`quiz-option-${i}`)).toBeDisabled();
   await page.screenshot({ path: path.join(SHOTS, "learn-quiz-daily-anon.png"), fullPage: true });
 
@@ -136,7 +136,7 @@ test("登录后：每日一题记录、打卡、主题进度、错题本、到�
   await page.goto("/learn");
   const card = page.getByTestId("daily-quiz");
   await expect(card.getByTestId("daily-streak")).toHaveText("今天答一题就开始打卡");
-  await expect(card.getByTestId("quiz-disclaimer")).toContainText("发现错误请点右下角「反馈问题」");
+  await expect(card.getByTestId("quiz-disclaimer")).toContainText("发现错误请答完后点「这题有误？」");
   await answer(card, wrongIndex(q));
   await expect(card.getByTestId("quiz-result")).toHaveAttribute("data-correct", "false");
   await expect(card.getByTestId("quiz-login-hint")).toHaveCount(0);
