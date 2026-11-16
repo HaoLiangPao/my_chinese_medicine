@@ -1,11 +1,13 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { TOXICITY, guiJing, reviewedMonth, xingWei, type Monograph } from "@/lib/herb-monograph";
 
-/** 药名下面的小标签：味、性、归经、毒性（docs/design/0010 §4.1） */
-export function MonographTags({ m }: { m: Monograph }) {
+/** 药名下面的小标签：（来源 · 部位，lead）味、性、归经、毒性（docs/design/0010 §4.1、0018 §5） */
+export function MonographTags({ m, lead }: { m: Monograph; lead?: ReactNode }) {
   const tox = m.toxicity;
   return (
     <div className="mt-2 flex flex-wrap gap-1.5 text-sm" data-testid="monograph-tags">
+      {lead}
       <span className="rounded-full bg-jade/10 px-2.5 py-0.5 text-jade">{m.flavors.join(" · ")}</span>
       <span className="rounded-full bg-paper px-2.5 py-0.5 ring-1 ring-line">{m.nature}</span>
       <span className="rounded-full bg-amber/10 px-2.5 py-0.5 text-ink">{m.meridians.join(" · ")}经</span>

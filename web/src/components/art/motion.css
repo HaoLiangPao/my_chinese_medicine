@@ -1,0 +1,157 @@
+/*
+ * 素材库的动画（docs/design/0019 §3）：轻、慢、循环几秒。
+ * 旋转用 transform-box: view-box，转动中心写在元素的 style 里（viewBox 坐标，单位 px），
+ * 所以带动画的 <g> 不能放在有 transform 的 <g> 里面（素材都用绝对坐标画）。
+ * 系统设置了「减少动态效果」→ 全部停在静态姿势。
+ *
+ * 不用 CSS Modules：next.config.ts 让所有 *.css 都走 Tailwind 的 loader（as: "*.css"），*.module.css 的类名不会生成。
+ * 所以是全局的类名，统一加 ap- 前缀；组件里用 motion.ts 的常量。
+ */
+.ap-nod {
+  animation: ap-nod 3.2s ease-in-out infinite;
+  transform-box: view-box;
+}
+.ap-look {
+  animation: ap-look 4s ease-in-out infinite;
+  transform-box: view-box;
+}
+.ap-pound {
+  animation: ap-pound 1.6s ease-in-out infinite;
+  transform-box: view-box;
+}
+.ap-puff {
+  animation: ap-puff 1.6s ease-out infinite;
+}
+.ap-tilt {
+  animation: ap-tilt 3.2s ease-in-out infinite alternate;
+  transform-box: view-box;
+}
+.ap-pull {
+  animation: ap-pull 4s ease-in-out infinite;
+}
+.ap-poke {
+  animation: ap-poke 2.8s ease-in-out infinite;
+}
+.ap-glow {
+  animation: ap-glow 2.8s ease-in-out infinite;
+}
+.ap-blink {
+  animation: ap-blink 4.5s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes ap-nod {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes ap-look {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40%,
+  70% {
+    transform: rotate(7deg);
+  }
+}
+@keyframes ap-pound {
+  0%,
+  15% {
+    transform: rotate(0deg);
+  }
+  45% {
+    transform: rotate(-8deg);
+  }
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes ap-puff {
+  0%,
+  55% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  65% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes ap-tilt {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+@keyframes ap-pull {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  35%,
+  70% {
+    transform: translateX(-5px);
+  }
+  90%,
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes ap-poke {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
+@keyframes ap-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes ap-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-nod,
+  .ap-look,
+  .ap-pound,
+  .ap-puff,
+  .ap-tilt,
+  .ap-pull,
+  .ap-poke,
+  .ap-glow,
+  .ap-blink {
+    animation: none;
+  }
+  /* 「冒烟」的小点停下来时是透明的，静态姿势里不要它 */
+  .ap-puff {
+    opacity: 0;
+  }
+}
