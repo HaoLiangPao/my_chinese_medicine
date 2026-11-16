@@ -56,6 +56,11 @@ select assert_raises(format($$insert into bug_reports (kind, subject_type, subje
   values ('content', 'herb', %L, 'name', '/', 'x', '  ')$$, :'mahuang'), 'bug_reports_evidence', '依据不能只有空格');
 select assert_raises(format($$insert into bug_reports (kind, subject_type, subject_herb_id, field, page_path, description, evidence)
   values ('content', 'herb', %L, 'name', '/', 'x', %L)$$, :'mahuang', repeat('书', 201)), 'bug_reports_evidence', '依据最多 200 字');
+select assert_raises(format($$insert into bug_reports (kind, subject_type, subject_herb_id, field, page_path, description, evidence)
+  values ('content', 'herb', %L, 'name', '/', 'x', %L)$$, :'mahuang', repeat(' ', 1000) || '书' || repeat(' ', 1000)),
+  'bug_reports_evidence', '首尾补空格也不能超过 200 字');
+select assert_raises(format($$insert into bug_reports (kind, subject_type, subject_herb_id, field, page_path, description, evidence)
+  values ('content', 'herb', %L, 'name', '/', 'x', %L)$$, :'mahuang', E'\n\t '), 'bug_reports_evidence', '依据不能只有换行和制表符');
 -- 描述（应该是什么）的约束照旧
 select assert_raises(format($$insert into bug_reports (kind, subject_type, subject_herb_id, field, page_path, description)
   values ('content', 'herb', %L, 'name', '/', '  ')$$, :'mahuang'), 'bug_reports_description_check', '「应该是什么」不能是空的');

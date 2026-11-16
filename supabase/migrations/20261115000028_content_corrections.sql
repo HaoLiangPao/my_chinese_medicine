@@ -16,7 +16,8 @@ alter table public.bug_reports
 
 alter table public.bug_reports
   add constraint bug_reports_kind check (kind in ('bug', 'content')),
-  add constraint bug_reports_evidence check (evidence is null or char_length(btrim(evidence)) between 1 and 200),
+  -- 依据：原文最多 200 字（不只是去掉空格以后：首尾补空格不能绕过），至少有一个不是空白的字
+  add constraint bug_reports_evidence check (evidence is null or (char_length(evidence) <= 200 and evidence ~ '\S')),
   -- 程序问题：纠错的列都是空的。信息纠错：对象和「哪一项」对得上（列表和 web/src/lib/content-correction.ts 一致，单元测试比对）；
   -- 不带诊断信息（操作记录、前端错误、浏览器、药柜，0021 §4）。
   -- 对象「必须存在」不写在这里：药材删掉时外键置空，这里不能因此失败（见下面的 br_insert_subject）。

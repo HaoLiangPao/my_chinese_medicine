@@ -165,7 +165,8 @@ export function BugReport({ userId }: { userId: string }) {
           pagePath: sanitizePath(window.location.pathname + window.location.search),
         });
         setResult(res);
-        if (res.ok) setFix(EMPTY_FIX);
+        // 提交途中换了对象（关掉面板点了别的「信息有误？」）：不清新对象写了一半的内容
+        if (res.ok && lastSubject.current?.type === subject.type && lastSubject.current.id === subject.id) setFix(EMPTY_FIX);
       } catch {
         setResult({ ok: false, error: "没发出去（可能是网络问题）。写的内容还在，可以再试一次。" });
       }
