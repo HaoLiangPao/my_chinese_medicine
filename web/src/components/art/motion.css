@@ -1,7 +1,9 @@
 /*
- * 素材库的动画（docs/design/0019 §3）：轻、慢、循环几秒。
- * 旋转用 transform-box: view-box，转动中心写在元素的 style 里（viewBox 坐标，单位 px），
- * 所以带动画的 <g> 不能放在有 transform 的 <g> 里面（素材都用绝对坐标画）。
+ * 素材库的动画（docs/design/0019 §3、§9）：轻、慢、循环几秒。
+ * 转动中心两种写法：
+ * - 头（点头、转头）：transform-box: fill-box，转动中心是头的外框的下沿中点（脖子），外面有没有 transform 都可以；
+ * - 道具（秤杆晃）：transform-box: view-box，转动中心写在元素的 style 里（viewBox 坐标，单位 px），
+ *   所以这类带动画的 <g> 不能放在有 transform 的 <g> 里面（道具都用绝对坐标画）。
  * 系统设置了「减少动态效果」→ 全部停在静态姿势。
  *
  * 不用 CSS Modules：next.config.ts 让所有 *.css 都走 Tailwind 的 loader（as: "*.css"），*.module.css 的类名不会生成。
@@ -9,15 +11,16 @@
  */
 .ap-nod {
   animation: ap-nod 3.2s ease-in-out infinite;
-  transform-box: view-box;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
 }
 .ap-look {
   animation: ap-look 4s ease-in-out infinite;
-  transform-box: view-box;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
 }
 .ap-pound {
   animation: ap-pound 1.6s ease-in-out infinite;
-  transform-box: view-box;
 }
 .ap-puff {
   animation: ap-puff 1.6s ease-out infinite;
@@ -47,7 +50,7 @@
     transform: rotate(0deg);
   }
   50% {
-    transform: rotate(5deg);
+    transform: rotate(4deg);
   }
 }
 @keyframes ap-look {
@@ -57,20 +60,20 @@
   }
   40%,
   70% {
-    transform: rotate(7deg);
+    transform: rotate(6deg);
   }
 }
 @keyframes ap-pound {
   0%,
   15% {
-    transform: rotate(0deg);
+    transform: translateY(0);
   }
   45% {
-    transform: rotate(-8deg);
+    transform: translateY(-4px);
   }
   60%,
   100% {
-    transform: rotate(0deg);
+    transform: translateY(0);
   }
 }
 @keyframes ap-puff {

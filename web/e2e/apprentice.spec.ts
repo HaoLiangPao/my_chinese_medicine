@@ -206,6 +206,9 @@ test("认识小学徒：五个动作和道具都在；每个动作截一张（�
   }
   for (const name of ["小学徒", "百子柜", "书卷", "药臼和杵", "戥子", "针灸铜人和针", "鞠躬的小药童"])
     await expect(p.getByRole("img", { name, exact: true })).toBeVisible();
+  // 表情集（docs/design/0019 §9.3）
+  for (const face of ["平常", "开心", "认真", "困惑", "抱歉"])
+    await expect(p.getByRole("img", { name: `小学徒${face}`, exact: true })).toBeVisible();
   await p.screenshot({ path: `${SHOTS}/小学徒-素材库.png`, fullPage: true, animations: "disabled" });
   await p.emulateMedia({ colorScheme: "dark" });
   await p.screenshot({ path: `${SHOTS}/小学徒-素材库-深色.png`, fullPage: true, animations: "disabled" });
@@ -220,7 +223,7 @@ test("手机 390px：目录页、详情页不溢出，小学徒不挡住按钮",
   await noOverflow(p);
   await nothingCovered(p);
   await p.screenshot({ path: `${SHOTS}/小学徒-目录页-手机.png` });
-  // 没有照片的药：占位图（鞠躬的小学徒）+「拍一张上传」，下面是说话框
+  // 没有照片的药：「暂时没有照片」+「拍一张上传」，下面是小学徒和说话框（页面上只有这一个小学徒）
   await p.goto(`/herbs/${await herbId("猪苓")}`);
   await expect(p.getByTestId("apprentice-line")).toBeVisible();
   await noOverflow(p);
