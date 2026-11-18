@@ -84,9 +84,24 @@ function Face({ face, look }: { face: ApprenticeFace; look: number }) {
   );
   return (
     <>
-      {face === "neutral" && <g className={m.blink}>{[eye(-ex), eye(ex)]}</g>}
-      {face === "focus" && <g className={m.blink}>{[eye(-ex, 0.85, 0.08 * r), eye(ex, 0.85, 0.08 * r)]}</g>}
-      {face === "confused" && <g className={m.blink}>{[eye(-ex, 1.12), eye(ex, 0.82)]}</g>}
+      {face === "neutral" && (
+        <g className={m.blink}>
+          {eye(-ex)}
+          {eye(ex)}
+        </g>
+      )}
+      {face === "focus" && (
+        <g className={m.blink}>
+          {eye(-ex, 0.85, 0.08 * r)}
+          {eye(ex, 0.85, 0.08 * r)}
+        </g>
+      )}
+      {face === "confused" && (
+        <g className={m.blink}>
+          {eye(-ex, 1.12)}
+          {eye(ex, 0.82)}
+        </g>
+      )}
       {face === "happy" && (
         <>
           {arc(-ex, ey + 0.04 * r, 0.15 * r, -0.17 * r)}
@@ -99,11 +114,36 @@ function Face({ face, look }: { face: ApprenticeFace; look: number }) {
           {arc(ex, ey, 0.14 * r, 0.11 * r)}
         </>
       )}
-      {face === "neutral" && [brow(-1, "flat"), brow(1, "flat")]}
-      {face === "focus" && [brow(-1, "flat"), brow(1, "flat")]}
-      {face === "happy" && [brow(-1, "up"), brow(1, "up")]}
-      {face === "confused" && [brow(-1, "raised"), brow(1, "down")]}
-      {face === "sorry" && [brow(-1, "worried"), brow(1, "worried")]}
+      {face === "neutral" && (
+        <>
+          {brow(-1, "flat")}
+          {brow(1, "flat")}
+        </>
+      )}
+      {face === "focus" && (
+        <>
+          {brow(-1, "flat")}
+          {brow(1, "flat")}
+        </>
+      )}
+      {face === "happy" && (
+        <>
+          {brow(-1, "up")}
+          {brow(1, "up")}
+        </>
+      )}
+      {face === "confused" && (
+        <>
+          {brow(-1, "raised")}
+          {brow(1, "down")}
+        </>
+      )}
+      {face === "sorry" && (
+        <>
+          {brow(-1, "worried")}
+          {brow(1, "worried")}
+        </>
+      )}
       {cheeks}
       {nose}
       {face === "neutral" && arc(0, my, 0.12 * r, 0.1 * r)}
@@ -317,7 +357,7 @@ export function StandingApprentice({
   );
 }
 
-/** 鞠躬的小学徒（拱手、闭眼，眉头有点抱歉）：素材库里「暂时没有照片」的那一张，docs/design/0010 §3.5 */
+/** 鞠躬的小学徒（拱手、闭眼，眉头有点抱歉）。以前是「暂时没有照片」的占位图（docs/design/0010 §3.5），现在只在素材库里（0019 §9.6） */
 export function BowingApprentice({ className }: { className?: string }) {
   const cx = 56;
   const { left, right } = shoulders(cx);

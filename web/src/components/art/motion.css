@@ -69,7 +69,7 @@
     transform: translateY(0);
   }
   45% {
-    transform: translateY(-4px);
+    transform: translateY(-2.5px);
   }
   60%,
   100% {
