@@ -88,7 +88,9 @@ test("没核对的药：不显示照片、文件也不在网站上；显示「�
   const ph = page.getByTestId("no-photo");
   await expect(ph).toBeVisible();
   await expect(ph).toContainText("暂时没有照片");
-  await expect(ph.getByRole("img", { name: "鞠躬的小药童" })).toBeVisible();
+  // 没照片时页面上只留一个小学徒：占位里不再画鞠躬的小学徒，下面干活的小学徒照常（docs/design/0019 §9.6）
+  await expect(ph.getByRole("img")).toHaveCount(0);
+  await expect(page.getByTestId("apprentice-scene")).toHaveCount(1);
   // 没核对的药，网站上没有它的图片文件（文件名按 seed.sql 的拼音推出来）
   const pinyin = seed.match(new RegExp(`\\('${without.name}', '([a-z ]+)'`))![1];
   const res = await page.request.get(`/herb-photos/${pinyin.replace(/ /g, "-")}.webp`);
